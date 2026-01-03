@@ -1,0 +1,48 @@
+Name: dmh-api
+Host: 0.0.0.0
+Port: 8888
+
+# CORS配置
+CorsConf:
+  AccessControlAllowOrigin: "*"
+  AccessControlAllowMethods: "GET,POST,PUT,DELETE,OPTIONS"
+  AccessControlAllowHeaders: "Content-Type,Authorization,X-Requested-With"
+  AccessControlExposeHeaders: "Content-Length,Access-Control-Allow-Origin,Access-Control-Allow-Headers,Content-Type"
+  AccessControlAllowCredentials: true
+
+# 数据库配置
+Mysql:
+  DataSource: root:#Admin168@tcp(localhost:3306)/dmh?charset=utf8mb4&parseTime=true&loc=Local
+
+# Redis配置
+Redis:
+  Host: localhost:6379
+  Type: node
+  Pass: ""
+
+# 日志配置
+Log:
+  ServiceName: dmh-api
+  Mode: console
+  Level: info
+
+# 超时配置
+Timeout: 30000
+
+# JWT配置
+Auth:
+  AccessSecret: dmh-access-secret-key
+  AccessExpire: 86400
+
+# 外部同步配置
+ExternalSync:
+  Enabled: true
+  Database:
+    Type: mysql  # mysql, oracle, sqlserver
+    Host: 172.21.45.24
+    Port: 3306
+    User: root
+    Password: "#Admin168"
+    Database: dmh
+    Schema: ""  # SQL Server 专用
+    Charset: utf8mb4

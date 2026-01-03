@@ -1,0 +1,75 @@
+# 依赖文件
+node_modules/
+vendor/
+
+# 构建输出
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 日志文件
+*.log
+logs/
+
+# 环境配置
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE配置
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# Go特定
+*.test
+*.out
+go.work
+go.work.sum
+
+# 前端特定
+.nuxt/
+.next/
+.vuepress/dist/
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+
+# 测试覆盖率
+coverage/
+*.cover
+*.coverprofile
+
+# 备份文件
+*.bak
+*.backup
+*-backup.*
+*-complete.*
+*-fixed.*

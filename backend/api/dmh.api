@@ -1,0 +1,904 @@
+syntax = "v1"
+
+info (
+	title:   "DMH Digital Marketing Hub API"
+	desc:    "数字营销中台 API 接口定义"
+	author:  "DMH Team"
+	version: "v1.0"
+)
+
+// ============================================
+// 角色权限管理相关
+// ============================================
+type (
+	// 角色响应
+	RoleResp {
+		Id          int64    `json:"id"`
+		Name        string   `json:"name"`
+		Code        string   `json:"code"`
+		Description string   `json:"description"`
+		Permissions []string `json:"permissions,optional"`
+		CreatedAt   string   `json:"createdAt"`
+	}
+	// 权限响应
+	PermissionResp {
+		Id          int64  `json:"id"`
+		Name        string `json:"name"`
+		Code        string `json:"code"`
+		Resource    string `json:"resource"`
+		Action      string `json:"action"`
+		Description string `json:"description"`
+	}
+	// 角色权限配置请求
+	RolePermissionReq {
+		RoleId        int64   `json:"roleId"`
+		PermissionIds []int64 `json:"permissionIds"`
+	}
+	// 用户权限查询响应
+	UserPermissionResp {
+		UserId      int64    `json:"userId"`
+		Roles       []string `json:"roles"`
+		Permissions []string `json:"permissions"`
+		BrandIds    []int64  `json:"brandIds,optional"`
+	}
+)
+
+// ============================================
+// 菜单权限管理相关
+// ============================================
+type (
+	// 菜单响应
+	MenuResp {
+		Id        int64      `json:"id"`
+		Name      string     `json:"name"`
+		Code      string     `json:"code"`
+		Path      string     `json:"path"`
+		Icon      string     `json:"icon,optional"`
+		ParentId  int64      `json:"parentId,optional"`
+		Sort      int        `json:"sort"`
+		Type      string     `json:"type"` // menu/button
+		Platform  string     `json:"platform"` // admin/h5
+		Status    string     `json:"status"`
+		Children  []MenuResp `json:"children,optional"`
+		CreatedAt string     `json:"createdAt"`
+	}
+	// 创建菜单请求
+	CreateMenuReq {
+		Name     string `json:"name"`
+		Code     string `json:"code"`
+		Path     string `json:"path"`
+		Icon     string `json:"icon,optional"`
+		ParentId int64  `json:"parentId,optional"`
+		Sort     int    `json:"sort"`
+		Type     string `json:"type"` // menu/button
+		Platform string `json:"platform"` // admin/h5
+	}
+	// 更新菜单请求
+	UpdateMenuReq {
+		Name     string `json:"name,optional"`
+		Code     string `json:"code,optional"`
+		Path     string `json:"path,optional"`
+		Icon     string `json:"icon,optional"`
+		ParentId int64  `json:"parentId,optional"`
+		Sort     int    `json:"sort,optional"`
+		Type     string `json:"type,optional"`
+		Platform string `json:"platform,optional"`
+		Status   string `json:"status,optional"`
+	}
+	// 角色菜单权限配置请求
+	RoleMenuReq {
+		RoleId  int64   `json:"roleId"`
+		MenuIds []int64 `json:"menuIds"`
+	}
+	// 用户菜单权限响应
+	UserMenuResp {
+		UserId   int64      `json:"userId"`
+		Platform string     `json:"platform"`
+		Menus    []MenuResp `json:"menus"`
+	}
+)
+
+// ============================================
+// 管理员用户管理相关
+// ============================================
+type (
+	// 管理员创建用户请求
+	AdminCreateUserReq {
+		Username string  `json:"username"`
+		Password string  `json:"password"`
+		Phone    string  `json:"phone"`
+		Email    string  `json:"email,optional"`
+		RealName string  `json:"realName,optional"`
+		Role     string  `json:"role"` // platform_admin, brand_admin, participant
+		BrandIds []int64 `json:"brandIds,optional"` // 品牌管理员的品牌ID列表
+	}
+	// 管理员用户列表请求
+	AdminGetUsersReq {
+		Page     int64  `json:"page,optional" form:"page,optional"`
+		PageSize int64  `json:"pageSize,optional" form:"pageSize,optional"`
+		Role     string `json:"role,optional" form:"role,optional"`
+		Status   string `json:"status,optional" form:"status,optional"`
+		Keyword  string `json:"keyword,optional" form:"keyword,optional"`
+	}
+	// 管理员用户列表响应
+	AdminUserListResp {
+		Total int64          `json:"total"`
+		Users []UserInfoResp `json:"users"`
+	}
+	// 管理员更新用户请求
+	AdminUpdateUserReq {
+		RealName string  `json:"realName,optional"`
+		Email    string  `json:"email,optional"`
+		Role     string  `json:"role,optional"`
+		Status   string  `json:"status,optional"` // active, disabled, locked
+		BrandIds []int64 `json:"brandIds,optional"`
+	}
+	// 管理员重置密码请求
+	AdminResetPasswordReq {
+		NewPassword string `json:"newPassword"`
+	}
+	// 品牌管理员关系管理请求
+	BrandAdminRelationReq {
+		UserId   int64   `json:"userId"`
+		BrandIds []int64 `json:"brandIds"`
+	}
+)
+
+// ============================================
+// 用户认证相关
+// ============================================
+type (
+	// 用户注册请求
+	RegisterReq {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Phone    string `json:"phone"`
+		Email    string `json:"email,optional"`
+		RealName string `json:"realName,optional"`
+	}
+	// 用户登录请求
+	LoginReq {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	// 登录响应
+	LoginResp {
+		Token    string   `json:"token"`
+		UserId   int64    `json:"userId"`
+		Username string   `json:"username"`
+		Phone    string   `json:"phone"`
+		RealName string   `json:"realName"`
+		Roles    []string `json:"roles"`
+		BrandIds []int64  `json:"brandIds,optional"` // 品牌管理员的品牌ID列表
+	}
+	// 获取当前用户信息响应
+	UserInfoResp {
+		Id        int64    `json:"id"`
+		Username  string   `json:"username"`
+		Phone     string   `json:"phone"`
+		Email     string   `json:"email"`
+		RealName  string   `json:"realName"`
+		Avatar    string   `json:"avatar"`
+		Status    string   `json:"status"`
+		Roles     []string `json:"roles"`
+		BrandIds  []int64  `json:"brandIds,optional"`
+		CreatedAt string   `json:"createdAt"`
+	}
+	// 更新个人资料请求
+	UpdateProfileReq {
+		RealName string `json:"realName"`
+	}
+	// 绑定手机请求
+	BindPhoneReq {
+		Phone string `json:"phone"`
+		Code  string `json:"code"`
+	}
+	// 绑定邮箱请求
+	BindEmailReq {
+		Email string `json:"email"`
+		Code  string `json:"code"`
+	}
+	// 发送验证码请求
+	SendCodeReq {
+		Target string `json:"target"` // 手机号或邮箱
+		Type   string `json:"type"` // phone/email
+	}
+	// 修改密码请求
+	ChangePasswordReq {
+		OldPassword string `json:"oldPassword"`
+		NewPassword string `json:"newPassword"`
+	}
+	// 刷新token请求
+	RefreshTokenReq {
+		Token string `json:"token"`
+	}
+	// 刷新token响应
+	RefreshTokenResp {
+		Token string `json:"token"`
+	}
+	// 通用响应
+	CommonResp {
+		Message string `json:"message"`
+	}
+)
+
+// ============================================
+// 提现相关
+// ============================================
+type (
+	// 提现申请请求
+	WithdrawalApplyReq {
+		Amount      float64 `json:"amount"`
+		BankName    string  `json:"bankName"`
+		BankAccount string  `json:"bankAccount"`
+		AccountName string  `json:"accountName"`
+	}
+	// 提现记录响应
+	WithdrawalResp {
+		Id          int64   `json:"id"`
+		UserId      int64   `json:"userId"`
+		Username    string  `json:"username,optional"`
+		RealName    string  `json:"realName,optional"`
+		Amount      float64 `json:"amount"`
+		BankName    string  `json:"bankName"`
+		BankAccount string  `json:"bankAccount"`
+		AccountName string  `json:"accountName"`
+		Status      string  `json:"status"`
+		Remark      string  `json:"remark,optional"`
+		ApprovedBy  int64   `json:"approvedBy,optional"`
+		ApprovedAt  string  `json:"approvedAt,optional"`
+		CreatedAt   string  `json:"createdAt"`
+	}
+	// 提现审核请求
+	WithdrawalApproveReq {
+		Status string `json:"status"` // approved/rejected
+		Remark string `json:"remark,optional"`
+	}
+	// 提现列表响应
+	WithdrawalListResp {
+		Total       int64            `json:"total"`
+		Withdrawals []WithdrawalResp `json:"withdrawals"`
+	}
+)
+
+// ============================================
+// 品牌相关
+// ============================================
+type (
+	// 创建品牌请求
+	CreateBrandReq {
+		Name        string `json:"name"`
+		Logo        string `json:"logo,optional"`
+		Description string `json:"description,optional"`
+	}
+	// 更新品牌请求
+	UpdateBrandReq {
+		Name        string `json:"name,optional"`
+		Logo        string `json:"logo,optional"`
+		Description string `json:"description,optional"`
+		Status      string `json:"status,optional"` // active/disabled
+	}
+	// 品牌响应
+	BrandResp {
+		Id          int64  `json:"id"`
+		Name        string `json:"name"`
+		Logo        string `json:"logo"`
+		Description string `json:"description"`
+		Status      string `json:"status"`
+		CreatedAt   string `json:"createdAt"`
+		UpdatedAt   string `json:"updatedAt"`
+	}
+	// 品牌列表响应
+	BrandListResp {
+		Total  int64       `json:"total"`
+		Brands []BrandResp `json:"brands"`
+	}
+	// 品牌素材请求
+	BrandAssetReq {
+		Name        string `json:"name"`
+		Type        string `json:"type"` // image/video/document
+		Category    string `json:"category,optional"`
+		Tags        string `json:"tags,optional"`
+		FileUrl     string `json:"fileUrl"`
+		FileSize    int64  `json:"fileSize"`
+		Description string `json:"description,optional"`
+	}
+	// 品牌素材响应
+	BrandAssetResp {
+		Id          int64  `json:"id"`
+		BrandId     int64  `json:"brandId"`
+		Name        string `json:"name"`
+		Type        string `json:"type"`
+		Category    string `json:"category"`
+		Tags        string `json:"tags"`
+		FileUrl     string `json:"fileUrl"`
+		FileSize    int64  `json:"fileSize"`
+		Description string `json:"description"`
+		CreatedAt   string `json:"createdAt"`
+		UpdatedAt   string `json:"updatedAt"`
+	}
+	// 品牌素材列表响应
+	BrandAssetListResp {
+		Total  int64            `json:"total"`
+		Assets []BrandAssetResp `json:"assets"`
+	}
+	// 品牌统计响应
+	BrandStatsResp {
+		BrandId          int64   `json:"brandId"`
+		TotalCampaigns   int64   `json:"totalCampaigns"`
+		ActiveCampaigns  int64   `json:"activeCampaigns"`
+		TotalOrders      int64   `json:"totalOrders"`
+		TotalRevenue     float64 `json:"totalRevenue"`
+		TotalRewards     float64 `json:"totalRewards"`
+		ParticipantCount int64   `json:"participantCount"`
+		ConversionRate   float64 `json:"conversionRate"`
+		LastUpdated      string  `json:"lastUpdated"`
+	}
+)
+
+// ============================================
+// 安全管理相关类型
+// ============================================
+type (
+	// 密码策略响应
+	PasswordPolicyResp {
+		Id                    int64  `json:"id"`
+		MinLength             int    `json:"minLength"`
+		RequireUppercase      bool   `json:"requireUppercase"`
+		RequireLowercase      bool   `json:"requireLowercase"`
+		RequireNumbers        bool   `json:"requireNumbers"`
+		RequireSpecialChars   bool   `json:"requireSpecialChars"`
+		MaxAge                int    `json:"maxAge"`
+		HistoryCount          int    `json:"historyCount"`
+		MaxLoginAttempts      int    `json:"maxLoginAttempts"`
+		LockoutDuration       int    `json:"lockoutDuration"`
+		SessionTimeout        int    `json:"sessionTimeout"`
+		MaxConcurrentSessions int    `json:"maxConcurrentSessions"`
+		CreatedAt             string `json:"createdAt"`
+		UpdatedAt             string `json:"updatedAt"`
+	}
+	// 更新密码策略请求
+	UpdatePasswordPolicyReq {
+		MinLength             int  `json:"minLength,optional"`
+		RequireUppercase      bool `json:"requireUppercase,optional"`
+		RequireLowercase      bool `json:"requireLowercase,optional"`
+		RequireNumbers        bool `json:"requireNumbers,optional"`
+		RequireSpecialChars   bool `json:"requireSpecialChars,optional"`
+		MaxAge                int  `json:"maxAge,optional"`
+		HistoryCount          int  `json:"historyCount,optional"`
+		MaxLoginAttempts      int  `json:"maxLoginAttempts,optional"`
+		LockoutDuration       int  `json:"lockoutDuration,optional"`
+		SessionTimeout        int  `json:"sessionTimeout,optional"`
+		MaxConcurrentSessions int  `json:"maxConcurrentSessions,optional"`
+	}
+	// 审计日志响应
+	AuditLogResp {
+		Id         int64  `json:"id"`
+		UserId     int64  `json:"userId,optional"`
+		Username   string `json:"username"`
+		Action     string `json:"action"`
+		Resource   string `json:"resource"`
+		ResourceId string `json:"resourceId"`
+		Details    string `json:"details"`
+		ClientIp   string `json:"clientIp"`
+		UserAgent  string `json:"userAgent"`
+		Status     string `json:"status"`
+		ErrorMsg   string `json:"errorMsg"`
+		CreatedAt  string `json:"createdAt"`
+	}
+	// 审计日志列表响应
+	AuditLogListResp {
+		Total int64          `json:"total"`
+		Logs  []AuditLogResp `json:"logs"`
+	}
+	// 登录尝试响应
+	LoginAttemptResp {
+		Id         int64  `json:"id"`
+		UserId     int64  `json:"userId,optional"`
+		Username   string `json:"username"`
+		ClientIp   string `json:"clientIp"`
+		UserAgent  string `json:"userAgent"`
+		Success    bool   `json:"success"`
+		FailReason string `json:"failReason"`
+		CreatedAt  string `json:"createdAt"`
+	}
+	// 登录尝试列表响应
+	LoginAttemptListResp {
+		Total    int64              `json:"total"`
+		Attempts []LoginAttemptResp `json:"attempts"`
+	}
+	// 用户会话响应
+	UserSessionResp {
+		Id           string `json:"id"`
+		UserId       int64  `json:"userId"`
+		ClientIp     string `json:"clientIp"`
+		UserAgent    string `json:"userAgent"`
+		LoginAt      string `json:"loginAt"`
+		LastActiveAt string `json:"lastActiveAt"`
+		ExpiresAt    string `json:"expiresAt"`
+		Status       string `json:"status"`
+		CreatedAt    string `json:"createdAt"`
+	}
+	// 用户会话列表响应
+	UserSessionListResp {
+		Total    int64             `json:"total"`
+		Sessions []UserSessionResp `json:"sessions"`
+	}
+	// 安全事件响应
+	SecurityEventResp {
+		Id          int64  `json:"id"`
+		EventType   string `json:"eventType"`
+		Severity    string `json:"severity"`
+		UserId      int64  `json:"userId,optional"`
+		Username    string `json:"username"`
+		ClientIp    string `json:"clientIp"`
+		UserAgent   string `json:"userAgent"`
+		Description string `json:"description"`
+		Details     string `json:"details"`
+		Handled     bool   `json:"handled"`
+		HandledBy   int64  `json:"handledBy,optional"`
+		HandledAt   string `json:"handledAt,optional"`
+		CreatedAt   string `json:"createdAt"`
+	}
+	// 安全事件列表响应
+	SecurityEventListResp {
+		Total  int64               `json:"total"`
+		Events []SecurityEventResp `json:"events"`
+	}
+	// 处理安全事件请求
+	HandleSecurityEventReq {
+		Note string `json:"note,optional"`
+	}
+	// 强制下线请求
+	ForceLogoutReq {
+		Reason string `json:"reason,optional"`
+	}
+	// 密码强度检查响应
+	PasswordStrengthResp {
+		Score   int    `json:"score"`
+		Level   string `json:"level"`
+		Message string `json:"message"`
+	}
+)
+
+// ============================================
+// 营销活动相关
+// ============================================
+type (
+	// 表单字段定义
+	FormField {
+		Type        string   `json:"type"` // 字段类型: text, phone, select
+		Name        string   `json:"name"` // 字段名称（英文）
+		Label       string   `json:"label"` // 字段标签（中文）
+		Required    bool     `json:"required"` // 是否必填
+		Placeholder string   `json:"placeholder,optional"` // 占位符
+		Options     []string `json:"options,optional"` // 选项列表（仅select类型）
+	}
+	// 创建营销活动请求
+	CreateCampaignReq {
+		BrandId     int64       `json:"brandId"`
+		Name        string      `json:"name"`
+		Description string      `json:"description"`
+		FormFields  []FormField `json:"formFields"` // 动态表单字段
+		RewardRule  float64     `json:"rewardRule"` // 奖励规则（金额）
+		StartTime   string      `json:"startTime"`
+		EndTime     string      `json:"endTime"`
+	}
+	// 营销活动响应
+	CampaignResp {
+		Id          int64       `json:"id"`
+		BrandId     int64       `json:"brandId"`
+		BrandName   string      `json:"brandName,optional"`
+		Name        string      `json:"name"`
+		Description string      `json:"description"`
+		FormFields  []FormField `json:"formFields"`
+		RewardRule  float64     `json:"rewardRule"`
+		StartTime   string      `json:"startTime"`
+		EndTime     string      `json:"endTime"`
+		Status      string      `json:"status"`
+		CreatedAt   string      `json:"createdAt"`
+	}
+	// 获取活动列表请求
+	GetCampaignsReq {
+		Page     int64  `json:"page,optional" form:"page,optional"`
+		PageSize int64  `json:"pageSize,optional" form:"pageSize,optional"`
+		Status   string `json:"status,optional" form:"status,optional"`
+		Keyword  string `json:"keyword,optional" form:"keyword,optional"`
+	}
+	// 获取活动列表响应
+	CampaignListResp {
+		Total     int64          `json:"total"`
+		Campaigns []CampaignResp `json:"campaigns"`
+	}
+	// 页面配置请求
+	PageConfigReq {
+		Components []map[string]interface{} `json:"components"`
+		Theme      map[string]interface{}   `json:"theme"`
+	}
+	// 页面配置响应
+	PageConfigResp {
+		Id         int64                    `json:"id"`
+		CampaignId int64                    `json:"campaignId"`
+		Components []map[string]interface{} `json:"components"`
+		Theme      map[string]interface{}   `json:"theme"`
+		CreatedAt  string                   `json:"createdAt"`
+		UpdatedAt  string                   `json:"updatedAt"`
+	}
+)
+
+// 订单相关
+type (
+	// 创建订单请求
+	CreateOrderReq {
+		CampaignId int64             `json:"campaignId"`
+		Phone      string            `json:"phone"`
+		FormData   map[string]string `json:"formData"`
+		ReferrerId int64             `json:"referrerId,optional"` // 推荐人ID
+	}
+	// 订单响应
+	OrderResp {
+		Id         int64             `json:"id"`
+		CampaignId int64             `json:"campaignId"`
+		Phone      string            `json:"phone"`
+		FormData   map[string]string `json:"formData"`
+		ReferrerId int64             `json:"referrerId"`
+		Status     string            `json:"status"`
+		Amount     float64           `json:"amount"`
+		CreatedAt  string            `json:"createdAt"`
+	}
+	// 支付回调请求
+	PaymentCallbackReq {
+		OrderId   int64   `json:"orderId"`
+		PayStatus string  `json:"payStatus"`
+		Amount    float64 `json:"amount"`
+		TradeNo   string  `json:"tradeNo"`
+	}
+)
+
+// 奖励相关
+type (
+	// 用户余额响应
+	BalanceResp {
+		UserId      int64   `json:"userId"`
+		Balance     float64 `json:"balance"`
+		TotalReward float64 `json:"totalReward"`
+	}
+	// 奖励记录响应
+	RewardResp {
+		Id        int64   `json:"id"`
+		UserId    int64   `json:"userId"`
+		OrderId   int64   `json:"orderId"`
+		Amount    float64 `json:"amount"`
+		Status    string  `json:"status"`
+		CreatedAt string  `json:"createdAt"`
+	}
+)
+
+// 同步相关
+type (
+	// 同步状态响应
+	SyncStatusResp {
+		OrderId    int64  `json:"orderId"`
+		SyncStatus string `json:"syncStatus"`
+		SyncTime   string `json:"syncTime,optional"`
+		Attempts   int    `json:"attempts"`
+		ErrorMsg   string `json:"errorMsg,optional"`
+	}
+	// 重试同步响应
+	RetrySyncResp {
+		OrderId int64  `json:"orderId"`
+		Message string `json:"message"`
+		TaskId  string `json:"taskId"`
+	}
+	// 同步统计响应
+	SyncStatsResp {
+		TotalSyncs   int64   `json:"totalSyncs"`
+		SuccessSyncs int64   `json:"successSyncs"`
+		FailedSyncs  int64   `json:"failedSyncs"`
+		SuccessRate  float64 `json:"successRate"`
+		AvgTime      string  `json:"avgTime"`
+	}
+	// 健康检查响应
+	SyncHealthResp {
+		Status   string                 `json:"status"`
+		Database map[string]interface{} `json:"database"`
+		Queue    map[string]interface{} `json:"queue"`
+	}
+)
+
+// ============================================
+// API 路由定义
+// ============================================
+// 用户认证相关（不需要token）
+@server (
+	prefix: /api/v1
+	group:  auth
+)
+service dmh-api {
+	@handler Register
+	post /auth/register (RegisterReq) returns (LoginResp)
+
+	@handler Login
+	post /auth/login (LoginReq) returns (LoginResp)
+
+	@handler RefreshToken
+	post /auth/refresh-token (RefreshTokenReq) returns (RefreshTokenResp)
+}
+
+// 用户信息相关（需要token）
+@server (
+	prefix: /api/v1
+	group:  auth
+	jwt:    Auth
+)
+service dmh-api {
+	@handler GetUserInfo
+	get /auth/userinfo returns (UserInfoResp)
+
+	@handler UpdateProfile
+	put /users/profile (UpdateProfileReq) returns (UserInfoResp)
+
+	@handler SendPhoneCode
+	post /auth/send-phone-code (SendCodeReq) returns (CommonResp)
+
+	@handler SendEmailCode
+	post /auth/send-email-code (SendCodeReq) returns (CommonResp)
+
+	@handler BindPhone
+	post /users/bind-phone (BindPhoneReq) returns (UserInfoResp)
+
+	@handler BindEmail
+	post /users/bind-email (BindEmailReq) returns (UserInfoResp)
+
+	@handler ChangePassword
+	post /users/change-password (ChangePasswordReq) returns (CommonResp)
+}
+
+// 品牌管理
+@server (
+	prefix: /api/v1
+	group:  brand
+	jwt:    Auth
+)
+service dmh-api {
+	@handler CreateBrand
+	post /brands (CreateBrandReq) returns (BrandResp)
+
+	@handler GetBrands
+	get /brands returns (BrandListResp)
+
+	@handler GetBrand
+	get /brands/:id returns (BrandResp)
+
+	@handler UpdateBrand
+	put /brands/:id (UpdateBrandReq) returns (BrandResp)
+
+	@handler GetBrandStats
+	get /brands/:id/stats returns (BrandStatsResp)
+
+	@handler CreateBrandAsset
+	post /brands/:id/assets (BrandAssetReq) returns (BrandAssetResp)
+
+	@handler GetBrandAssets
+	get /brands/:id/assets returns (BrandAssetListResp)
+
+	@handler GetBrandAsset
+	get /brands/:brandId/assets/:id returns (BrandAssetResp)
+
+	@handler UpdateBrandAsset
+	put /brands/:brandId/assets/:id (BrandAssetReq) returns (BrandAssetResp)
+
+	@handler DeleteBrandAsset
+	delete /brands/:brandId/assets/:id returns (CommonResp)
+}
+
+// 活动管理
+@server (
+	prefix: /api/v1
+	group:  campaign
+	jwt:    Auth
+)
+service dmh-api {
+	@handler CreateCampaign
+	post /campaigns (CreateCampaignReq) returns (CampaignResp)
+
+	@handler GetCampaigns
+	get /campaigns (GetCampaignsReq) returns (CampaignListResp)
+
+	@handler GetCampaign
+	get /campaigns/:id returns (CampaignResp)
+
+	@handler SavePageConfig
+	post /campaign/page-config/:id (PageConfigReq) returns (PageConfigResp)
+
+	@handler GetPageConfig
+	get /campaign/page-config/:id returns (PageConfigResp)
+}
+
+// 订单管理
+@server (
+	prefix: /api/v1
+	group:  order
+	jwt:    Auth
+)
+service dmh-api {
+	@handler CreateOrder
+	post /orders (CreateOrderReq) returns (OrderResp)
+
+	@handler GetOrder
+	get /orders/:id returns (OrderResp)
+
+	@handler PaymentCallback
+	post /orders/payment/callback (PaymentCallbackReq)
+}
+
+// 奖励管理
+@server (
+	prefix: /api/v1
+	group:  reward
+	jwt:    Auth
+)
+service dmh-api {
+	@handler GetBalance
+	get /rewards/balance/:userId returns (BalanceResp)
+
+	@handler GetRewards
+	get /rewards/:userId returns ([]RewardResp)
+}
+
+// 同步管理
+@server (
+	prefix: /api/v1
+	group:  sync
+	jwt:    Auth
+)
+service dmh-api {
+	@handler GetSyncStatus
+	get /sync/status/:orderId returns (SyncStatusResp)
+
+	@handler RetrySyn
+	post /sync/retry/:orderId returns (RetrySyncResp)
+
+	@handler GetSyncStats
+	get /sync/statistics returns (SyncStatsResp)
+
+	@handler GetSyncHealth
+	get /sync/health returns (SyncHealthResp)
+}
+
+// 提现管理
+@server (
+	prefix: /api/v1
+	group:  withdrawal
+	jwt:    Auth
+)
+service dmh-api {
+	@handler ApplyWithdrawal
+	post /withdrawals (WithdrawalApplyReq) returns (WithdrawalResp)
+
+	@handler GetWithdrawals
+	get /withdrawals returns (WithdrawalListResp)
+
+	@handler GetWithdrawal
+	get /withdrawals/:id returns (WithdrawalResp)
+
+	@handler ApproveWithdrawal
+	post /withdrawals/:id/approve (WithdrawalApproveReq) returns (WithdrawalResp)
+}
+
+// 管理员用户管理
+@server (
+	prefix: /api/v1
+	group:  admin
+	jwt:    Auth
+)
+service dmh-api {
+	@handler CreateUser
+	post /admin/users (AdminCreateUserReq) returns (UserInfoResp)
+
+	@handler GetUsers
+	get /admin/users (AdminGetUsersReq) returns (AdminUserListResp)
+
+	@handler GetUser
+	get /admin/users/:id returns (UserInfoResp)
+
+	@handler UpdateUser
+	put /admin/users/:id (AdminUpdateUserReq) returns (UserInfoResp)
+
+	@handler DeleteUser
+	delete /admin/users/:id returns (CommonResp)
+
+	@handler ResetUserPassword
+	post /admin/users/:id/reset-password (AdminResetPasswordReq) returns (CommonResp)
+
+	@handler ManageBrandAdminRelation
+	post /admin/brand-admin-relations (BrandAdminRelationReq) returns (CommonResp)
+}
+
+// 角色权限管理
+@server (
+	prefix: /api/v1
+	group:  role
+	jwt:    Auth
+)
+service dmh-api {
+	@handler GetRoles
+	get /roles returns ([]RoleResp)
+
+	@handler GetPermissions
+	get /permissions returns ([]PermissionResp)
+
+	@handler ConfigRolePermissions
+	post /roles/permissions (RolePermissionReq) returns (CommonResp)
+
+	@handler GetUserPermissions
+	get /users/:id/permissions returns (UserPermissionResp)
+}
+
+// 菜单权限管理
+@server (
+	prefix: /api/v1
+	group:  menu
+	jwt:    Auth
+)
+service dmh-api {
+	@handler CreateMenu
+	post /menus (CreateMenuReq) returns (MenuResp)
+
+	@handler GetMenus
+	get /menus returns ([]MenuResp)
+
+	@handler GetMenu
+	get /menus/:id returns (MenuResp)
+
+	@handler UpdateMenu
+	put /menus/:id (UpdateMenuReq) returns (MenuResp)
+
+	@handler DeleteMenu
+	delete /menus/:id returns (CommonResp)
+
+	@handler ConfigRoleMenus
+	post /roles/menus (RoleMenuReq) returns (CommonResp)
+
+	@handler GetUserMenus
+	get /users/menus returns (UserMenuResp)
+}
+
+// 安全管理
+@server (
+	prefix: /api/v1
+	group:  security
+	jwt:    Auth
+)
+service dmh-api {
+	@handler GetPasswordPolicy
+	get /security/password-policy returns (PasswordPolicyResp)
+
+	@handler UpdatePasswordPolicy
+	put /security/password-policy (UpdatePasswordPolicyReq) returns (PasswordPolicyResp)
+
+	@handler CheckPasswordStrength
+	post /security/check-password-strength (ChangePasswordReq) returns (PasswordStrengthResp)
+
+	@handler GetAuditLogs
+	get /security/audit-logs returns (AuditLogListResp)
+
+	@handler GetLoginAttempts
+	get /security/login-attempts returns (LoginAttemptListResp)
+
+	@handler GetUserSessions
+	get /security/sessions returns (UserSessionListResp)
+
+	@handler RevokeSession
+	delete /security/sessions/:sessionId returns (CommonResp)
+
+	@handler ForceLogoutUser
+	post /security/force-logout/:userId (ForceLogoutReq) returns (CommonResp)
+
+	@handler GetSecurityEvents
+	get /security/events returns (SecurityEventListResp)
+
+	@handler HandleSecurityEvent
+	post /security/events/:eventId/handle (HandleSecurityEventReq) returns (CommonResp)
+}
+

@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: dmh-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: dmh
+      MYSQL_USER: dmh_user
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./config/mysql.cnf:/etc/mysql/conf.d/custom.cnf:ro
+    networks:
+      - dmh-network
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Redis缓存（可选）
+  redis:
+    image: redis:7-alpine
+    container_name: dmh-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - dmh-network
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 3s
+      retries: 5
+
+  # DMH后端API服务
+  dmh-api:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    container_name: dmh-api
+    restart: unless-stopped
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=dmh_user
+      - DB_PASSWORD=${MYSQL_PASSWORD}
+      - DB_NAME=dmh
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET}
+      - APP_ENV=production
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config/config.yaml:/app/config/config.yaml:ro
+      - app_logs:/app/logs
+      - app_uploads:/app/uploads
+    networks:
+      - dmh-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Nginx反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: dmh-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/sites:/etc/nginx/conf.d:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ../../frontend-admin/dist:/usr/share/nginx/html/admin:ro
+      - ../../frontend-h5/dist:/usr/share/nginx/html/h5:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - dmh-network
+    depends_on:
+      - dmh-api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      timeout: 5s
+      retries: 3
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_logs:
+    driver: local
+  app_uploads:
+    driver: local
+  nginx_logs:
+    driver: local
+
+networks:
+  dmh-network:
+    driver: bridge

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录状态测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .logged-in {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .logged-out {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .danger {
+            background: #dc3545;
+        }
+        .danger:hover {
+            background: #c82333;
+        }
+        .info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 DMH Admin 登录状态测试</h1>
+        
+        <div id="status" class="status">检查中...</div>
+        
+        <div class="info">
+            <h3>操作说明</h3>
+            <p><strong>1. 清理登录状态</strong>：点击"清理localStorage"按钮</p>
+            <p><strong>2. 测试登录</strong>：访问 <a href="http://localhost:3000" target="_blank">Admin后台</a></p>
+            <p><strong>3. 测试退出</strong>：在Admin后台点击"退出登录"</p>
+            <p><strong>4. 验证状态</strong>：刷新此页面查看登录状态</p>
+        </div>
+        
+        <div>
+            <button onclick="checkStatus()">🔄 刷新状态</button>
+            <button onclick="clearStorage()" class="danger">🗑️ 清理localStorage</button>
+            <button onclick="testLogin()">🧪 测试登录API</button>
+        </div>
+        
+        <div id="details" class="info" style="display: none;">
+            <h3>详细信息</h3>
+            <pre id="tokenInfo"></pre>
+        </div>
+        
+        <div class="info">
+            <h3>🚀 快速访问</h3>
+            <p>
+                <a href="http://localhost:3000" target="_blank">🖥️ Admin管理后台</a> |
+                <a href="http://localhost:3100/brand/login" target="_blank">📱 品牌H5登录</a> |
+                <a href="http://localhost:8080/login-info.html" target="_blank">📋 系统信息页面</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function checkStatus() {
+            const token = localStorage.getItem('dmh_token');
+            const statusEl = document.getElementById('status');
+            const detailsEl = document.getElementById('details');
+            const tokenInfoEl = document.getElementById('tokenInfo');
+            
+            if (token) {
+                statusEl.className = 'status logged-in';
+                statusEl.innerHTML = '✅ 已登录 - 检测到有效Token';
+                
+                // 解析JWT Token（简单解析，仅用于显示）
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    tokenInfoEl.textContent = JSON.stringify(payload, null, 2);
+                    detailsEl.style.display = 'block';
+                } catch (e) {
+                    tokenInfoEl.textContent = 'Token解析失败: ' + e.message;
+                    detailsEl.style.display = 'block';
+                }
+            } else {
+                statusEl.className = 'status logged-out';
+                statusEl.innerHTML = '❌ 未登录 - 没有检测到Token';
+                detailsEl.style.display = 'none';
+            }
+        }
+        
+        function clearStorage() {
+            if (confirm('确定要清理所有登录状态吗？')) {
+                localStorage.removeItem('dmh_token');
+                localStorage.removeItem('dmh_user_info');
+                localStorage.removeItem('dmh_user_role');
+                alert('✅ localStorage已清理');
+                checkStatus();
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: '123456'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('dmh_token', data.token);
+                    alert('✅ API登录测试成功');
+                    checkStatus();
+                } else {
+                    const error = await response.text();
+                    alert('❌ API登录失败: ' + error);
+                }
+            } catch (e) {
+                alert('❌ 网络错误: ' + e.message);
+            }
+        }
+        
+        // 页面加载时检查状态
+        checkStatus();
+        
+        // 每5秒自动检查一次状态
+        setInterval(checkStatus, 5000);
+    </script>
+</body>
+</html>

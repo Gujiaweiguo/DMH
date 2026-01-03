@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户访问指南</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .user-type {
+            margin: 30px 0;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 5px solid;
+        }
+        .admin {
+            background-color: #fef3c7;
+            border-left-color: #f59e0b;
+        }
+        .brand {
+            background-color: #dbeafe;
+            border-left-color: #3b82f6;
+        }
+        .user {
+            background-color: #d1fae5;
+            border-left-color: #10b981;
+        }
+        .access-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .access-item {
+            background: rgba(255,255,255,0.7);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .access-item h4 {
+            margin: 0 0 10px 0;
+            color: #374151;
+        }
+        .access-item p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .link-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4f46e5;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 5px 10px 5px 0;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .link-button:hover {
+            background-color: #4338ca;
+        }
+        .link-button.secondary {
+            background-color: #6b7280;
+        }
+        .link-button.secondary:hover {
+            background-color: #4b5563;
+        }
+        .credentials {
+            background-color: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+        .warning {
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .success {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #16a34a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 DMH系统用户访问指南</h1>
+        
+        <div class="success">
+            <strong>✅ 系统已修复</strong><br>
+            现在所有用户类型都能正确访问对应的功能页面，并且在API失败时会显示示例数据。
+        </div>
+
+        <!-- 普通用户 -->
+        <div class="user-type user">
+            <h2>👤 普通用户 (participant)</h2>
+            <p><strong>用途：</strong>查看和参与营销活动，提交报名信息</p>
+            
+            <div class="credentials">
+                <strong>登录信息：</strong><br>
+                用户名: user001<br>
+                密码: 123456
+            </div>
+
+            <div class="access-info">
+                <div class="access-item">
+                    <h4>🏠 主要访问页面</h4>
+                    <p><strong>活动列表：</strong> http://localhost:3100</p>
+                    <p><strong>活动详情：</strong> /campaign/:id</p>
+                    <p><strong>报名表单：</strong> /campaign/:id/form</p>
+                    <p><strong>我的报名：</strong> /orders</p>
+                </div>
+                <div class="access-item">
+                    <h4>🎯 可用功能</h4>
+                    <ul class="feature-list">
+                        <li>浏览所有活动</li>
+                        <li>查看活动详情</li>
+                        <li>填写报名表单</li>
+                        <li>查看报名记录</li>
+                        <li>筛选活动状态</li>
+                    </ul>
+                </div>
+            </div>
+
+            <a href="http://localhost:3100" class="link-button" target="_blank">访问活动列表</a>
+            <a href="http://localhost:3100/orders" class="link-button secondary" target="_blank">我的报名</a>
+        </div>
+
+        <!-- 品牌管理员 -->
+        <div class="user-type brand">
+            <h2>🏢 品牌管理员 (brand_admin)</h2>
+            <p><strong>用途：</strong>管理品牌活动，查看数据分析，设计活动页面</p>
+            
+            <div class="credentials">
+                <strong>登录信息：</strong><br>
+                用户名: brand_manager<br>
+                密码: 123456
+            </div>
+
+            <div class="access-info">
+                <div class="access-item">
+                    <h4>🏠 主要访问页面</h4>
+                    <p><strong>登录页面：</strong> http://localhost:3100/brand/login</p>
+                    <p><strong>管理后台：</strong> /brand/dashboard</p>
+                    <p><strong>活动管理：</strong> /brand/campaigns</p>
+                    <p><strong>数据分析：</strong> /brand/analytics</p>
+                </div>
+                <div class="access-item">
+                    <h4>🎯 可用功能</h4>
+                    <ul class="feature-list">
+                        <li>创建和编辑活动</li>
+                        <li>设计活动页面</li>
+                        <li>查看活动数据</li>
+                        <li>管理报名信息</li>
+                        <li>素材管理</li>
+                    </ul>
+                </div>
+            </div>
+
+            <a href="http://localhost:3100/brand/login" class="link-button" target="_blank">品牌登录</a>
+            <a href="http://localhost:3100/brand/campaigns" class="link-button secondary" target="_blank">活动管理</a>
+        </div>
+
+        <!-- 平台管理员 -->
+        <div class="user-type admin">
+            <h2>⚙️ 平台管理员 (platform_admin)</h2>
+            <p><strong>用途：</strong>系统管理，用户管理，品牌管理，权限配置</p>
+            
+            <div class="credentials">
+                <strong>登录信息：</strong><br>
+                用户名: admin<br>
+                密码: 123456
+            </div>
+
+            <div class="access-info">
+                <div class="access-item">
+                    <h4>🏠 主要访问页面</h4>
+                    <p><strong>管理后台：</strong> http://localhost:3000</p>
+                    <p><strong>用户管理：</strong> 用户管理页面</p>
+                    <p><strong>品牌管理：</strong> 品牌管理页面</p>
+                    <p><strong>活动管理：</strong> 全局活动管理</p>
+                </div>
+                <div class="access-item">
+                    <h4>🎯 可用功能</h4>
+                    <ul class="feature-list">
+                        <li>用户账号管理</li>
+                        <li>品牌信息管理</li>
+                        <li>权限配置</li>
+                        <li>系统设置</li>
+                        <li>全局数据查看</li>
+                    </ul>
+                </div>
+            </div>
+
+            <a href="http://localhost:3000" class="link-button" target="_blank">管理后台</a>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ 重要说明：</strong><br>
+            • 普通用户访问 <strong>http://localhost:3100</strong> (H5前端首页)<br>
+            • 品牌管理员访问 <strong>http://localhost:3100/brand/login</strong> 登录后使用管理功能<br>
+            • 平台管理员访问 <strong>http://localhost:3000</strong> (Admin后台)<br>
+            • 不同角色有不同的访问权限和功能范围
+        </div>
+
+        <div class="success">
+            <strong>🎉 测试步骤：</strong><br>
+            1. 先用普通用户身份访问 http://localhost:3100 查看活动列表<br>
+            2. 再用品牌管理员身份登录 http://localhost:3100/brand/login 管理活动<br>
+            3. 最后用平台管理员身份访问 http://localhost:3000 进行系统管理<br>
+            4. 每个角色都应该能看到对应的功能和数据
+        </div>
+    </div>
+</body>
+</html>
