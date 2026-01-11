@@ -150,7 +150,7 @@ const CampaignManagementView = defineComponent({
             name: c.name,
             startTime: c.startTime?.substring(0, 10) || '',
             endTime: c.endTime?.substring(0, 10) || '',
-            status: c.status?.toUpperCase() || 'ACTIVE',
+            status: c.status?.toLowerCase() || 'active',
             participants: c.orderCount || 0,
             description: c.description,
             rewardRule: c.rewardRule,
@@ -275,6 +275,36 @@ const CampaignManagementView = defineComponent({
       }
     };
 
+    // 暂停/恢复活动
+    const toggleCampaignStatus = async (campaign, newStatus) => {
+      const action = newStatus === 'paused' ? '暂停' : '恢复';
+      if (!confirm(`确定要${action}活动"${campaign.name}"吗？`)) return;
+      
+      try {
+        const token = localStorage.getItem('dmh_token');
+        const response = await fetch(`/api/v1/campaigns/${campaign.id}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+        
+        if (response.ok) {
+          alert(`活动${action}成功！`);
+          // 重新加载活动列表以确保数据同步
+          await fetchCampaigns();
+        } else {
+          const data = await response.json();
+          alert(`活动${action}失败: ${data.message || '未知错误'}`);
+        }
+      } catch (error) {
+        console.error('操作失败:', error);
+        alert(`活动${action}失败！`);
+      }
+    };
+
     // 模态框组件
     const Modal = defineComponent({
       props: ['show', 'title', 'size'],
@@ -375,16 +405,25 @@ const CampaignManagementView = defineComponent({
                 ])
               ])
             ]),
-            h('td', { class: 'px-6 py-4' }, [h(Badge, { status: campaign.status, label: campaign.status === 'ACTIVE' ? '进行中' : '已暂停' })]),
+            h('td', { class: 'px-6 py-4' }, [h(Badge, { status: campaign.status, label: campaign.status === 'active' ? '进行中' : '已暂停' })]),
             h('td', { class: 'px-6 py-4' }, [
               h('div', { class: 'flex gap-2' }, [
+                campaign.status === 'active' ? 
+                  h('button', { 
+                    onClick: () => toggleCampaignStatus(campaign, 'paused'),
+                    class: 'px-3 py-1 text-xs bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100' 
+                  }, '暂停') :
+                  h('button', { 
+                    onClick: () => toggleCampaignStatus(campaign, 'active'),
+                    class: 'px-3 py-1 text-xs bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100' 
+                  }, '恢复'),
                 h('button', { 
                   onClick: () => deleteCampaign(campaign),
                   class: 'px-3 py-1 text-xs bg-red-50 text-red-600 rounded-lg hover:bg-red-100' 
                 }, '删除'),
                 h('button', { 
                   onClick: () => openViewModal(campaign),
-                  class: 'px-3 py-1 text-xs bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100' 
+                  class: 'px-3 py-1 text-xs bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100' 
                 }, '详情')
               ])
             ])

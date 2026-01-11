@@ -5,9 +5,12 @@ package campaign
 
 import (
 	"context"
+	"encoding/json"
+	"strconv"
 
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
+	"dmh/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -27,43 +30,37 @@ func NewGetCampaignLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetCa
 }
 
 func (l *GetCampaignLogic) GetCampaign(id string) (resp *types.CampaignResp, err error) {
-	// 模拟FormField数据
-	formFields := []types.FormField{
-		{
-			Type:        "text",
-			Name:        "name",
-			Label:       "姓名",
-			Required:    true,
-			Placeholder: "请输入姓名",
-		},
-		{
-			Type:        "phone",
-			Name:        "phone",
-			Label:       "手机号",
-			Required:    true,
-			Placeholder: "请输入手机号",
-		},
-		{
-			Type:     "select",
-			Name:     "course",
-			Label:    "意向课程",
-			Required: true,
-			Options:  []string{"前端开发", "后端开发", "全栈开发"},
-		},
+	campaignId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return nil, err
 	}
-	
-	// 返回模拟的活动详情
+
+	var campaign model.Campaign
+	if err := l.svcCtx.DB.First(&campaign, campaignId).Error; err != nil {
+		return nil, err
+	}
+
+	// 解析表单字段
+	var formFields []types.FormField
+	if campaign.FormFields != "" {
+		json.Unmarshal([]byte(campaign.FormFields), &formFields)
+	}
+
+	// 获取品牌名称
+	var brand model.Brand
+	l.svcCtx.DB.First(&brand, campaign.BrandId)
+
 	return &types.CampaignResp{
-		Id:          1,
-		BrandId:     1,
-		BrandName:   "示例品牌A",
-		Name:        "春季新品推广活动",
-		Description: "报名参与春季新品推广，完成任务可获得丰厚奖励",
+		Id:          campaign.Id,
+		BrandId:     campaign.BrandId,
+		BrandName:   brand.Name,
+		Name:        campaign.Name,
+		Description: campaign.Description,
 		FormFields:  formFields,
-		RewardRule:  50.0,
-		StartTime:   "2025-01-01 00:00:00",
-		EndTime:     "2025-03-31 23:59:59",
-		Status:      "active",
-		CreatedAt:   "2025-01-01 00:00:00",
+		RewardRule:  campaign.RewardRule,
+		StartTime:   campaign.StartTime.Format("2006-01-02 15:04:05"),
+		EndTime:     campaign.EndTime.Format("2006-01-02 15:04:05"),
+		Status:      campaign.Status,
+		CreatedAt:   campaign.CreatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }
