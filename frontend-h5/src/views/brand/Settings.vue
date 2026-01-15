@@ -361,6 +361,10 @@
         <div class="nav-icon">📋</div>
         <div class="nav-text">订单</div>
       </router-link>
+      <router-link to="/brand/members" class="nav-item">
+        <div class="nav-icon">👤</div>
+        <div class="nav-text">会员</div>
+      </router-link>
       <router-link to="/brand/promoters" class="nav-item">
         <div class="nav-icon">👥</div>
         <div class="nav-text">推广员</div>

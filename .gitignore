@@ -73,3 +73,18 @@ coverage/
 *-backup.*
 *-complete.*
 *-fixed.*
+
+# Windows Zone.Identifier
+*:Zone.Identifier
+*.Zone.Identifier
+
+# Go 编译产物
+backend/dmh-api
+backend/api/dmh
+backend/api/dmh-api
+
+# Kiro/AI 工具配置（可选保留）
+# .kiro/
+
+# 其他 AI 工具
+.qoder/

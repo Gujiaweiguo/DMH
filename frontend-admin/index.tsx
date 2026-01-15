@@ -1,6 +1,11 @@
 import { createApp, ref, onMounted, computed, defineComponent, h, reactive, Transition, watch } from 'vue';
 import * as LucideIcons from 'lucide-vue-next';
 import { authApi } from './services/authApi';
+import MemberListView from './views/MemberListView';
+import MemberDetailView from './views/MemberDetailView';
+import MemberMergeView from './views/MemberMergeView';
+import MemberExportView from './views/MemberExportView';
+import './styles/member.css';
 
 // 简单的Badge组件
 const Badge = defineComponent({
@@ -779,6 +784,30 @@ const AdminApp = defineComponent({
     const loginError = ref('');
     const loginLoading = ref(false);
     const activeTab = ref('dashboard');
+    const memberRoute = ref<'list' | 'detail' | 'merge' | 'export'>('list');
+
+    const syncFromHash = () => {
+      const hash = window.location.hash || '';
+      if (hash.startsWith('#/members')) {
+        activeTab.value = 'members';
+        if (hash.startsWith('#/members/merge')) {
+          memberRoute.value = 'merge';
+        } else if (hash.startsWith('#/members/export')) {
+          memberRoute.value = 'export';
+        } else if (/^#\/members\/\d+/.test(hash)) {
+          memberRoute.value = 'detail';
+        } else {
+          memberRoute.value = 'list';
+        }
+        return;
+      }
+
+      const tabFromHash = hash.replace('#/', '');
+      const validTabs = new Set(['dashboard', 'users', 'brands', 'campaigns', 'system']);
+      if (validTabs.has(tabFromHash)) {
+        activeTab.value = tabFromHash;
+      }
+    };
 
     // 检查登录状态
     const checkLoginStatus = () => {
@@ -789,6 +818,8 @@ const AdminApp = defineComponent({
     onMounted(() => {
       checkLoginStatus();
       setInterval(checkLoginStatus, 1000);
+      syncFromHash();
+      window.addEventListener('hashchange', syncFromHash);
     });
 
     // 快速填充功能
@@ -828,7 +859,19 @@ const AdminApp = defineComponent({
         authApi.logout();
         isLoggedIn.value = false;
         activeTab.value = 'dashboard';
+        memberRoute.value = 'list';
+        window.location.hash = '#/dashboard';
       }
+    };
+
+    const handleNavigate = (tabId: string) => {
+      activeTab.value = tabId;
+      if (tabId === 'members') {
+        memberRoute.value = 'list';
+        window.location.hash = '#/members';
+        return;
+      }
+      window.location.hash = `#/${tabId}`;
     };
 
     // 侧边栏菜单项
@@ -837,6 +880,7 @@ const AdminApp = defineComponent({
       { id: 'users', label: '用户管理', icon: 'Users' },
       { id: 'brands', label: '品牌管理', icon: 'Shield' },
       { id: 'campaigns', label: '活动监控', icon: 'Monitor' },
+      { id: 'members', label: '会员管理', icon: 'Users' },
       { id: 'system', label: '系统设置', icon: 'Settings' },
     ];
 
@@ -915,7 +959,7 @@ const AdminApp = defineComponent({
           ]),
           h('nav', { class: 'flex-1 mt-6 px-6 space-y-1' }, sidebarItems.map(item => 
             h('button', {
-              onClick: () => activeTab.value = item.id,
+              onClick: () => handleNavigate(item.id),
               class: `w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-left transition-all ${
                 activeTab.value === item.id 
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
@@ -960,6 +1004,12 @@ const AdminApp = defineComponent({
                 if (activeTab.value === 'users') return h(UserManagementView);
                 if (activeTab.value === 'brands') return h(BrandManagementView);
                 if (activeTab.value === 'campaigns') return h(CampaignManagementView);
+                if (activeTab.value === 'members') {
+                  if (memberRoute.value === 'detail') return h(MemberDetailView);
+                  if (memberRoute.value === 'merge') return h(MemberMergeView);
+                  if (memberRoute.value === 'export') return h(MemberExportView);
+                  return h(MemberListView);
+                }
                 if (activeTab.value === 'system') return h(SystemSettingsView);
                 return h(DashboardView);
               }

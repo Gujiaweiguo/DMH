@@ -12,7 +12,7 @@ CorsConf:
 
 # 数据库配置
 Mysql:
-  DataSource: root:#Admin168@tcp(172.25.8.12:3306)/dmh?charset=utf8mb4&parseTime=true&loc=Local
+  DataSource: root:#Admin168@tcp(172.17.0.1:3306)/dmh?charset=utf8mb4&parseTime=true&loc=Local
 
 # Redis配置
 Redis:

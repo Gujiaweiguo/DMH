@@ -120,6 +120,8 @@ func (w *SyncWorker) syncOrder(orderId int64) error {
 	syncData := &SyncOrderData{
 		OrderId:    order.Id,
 		CampaignId: order.CampaignId,
+		MemberId:   order.MemberId,   // 会员ID
+		UnionID:    order.UnionID,    // 微信 unionid
 		Phone:      order.Phone,
 		FormData:   formData,
 		Amount:     order.Amount,
@@ -143,6 +145,7 @@ func (w *SyncWorker) syncReward(rewardId int64) error {
 	syncData := &SyncRewardData{
 		RewardId: reward.Id,
 		UserId:   reward.UserId,
+		MemberId: reward.MemberId, // 会员ID
 		OrderId:  reward.OrderId,
 		Amount:   reward.Amount,
 		Status:   reward.Status,

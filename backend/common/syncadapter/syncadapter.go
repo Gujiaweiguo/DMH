@@ -115,6 +115,8 @@ func getCharset(charset string) string {
 type SyncOrderData struct {
 	OrderId    int64
 	CampaignId int64
+	MemberId   int64  // 会员ID
+	UnionID    string // 微信 unionid
 	Phone      string
 	FormData   map[string]interface{}
 	Amount     float64
@@ -138,9 +140,11 @@ func (s *SyncAdapter) SyncOrder(ctx context.Context, data *SyncOrderData) error 
 	// 3. 构建INSERT语句（支持幂等性）
 	query := `
 		INSERT INTO external_orders 
-		(order_id, campaign_id, phone, form_data, amount, pay_status, created_at, synced_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+		(order_id, campaign_id, member_id, unionid, phone, form_data, amount, pay_status, created_at, synced_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
 		ON DUPLICATE KEY UPDATE
+		member_id = VALUES(member_id),
+		unionid = VALUES(unionid),
 		amount = VALUES(amount),
 		pay_status = VALUES(pay_status),
 		synced_at = NOW()
@@ -153,6 +157,8 @@ func (s *SyncAdapter) SyncOrder(ctx context.Context, data *SyncOrderData) error 
 	_, err = s.db.ExecContext(ctx, query,
 		externalData["order_id"],
 		externalData["campaign_id"],
+		externalData["member_id"],
+		externalData["unionid"],
 		externalData["phone"],
 		string(formDataJSON),
 		externalData["amount"],
@@ -176,6 +182,7 @@ func (s *SyncAdapter) SyncOrder(ctx context.Context, data *SyncOrderData) error 
 type SyncRewardData struct {
 	RewardId  int64
 	UserId    int64
+	MemberId  int64 // 会员ID
 	OrderId   int64
 	Amount    float64
 	Status    string
@@ -192,9 +199,10 @@ func (s *SyncAdapter) SyncReward(ctx context.Context, data *SyncRewardData) erro
 	// 2. 构建INSERT语句
 	query := `
 		INSERT INTO external_rewards
-		(reward_id, user_id, order_id, amount, status, settled_at, synced_at)
-		VALUES (?, ?, ?, ?, ?, ?, NOW())
+		(reward_id, user_id, member_id, order_id, amount, status, settled_at, synced_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
 		ON DUPLICATE KEY UPDATE
+		member_id = VALUES(member_id),
 		amount = VALUES(amount),
 		status = VALUES(status),
 		settled_at = VALUES(settled_at),
@@ -208,6 +216,7 @@ func (s *SyncAdapter) SyncReward(ctx context.Context, data *SyncRewardData) erro
 	_, err := s.db.ExecContext(ctx, query,
 		externalData["reward_id"],
 		externalData["user_id"],
+		externalData["member_id"],
 		externalData["order_id"],
 		externalData["amount"],
 		externalData["status"],
@@ -269,6 +278,8 @@ func (m *FieldMapper) MapOrder(data *SyncOrderData) map[string]interface{} {
 	return map[string]interface{}{
 		"order_id":    data.OrderId,
 		"campaign_id": data.CampaignId,
+		"member_id":   data.MemberId,
+		"unionid":     data.UnionID,
 		"phone":       data.Phone,
 		"amount":      data.Amount,
 		"pay_status":  data.PayStatus,
@@ -281,6 +292,7 @@ func (m *FieldMapper) MapReward(data *SyncRewardData) map[string]interface{} {
 	return map[string]interface{}{
 		"reward_id":  data.RewardId,
 		"user_id":    data.UserId,
+		"member_id":  data.MemberId,
 		"order_id":   data.OrderId,
 		"amount":     data.Amount,
 		"status":     data.Status,

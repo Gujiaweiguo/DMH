@@ -29,6 +29,8 @@ func (m *Campaign) TableName() string {
 type Order struct {
 	Id         int64      `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	CampaignId int64      `gorm:"column:campaign_id;not null;index" json:"campaignId"`
+	MemberID   *int64     `gorm:"column:member_id;index" json:"memberId"` // 关联会员ID（可选）
+	UnionID    string     `gorm:"column:unionid;type:varchar(100);index" json:"unionid"` // 微信 unionid
 	Phone      string     `gorm:"column:phone;type:varchar(20);not null;index" json:"phone"`
 	FormData   string     `gorm:"column:form_data;type:json" json:"formData"` // JSON格式存储
 	ReferrerId int64      `gorm:"column:referrer_id;default:0;index" json:"referrerId"`
@@ -51,6 +53,7 @@ func (m *Order) TableName() string {
 type Reward struct {
 	Id         int64      `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	UserId     int64      `gorm:"column:user_id;not null;index" json:"userId"`
+	MemberID   *int64     `gorm:"column:member_id;index" json:"memberId"` // 关联会员ID（可选）
 	OrderId    int64      `gorm:"column:order_id;not null;index" json:"orderId"`
 	CampaignId int64      `gorm:"column:campaign_id;not null;index" json:"campaignId"`
 	Amount     float64    `gorm:"column:amount;type:decimal(10,2);not null;default:0.00" json:"amount"`

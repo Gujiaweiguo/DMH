@@ -10,6 +10,7 @@ import (
 	auth "dmh/api/internal/handler/auth"
 	brand "dmh/api/internal/handler/brand"
 	campaign "dmh/api/internal/handler/campaign"
+	member "dmh/api/internal/handler/member"
 	menu "dmh/api/internal/handler/menu"
 	order "dmh/api/internal/handler/order"
 	reward "dmh/api/internal/handler/reward"
@@ -447,6 +448,58 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodPost,
 				Path:    "/withdrawals/:id/approve",
 				Handler: withdrawal.ApproveWithdrawalHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/members",
+				Handler: member.GetMembersHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/members/:id",
+				Handler: member.GetMemberHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/members/tags",
+				Handler: member.CreateMemberTagHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/members/:id/tags",
+				Handler: member.AddMemberTagsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/members/merge/preview",
+				Handler: member.MergeMemberPreviewHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/members/merge",
+				Handler: member.MergeMemberHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/members/export-requests",
+				Handler: member.CreateExportRequestHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/members/export-requests",
+				Handler: member.GetExportRequestsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/members/export-requests/:id/approve",
+				Handler: member.ApproveExportRequestHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),

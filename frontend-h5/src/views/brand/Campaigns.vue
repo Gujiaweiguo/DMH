@@ -126,6 +126,9 @@
       <van-tabbar-item icon="orders-o" to="/brand/orders">
         订单
       </van-tabbar-item>
+      <van-tabbar-item icon="user-o" to="/brand/members">
+        会员
+      </van-tabbar-item>
       <van-tabbar-item icon="friends-o" to="/brand/promoters">
         推广员
       </van-tabbar-item>

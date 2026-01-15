@@ -1,6 +1,7 @@
 // DMH H5 品牌管理端
 let authToken = localStorage.getItem('h5_token');
 let campaigns = [];
+let members = [];
 let currentCampaign = null;
 let currentTab = 'home';
 
@@ -47,24 +48,44 @@ function render() {
                 <h2>品牌管理中心</h2>
                 <button class="logout-btn" onclick="logout()">退出</button>
             </div>
-            <div class="stats">
-                <div class="stat-card purple"><div class="number" id="totalCampaigns">0</div><div class="label">总活动</div></div>
-                <div class="stat-card green"><div class="number" id="activeCampaigns">0</div><div class="label">进行中</div></div>
-                <div class="stat-card orange"><div class="number" id="totalParticipants">0</div><div class="label">参与数</div></div>
-                <div class="stat-card red"><div class="number" id="conversionRate">0%</div><div class="label">转化率</div></div>
-            </div>
-            <div class="section">
-                <div class="section-header">
-                    <span class="section-title">📋 我的活动</span>
-                    <button class="btn btn-sm" onclick="openCreateModal()">+ 创建活动</button>
+            <div class="tab-content active" data-tab="home">
+                <div class="stats">
+                    <div class="stat-card purple"><div class="number" id="totalCampaigns">0</div><div class="label">总活动</div></div>
+                    <div class="stat-card green"><div class="number" id="activeCampaigns">0</div><div class="label">进行中</div></div>
+                    <div class="stat-card orange"><div class="number" id="totalParticipants">0</div><div class="label">参与数</div></div>
+                    <div class="stat-card red"><div class="number" id="conversionRate">0%</div><div class="label">转化率</div></div>
                 </div>
-                <div id="campaignList"><div class="empty-state">加载中...</div></div>
+                <div class="section">
+                    <div class="section-header">
+                        <span class="section-title">📋 我的活动</span>
+                        <button class="btn btn-sm" onclick="openCreateModal()">+ 创建活动</button>
+                    </div>
+                    <div id="campaignList"><div class="empty-state">加载中...</div></div>
+                </div>
+            </div>
+            <div class="tab-content" data-tab="members">
+                <div class="section">
+                    <div class="section-header">
+                        <span class="section-title">👤 会员管理</span>
+                        <button class="btn btn-sm btn-secondary" onclick="loadMembers()">刷新</button>
+                    </div>
+                    <div id="memberList"><div class="empty-state">加载中...</div></div>
+                </div>
+            </div>
+            <div class="tab-content" data-tab="profile">
+                <div class="section">
+                    <div class="section-header">
+                        <span class="section-title">👤 我的</span>
+                    </div>
+                    <div class="empty-state">暂无内容</div>
+                </div>
             </div>
             <div class="tab-bar">
-                <div class="tab-item active" onclick="switchTab('home')"><div class="icon">🏠</div>首页</div>
-                <div class="tab-item" onclick="switchTab('campaigns')"><div class="icon">📋</div>活动</div>
-                <div class="tab-item" onclick="openCreateModal()"><div class="icon">➕</div>创建</div>
-                <div class="tab-item" onclick="switchTab('profile')"><div class="icon">👤</div>我的</div>
+                <div class="tab-item active" data-tab="home" onclick="switchTab('home')"><div class="icon">🏠</div>首页</div>
+                <div class="tab-item" data-tab="campaigns" onclick="switchTab('campaigns')"><div class="icon">📋</div>活动</div>
+                <div class="tab-item" data-tab="create" onclick="openCreateModal()"><div class="icon">➕</div>创建</div>
+                <div class="tab-item" data-tab="members" onclick="switchTab('members')"><div class="icon">👥</div>会员</div>
+                <div class="tab-item" data-tab="profile" onclick="switchTab('profile')"><div class="icon">👤</div>我的</div>
             </div>
         </div>
         ${renderModals()}
@@ -127,6 +148,20 @@ function renderModals() {
                 </div>
             </div>
         </div>
+
+        <!-- 查看会员详情模态框 -->
+        <div class="modal" id="memberDetailModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>会员详情</h3>
+                    <button class="modal-close" onclick="closeModal('memberDetailModal')">&times;</button>
+                </div>
+                <div class="modal-body" id="memberDetailContent"></div>
+                <div class="modal-footer">
+                    <button class="btn btn-sm btn-secondary" onclick="closeModal('memberDetailModal')">关闭</button>
+                </div>
+            </div>
+        </div>
     `;
 }
 
@@ -161,6 +196,7 @@ async function handleLogin(e) {
         if (response.ok && data.token) {
             authToken = data.token;
             localStorage.setItem('h5_token', authToken);
+            localStorage.setItem('h5_brand_ids', JSON.stringify(data.brandIds || []));
             showMainPage();
         } else {
             throw new Error(data.message || '登录失败');
@@ -185,15 +221,26 @@ function logout() {
 function showMainPage() {
     document.getElementById('loginPage').classList.add('hidden');
     document.getElementById('mainPage').classList.add('active');
+    switchTab('home');
     loadCampaigns();
 }
 
 // 切换标签
 function switchTab(tab) {
     currentTab = tab;
-    document.querySelectorAll('.tab-item').forEach((el, i) => {
-        el.classList.toggle('active', ['home', 'campaigns', '', 'profile'][i] === tab);
+    document.querySelectorAll('.tab-item').forEach(el => {
+        const tabName = el.getAttribute('data-tab');
+        if (tabName === 'create') return;
+        el.classList.toggle('active', tabName === tab);
     });
+    document.querySelectorAll('.tab-content').forEach(el => {
+        const tabName = el.getAttribute('data-tab');
+        const shouldShow = tabName === tab || (tabName === 'home' && tab === 'campaigns');
+        el.classList.toggle('active', shouldShow);
+    });
+    if (tab === 'members') {
+        loadMembers();
+    }
 }
 
 
@@ -212,6 +259,104 @@ async function loadCampaigns() {
     } catch (error) {
         document.getElementById('campaignList').innerHTML = `<div class="empty-state">加载失败: ${error.message}</div>`;
     }
+}
+
+// 加载会员列表
+async function loadMembers() {
+    const listEl = document.getElementById('memberList');
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="empty-state">加载中...</div>';
+    try {
+        const response = await fetch('/api/v1/members?page=1&pageSize=20', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || '加载失败');
+        }
+        const data = await response.json();
+        members = data.members || [];
+        renderMemberList();
+    } catch (error) {
+        listEl.innerHTML = `<div class="empty-state">加载失败: ${error.message}</div>`;
+    }
+}
+
+function renderMemberList() {
+    const listEl = document.getElementById('memberList');
+    if (!listEl) return;
+    if (members.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">暂无会员数据</div>';
+        return;
+    }
+    listEl.innerHTML = members.map(m => `
+        <div class="member-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                <h4>${m.nickname || '未设置昵称'} <span style="font-size:12px;color:#999;">(#${m.id})</span></h4>
+                <button class="btn btn-sm btn-primary" onclick="viewMember(${m.id})">详情</button>
+            </div>
+            <div class="member-meta">
+                <span>📱 ${m.phone || '-'}</span>
+                <span>🧾 订单 ${m.totalOrders || 0}</span>
+                <span>💰 支付 ¥${(m.totalPayment || 0).toFixed(2)}</span>
+                <span>🎁 奖励 ¥${(m.totalReward || 0).toFixed(2)}</span>
+                <span>📌 状态 ${getMemberStatusText(m.status)}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function getMemberStatusText(status) {
+    if (status === 'active') return '正常';
+    if (status === 'disabled') return '禁用';
+    return status || '未知';
+}
+
+// 查看会员详情
+async function viewMember(memberId) {
+    const contentEl = document.getElementById('memberDetailContent');
+    if (!contentEl) return;
+    contentEl.innerHTML = '<div class="empty-state">加载中...</div>';
+    openModal('memberDetailModal');
+    try {
+        const response = await fetch(`/api/v1/members/${memberId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || '加载失败');
+        }
+        const member = await response.json();
+        const tags = (member.tags || []).map(t => t.name).join('、') || '-';
+        const brands = (member.brands || []).map(b => `${b.brandName} (首活动#${b.firstCampaignId || '-'})`).join('<br>') || '-';
+        contentEl.innerHTML = `
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+                <div><strong>ID：</strong>${member.id}</div>
+                <div><strong>UnionID：</strong>${member.unionid || '-'}</div>
+                <div><strong>昵称：</strong>${member.nickname || '-'}</div>
+                <div><strong>手机号：</strong>${member.phone || '-'}</div>
+                <div><strong>性别：</strong>${getGenderText(member.gender)}</div>
+                <div><strong>来源：</strong>${member.source || '-'}</div>
+                <div><strong>状态：</strong>${getMemberStatusText(member.status)}</div>
+                <div><strong>注册时间：</strong>${member.createdAt || '-'}</div>
+                <div><strong>累计订单：</strong>${member.totalOrders || 0}</div>
+                <div><strong>累计支付：</strong>¥${(member.totalPayment || 0).toFixed(2)}</div>
+                <div><strong>累计奖励：</strong>¥${(member.totalReward || 0).toFixed(2)}</div>
+                <div><strong>参与活动：</strong>${member.participatedCampaigns || 0}</div>
+            </div>
+            <hr style="margin: 16px 0; border: none; border-top: 1px solid #eee;">
+            <div><strong>会员标签：</strong>${tags}</div>
+            <div style="margin-top:8px;"><strong>关联品牌：</strong><br>${brands}</div>
+        `;
+    } catch (error) {
+        contentEl.innerHTML = `<div class="empty-state">加载失败: ${error.message}</div>`;
+    }
+}
+
+function getGenderText(gender) {
+    if (gender === 1) return '男';
+    if (gender === 2) return '女';
+    return '未知';
 }
 
 // 更新统计数据

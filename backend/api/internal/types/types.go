@@ -192,9 +192,11 @@ type CreateMenuReq struct {
 
 type CreateOrderReq struct {
 	CampaignId int64             `json:"campaignId"`
+	UnionID    string            `json:"unionid,optional"` // 微信 unionid
 	Phone      string            `json:"phone"`
 	FormData   map[string]string `json:"formData"`
 	ReferrerId int64             `json:"referrerId,optional"` // 推荐人ID
+	Amount     float64           `json:"amount,optional"`     // 订单金额
 }
 
 type ForceLogoutReq struct {
@@ -270,6 +272,7 @@ type MenuResp struct {
 type OrderResp struct {
 	Id         int64             `json:"id"`
 	CampaignId int64             `json:"campaignId"`
+	CampaignName string          `json:"campaignName,optional"`
 	Phone      string            `json:"phone"`
 	FormData   map[string]string `json:"formData"`
 	ReferrerId int64             `json:"referrerId"`
@@ -540,4 +543,151 @@ type WithdrawalResp struct {
 	ApprovedBy  int64   `json:"approvedBy,optional"`
 	ApprovedAt  string  `json:"approvedAt,optional"`
 	CreatedAt   string  `json:"createdAt"`
+}
+
+// Member related types
+
+type GetMembersReq struct {
+	Page      int64  `json:"page,optional" form:"page,optional"`
+	PageSize  int64  `json:"pageSize,optional" form:"pageSize,optional"`
+	BrandId   int64  `json:"brandId,optional" form:"brandId,optional"` // 品牌管理员筛选
+	Keyword   string `json:"keyword,optional" form:"keyword,optional"` // 搜索昵称/手机号/unionid
+	Source    string `json:"source,optional" form:"source,optional"`   // 来源渠道
+	Status    string `json:"status,optional" form:"status,optional"`
+	TagIds    []int64 `json:"tagIds,optional" form:"tagIds,optional"` // 标签筛选
+	StartDate string `json:"startDate,optional" form:"startDate,optional"` // 创建时间范围
+	EndDate   string `json:"endDate,optional" form:"endDate,optional"`
+}
+
+type MemberResp struct {
+	Id                    int64   `json:"id"`
+	UnionID               string  `json:"unionid"`
+	Nickname              string  `json:"nickname"`
+	Avatar                string  `json:"avatar"`
+	Phone                 string  `json:"phone"`
+	Gender                int     `json:"gender"`
+	Source                string  `json:"source"`
+	Status                string  `json:"status"`
+	TotalOrders           int     `json:"totalOrders"`
+	TotalPayment          float64 `json:"totalPayment"`
+	TotalReward           float64 `json:"totalReward"`
+	ParticipatedCampaigns int     `json:"participatedCampaigns"`
+	FirstOrderAt          string  `json:"firstOrderAt,omitempty"`
+	LastOrderAt           string  `json:"lastOrderAt,omitempty"`
+	CreatedAt             string  `json:"createdAt"`
+	Tags                  []MemberTagResp `json:"tags,omitempty"`
+	Brands                []MemberBrandResp `json:"brands,omitempty"`
+	Orders                []OrderResp `json:"orders,omitempty"`
+}
+
+type MemberListResp struct {
+	Total   int64        `json:"total"`
+	Members []MemberResp `json:"members"`
+}
+
+type MemberTagResp struct {
+	Id          int64  `json:"id"`
+	Name        string `json:"name"`
+	Category    string `json:"category"`
+	Color       string `json:"color"`
+	Description string `json:"description"`
+}
+
+type MemberBrandResp struct {
+	BrandId         int64  `json:"brandId"`
+	BrandName       string `json:"brandName"`
+	FirstCampaignId int64  `json:"firstCampaignId"`
+	CreatedAt       string `json:"createdAt"`
+}
+
+type CreateMemberTagReq struct {
+	Name        string `json:"name"`
+	Category    string `json:"category,optional"`
+	Color       string `json:"color,optional"`
+	Description string `json:"description,optional"`
+}
+
+type UpdateMemberTagReq struct {
+	Name        string `json:"name,optional"`
+	Category    string `json:"category,optional"`
+	Color       string `json:"color,optional"`
+	Description string `json:"description,optional"`
+}
+
+type AddMemberTagsReq struct {
+	MemberId int64   `json:"memberId"`
+	TagIds   []int64 `json:"tagIds"`
+}
+
+type RemoveMemberTagsReq struct {
+	MemberId int64   `json:"memberId"`
+	TagIds   []int64 `json:"tagIds"`
+}
+
+type MemberMergeReq struct {
+	SourceMemberId int64  `json:"sourceMemberId"` // 被合并的会员
+	TargetMemberId int64  `json:"targetMemberId"` // 主会员（保留）
+	Reason         string `json:"reason,optional"`
+}
+
+type MemberMergePreviewResp struct {
+	SourceMember MemberResp `json:"sourceMember"`
+	TargetMember MemberResp `json:"targetMember"`
+	Conflicts    []string   `json:"conflicts,omitempty"` // 冲突信息
+	CanMerge     bool       `json:"canMerge"`
+}
+
+type MemberMergeRequestResp struct {
+	Id             int64      `json:"id"`
+	SourceMemberId int64      `json:"sourceMemberId"`
+	TargetMemberId int64      `json:"targetMemberId"`
+	Status         string     `json:"status"`
+	Reason         string     `json:"reason"`
+	ConflictInfo   string     `json:"conflictInfo"`
+	CreatedBy      int64      `json:"createdBy"`
+	CreatedByName  string     `json:"createdByName"`
+	ExecutedAt     string     `json:"executedAt,omitempty"`
+	ErrorMsg       string     `json:"errorMsg,omitempty"`
+	CreatedAt      string     `json:"createdAt"`
+}
+
+type ExportRequestReq struct {
+	BrandId int64  `json:"brandId"`
+	Reason  string `json:"reason"`
+	Filters string `json:"filters,optional"` // JSON 格式的筛选条件
+}
+
+type ExportRequestResp struct {
+	Id            int64  `json:"id"`
+	BrandId       int64  `json:"brandId"`
+	BrandName     string `json:"brandName"`
+	RequestedBy   int64  `json:"requestedBy"`
+	RequestedByName string `json:"requestedByName"`
+	Reason        string `json:"reason"`
+	Filters       string `json:"filters"`
+	Status        string `json:"status"`
+	ApprovedBy    int64  `json:"approvedBy,omitempty"`
+	ApprovedByName string `json:"approvedByName,omitempty"`
+	ApprovedAt    string `json:"approvedAt,omitempty"`
+	RejectReason  string `json:"rejectReason,omitempty"`
+	FileUrl       string `json:"fileUrl,omitempty"`
+	RecordCount   int    `json:"recordCount"`
+	CreatedAt     string `json:"createdAt"`
+}
+
+type ExportRequestListResp struct {
+	Total    int64               `json:"total"`
+	Requests []ExportRequestResp `json:"requests"`
+}
+
+type ApproveExportReq struct {
+	Approve bool   `json:"approve"` // true=批准, false=驳回
+	Reason  string `json:"reason,optional"` // 驳回原因
+}
+
+type GetExportRequestsReq struct {
+	Page     int64  `json:"page,optional" form:"page,optional"`
+	PageSize int64  `json:"pageSize,optional" form:"pageSize,optional"`
+	BrandId  int64  `json:"brandId,optional" form:"brandId,optional"`
+	Status   string `json:"status,optional" form:"status,optional"`
 }

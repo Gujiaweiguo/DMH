@@ -18,6 +18,8 @@ import BrandOrders from '../views/brand/Orders.vue'
 import BrandPromoters from '../views/brand/Promoters.vue'
 import BrandAnalytics from '../views/brand/Analytics.vue'
 import BrandSettings from '../views/brand/Settings.vue'
+import BrandMembers from '../views/brand/Members.vue'
+import BrandMemberDetail from '../views/brand/MemberDetail.vue'
 
 const routes = [
   // 用户端路由
@@ -115,6 +117,18 @@ const routes = [
     path: '/brand/settings',
     name: 'BrandSettings',
     component: BrandSettings,
+    meta: { requiresAuth: true, role: 'brand_admin' }
+  },
+  {
+    path: '/brand/members',
+    name: 'BrandMembers',
+    component: BrandMembers,
+    meta: { requiresAuth: true, role: 'brand_admin' }
+  },
+  {
+    path: '/brand/members/:id',
+    name: 'BrandMemberDetail',
+    component: BrandMemberDetail,
     meta: { requiresAuth: true, role: 'brand_admin' }
   }
 ]

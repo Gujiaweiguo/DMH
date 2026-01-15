@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -271,20 +272,49 @@ func GetUserFromContext(ctx context.Context) (*JWTClaims, error) {
 
 // GetUserIDFromContext 从context中获取用户ID
 func GetUserIDFromContext(ctx context.Context) (int64, error) {
-	userID, ok := ctx.Value("userId").(int64)
-	if !ok {
+	switch value := ctx.Value("userId").(type) {
+	case int64:
+		return value, nil
+	case int:
+		return int64(value), nil
+	case json.Number:
+		parsed, err := value.Int64()
+		if err != nil {
+			return 0, fmt.Errorf("用户ID转换失败: %v", err)
+		}
+		return parsed, nil
+	case float64:
+		return int64(value), nil
+	case string:
+		parsed, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("用户ID转换失败: %v", err)
+		}
+		return parsed, nil
+	default:
 		return 0, fmt.Errorf("无法从context中获取用户ID")
 	}
-	return userID, nil
 }
 
 // GetUserRolesFromContext 从context中获取用户角色
 func GetUserRolesFromContext(ctx context.Context) ([]string, error) {
-	roles, ok := ctx.Value("roles").([]string)
-	if !ok {
+	switch roles := ctx.Value("roles").(type) {
+	case []string:
+		return roles, nil
+	case []interface{}:
+		roleStrings := make([]string, 0, len(roles))
+		for _, role := range roles {
+			if roleStr, ok := role.(string); ok {
+				roleStrings = append(roleStrings, roleStr)
+			}
+		}
+		if len(roleStrings) == 0 {
+			return nil, fmt.Errorf("无法从context中获取用户角色")
+		}
+		return roleStrings, nil
+	default:
 		return nil, fmt.Errorf("无法从context中获取用户角色")
 	}
-	return roles, nil
 }
 
 // HasRole 检查用户是否有指定角色
