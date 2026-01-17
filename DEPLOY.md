@@ -5,7 +5,7 @@
 ### 后端
 | 技术 | 版本 | 说明 |
 |------|------|------|
-| Go | 1.21+ | 编程语言 |
+| Go | 1.23+ | 编程语言（以 `backend/go.mod` 为准，当前为 `1.23.0`） |
 | go-zero | 1.6.0 | 微服务框架 |
 | GORM | 1.25.5 | ORM 框架 |
 | JWT | - | 身份认证 |
@@ -35,9 +35,10 @@
 ### 1.1 Docker 镜像加速
 ```bash
 sudo mkdir -p /etc/docker
-sudo tee /etc/docker/daemon.json <<EOF
+sudo tee /etc/docker/daemon.json <<'EOF'
 {
   "registry-mirrors": [
+    "https://mirror.ccs.tencentyun.com",
     "https://docker.1ms.run",
     "https://docker.xuanyuan.me",
     "https://hub.rat.dev"
@@ -49,6 +50,9 @@ EOF
 sudo systemctl restart docker
 # WSL2 中使用
 sudo service docker restart
+
+# 验证镜像加速是否生效（能看到 Registry Mirrors）
+sudo docker info | grep -i -n mirror || true
 ```
 
 ### 1.2 Go 模块代理
@@ -64,47 +68,101 @@ npm config set registry https://registry.npmmirror.com
 
 ## 二、安装 Docker
 
-### Ubuntu/Debian
-```bash
-# 使用阿里云镜像安装
-curl -fsSL https://get.docker.com | sh -s -- --mirror Aliyun
+> 说明：若 `curl -fsSL https://get.docker.com | sh` 在国内网络出现 `Connection reset by peer`，请直接使用下面的 APT 安装方式（推荐，稳定）。
 
-sudo systemctl start docker
-sudo systemctl enable docker
+### Ubuntu 22.04/20.04（推荐：腾讯云源安装 Docker CE）
+```bash
+sudo apt update
+sudo apt install -y ca-certificates curl gnupg
+
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://mirrors.cloud.tencent.com/docker-ce/linux/ubuntu/gpg | sudo gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+. /etc/os-release
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.cloud.tencent.com/docker-ce/linux/ubuntu ${VERSION_CODENAME} stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+sudo systemctl enable --now docker
+
+# 允许非 root 使用 docker（需要重新登录或 newgrp 生效）
 sudo usermod -aG docker $USER
+newgrp docker
+
+docker --version
+docker compose version
 ```
 
-### WSL2
+### Ubuntu（兜底：系统源 docker.io）
 ```bash
-curl -fsSL https://get.docker.com | sh
-sudo service docker start
+sudo apt update
+sudo apt install -y docker.io docker-compose-plugin
+sudo systemctl enable --now docker
+
+sudo usermod -aG docker $USER
+newgrp docker
+
+docker --version
+docker compose version
 ```
 
 ## 三、安装 Go
 
+> 目录约定（固定）：
+> - 下载目录：`/opt/software`
+> - 安装目录：`/opt/module/go`
+>
+> 版本要求：以 `backend/go.mod` 为准（当前 `go 1.23.0`）。
+
 ```bash
-# 下载 Go 1.21
-wget https://go.dev/dl/go1.21.0.linux-amd64.tar.gz
-# 或使用国内镜像
-wget https://golang.google.cn/dl/go1.21.0.linux-amd64.tar.gz
+# 1) 准备目录
+sudo mkdir -p /opt/software /opt/module
+sudo chown -R $USER:$USER /opt/software /opt/module
 
-# 解压安装
-sudo tar -C /usr/local -xzf go1.21.0.linux-amd64.tar.gz
+# 2) 严格对齐 go.mod：Go 1.23.0
+GO_VERSION=1.23.0
+arch=$(uname -m)
+case "$arch" in
+  x86_64) goarch=amd64 ;;
+  aarch64|arm64) goarch=arm64 ;;
+  *) echo "unsupported arch: $arch"; exit 1 ;;
+esac
 
-# 配置环境变量
-cat >> ~/.bashrc <<EOF
-export PATH=\$PATH:/usr/local/go/bin
-export GOPATH=\$HOME/go
-export PATH=\$PATH:\$GOPATH/bin
-export GOPROXY=https://goproxy.cn,direct
-EOF
-source ~/.bashrc
+# 3) 下载（建议国内入口）
+cd /opt/software
+curl -fLO "https://golang.google.cn/dl/go${GO_VERSION}.linux-${goarch}.tar.gz"
+
+# 4) 校验（避免 .sha256 页面重定向导致校验失败：用 JSON 获取 sha256）
+expected=$(curl -fsSL "https://golang.google.cn/dl/?mode=json&include=all" | \
+  python3 -c "import sys,json; data=json.load(sys.stdin); \
+  f=[x for r in data if r.get('version')=='go${GO_VERSION}' for x in r.get('files',[]) \
+  if x.get('os')=='linux' and x.get('arch')=='${goarch}' and x.get('kind')=='archive'][0]; \
+  print(f['sha256'])")
+echo "${expected}  go${GO_VERSION}.linux-${goarch}.tar.gz" | sha256sum -c -
+
+# 5) 安装到 /opt/module/go
+sudo rm -rf /opt/module/go
+sudo tar -C /opt/module -xzf "/opt/software/go${GO_VERSION}.linux-${goarch}.tar.gz"
 
 # 验证
+/opt/module/go/bin/go version
+
+# 6) 配置环境变量（当前用户）
+grep -q '/opt/module/go/bin' ~/.bashrc || cat >> ~/.bashrc <<'EOF'
+export PATH=/opt/module/go/bin:$PATH
+export GOPATH=$HOME/go
+export PATH=$GOPATH/bin:$PATH
+EOF
+source ~/.bashrc
+hash -r
 go version
 ```
 
 ## 四、安装 Node.js
+
+> 推荐 Node.js 20+。若 `nvm`/GitHub 在国内网络下载慢，可改用腾讯云 Node 镜像二进制安装。
 
 ```bash
 # 使用 nvm 安装（推荐）
@@ -123,7 +181,38 @@ node -v
 npm -v
 ```
 
+### Node.js 20（腾讯云二进制镜像，兜底）
+```bash
+sudo apt update
+sudo apt install -y xz-utils
+
+NODE_VERSION=20.11.1
+arch=$(uname -m)
+case "$arch" in
+  x86_64) nodearch=x64 ;;
+  aarch64|arm64) nodearch=arm64 ;;
+  *) echo "unsupported arch: $arch"; exit 1 ;;
+esac
+
+cd /opt/software
+curl -fLO "https://mirrors.cloud.tencent.com/nodejs-release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${nodearch}.tar.xz"
+sudo mkdir -p /usr/local/lib/nodejs
+sudo tar -xJf "node-v${NODE_VERSION}-linux-${nodearch}.tar.xz" -C /usr/local/lib/nodejs
+
+grep -q '/usr/local/lib/nodejs' ~/.bashrc || cat >> ~/.bashrc <<EOF
+export PATH=/usr/local/lib/nodejs/node-v${NODE_VERSION}-linux-${nodearch}/bin:\$PATH
+EOF
+source ~/.bashrc
+
+npm config set registry https://registry.npmmirror.com
+node -v
+npm -v
+```
+
 ## 五、启动 MySQL 8
+
+> 如果 `docker pull mysql:8.0` 连接 `registry-1.docker.io` 超时：
+> 1) 先确认 Docker 镜像加速已生效（见 1.1）；2) 或直接使用腾讯云镜像：`mirror.ccs.tencentyun.com/library/mysql:8.0`。
 
 ```bash
 # 创建数据目录
@@ -260,6 +349,25 @@ echo "  H5: http://localhost:3100"
 
 ## 十一、常见问题
 
+### 1) Docker 安装/更新时报 NO_PUBKEY 或源未签名
+通常是 GPG key 未正确导入或 `docker.list` 写错。建议按本文「二、安装 Docker（腾讯云源）」整段重做，并确保 `/etc/apt/keyrings/docker.gpg` 存在。
+
+### 2) docker pull 连接 registry-1.docker.io 超时
+```bash
+sudo cat /etc/docker/daemon.json
+sudo systemctl restart docker
+sudo docker info | grep -i -n mirror || true
+
+# 也可直接拉腾讯云镜像
+docker pull mirror.ccs.tencentyun.com/library/mysql:8.0
+```
+
+### 3) 登录提示“用户名或密码错误”
+优先检查数据库是否初始化成功（必须有 `users` 表和测试账号数据）。
+```bash
+docker exec -i mysql8 mysql -uroot -p'#Admin168' dmh -e "SHOW TABLES LIKE 'users'; SELECT username,role,status FROM users;"
+```
+
 ### MySQL 连接失败
 ```bash
 # WSL2 中需使用 Docker 网关 IP
@@ -277,4 +385,11 @@ go mod download
 ### npm 安装慢
 ```bash
 npm config set registry https://registry.npmmirror.com
+```
+
+### 端口 8889 被占用
+```bash
+lsof -i :8889
+./dmh.sh stop
+./dmh.sh start
 ```

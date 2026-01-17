@@ -3,7 +3,7 @@
 数字营销中台系统，提供完整的营销活动管理、用户权限管理和数据分析功能。
 
 ![DMH Logo](https://img.shields.io/badge/DMH-Digital%20Marketing%20Hub-blue)
-![Go Version](https://img.shields.io/badge/Go-1.19+-00ADD8)
+![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8)
 ![Vue Version](https://img.shields.io/badge/Vue.js-3.0+-4FC08D)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -32,7 +32,7 @@
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   H5 Frontend   │    │  Admin Frontend │    │   Backend API   │
 │   (Vue.js 3)    │    │    (React)      │    │     (Go)        │
-│   Port: 3100    │    │   Port: 3000    │    │   Port: 8888    │
+│   Port: 3100    │    │   Port: 3000    │    │   Port: 8889    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
@@ -44,7 +44,7 @@
 ```
 
 ### 后端技术栈
-- **Go 1.19+** - 高性能后端服务
+- **Go 1.23+** - 高性能后端服务
 - **Gin** - 轻量级Web框架
 - **GORM** - 强大的ORM框架
 - **JWT** - 安全的身份认证
@@ -59,8 +59,8 @@
 ## 🚀 快速开始
 
 ### 环境要求
-- Go 1.19+
-- Node.js 16+
+- Go 1.23+
+- Node.js 20+
 - MySQL 8.0+
 
 ### 1. 克隆项目
@@ -71,20 +71,17 @@ cd DMH
 
 ### 2. 数据库初始化
 ```bash
-# 创建数据库
-mysql -u root -p -e "CREATE DATABASE dmh_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# 导入数据库结构和初始数据
-mysql -u root -p dmh_db < backend/scripts/init.sql
+# 推荐：使用脚本一键初始化（本地开发、数据库用 Docker）
+./dmh.sh init
 ```
 
 ### 3. 启动后端服务
 ```bash
 cd backend
-go mod tidy
-go run api/dmh-api.go
+go mod download
+go run api/dmh.go -f api/etc/dmh-api.yaml
 ```
-后端服务将在 http://localhost:8888 启动
+后端服务将在 http://localhost:8889 启动
 
 ### 4. 启动H5前端
 ```bash
@@ -109,7 +106,7 @@ npm run dev
 | H5前端 | http://localhost:3100 | 普通用户 | - | - | 浏览活动、参与报名 |
 | H5前端 | http://localhost:3100/brand/login | 品牌管理员 | brand_manager | 123456 | 活动管理、页面设计 |
 | 管理后台 | http://localhost:3000 | 平台管理员 | admin | 123456 | 系统管理、用户管理 |
-| 后端API | http://localhost:8888 | - | - | - | RESTful API服务 |
+| 后端API | http://localhost:8889 | - | - | - | RESTful API服务 |
 
 ## 📱 用户角色详解
 
@@ -192,7 +189,7 @@ npm run dev
 
 ### API文档
 - **接口定义**: `backend/api/dmh.api`
-- **在线文档**: http://localhost:8888/swagger/
+- **在线文档**: http://localhost:8889/swagger/
 
 ### 前端开发
 ```bash
@@ -212,13 +209,13 @@ npm run build
 ```bash
 # 运行开发服务器
 cd backend
-go run api/dmh-api.go
+go run api/dmh.go -f api/etc/dmh-api.yaml
 
 # 运行测试
 go test ./...
 
 # 构建生产版本
-go build -o dmh-api api/dmh-api.go
+go build -o dmh-api api/dmh.go
 ```
 
 ## 🤝 贡献指南

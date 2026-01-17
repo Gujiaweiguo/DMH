@@ -558,11 +558,11 @@ SELECT 3, id FROM menus WHERE code IN (
 );
 
 -- 创建测试用户
--- 密码都是 123456 的bcrypt加密: $2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5E
+-- 密码都是 123456 的bcrypt加密: $2a$10$iL5hmpD0wGKSkRDCY92TL.y8wGarBWmnqVoFYlRxLM7xr0eSCzPEm
 INSERT INTO users (username, password, phone, email, real_name, role, status) VALUES
-('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5E', '13800000001', 'admin@dmh.com', '系统管理员', 'platform_admin', 'active'),
-('brand_manager', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5E', '13800000002', 'brand@dmh.com', '品牌经理', 'brand_admin', 'active'),
-('user001', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5E', '13800000003', 'user001@dmh.com', '张三', 'participant', 'active');
+('admin', '$2a$10$iL5hmpD0wGKSkRDCY92TL.y8wGarBWmnqVoFYlRxLM7xr0eSCzPEm', '13800000001', 'admin@dmh.com', '系统管理员', 'platform_admin', 'active'),
+('brand_manager', '$2a$10$iL5hmpD0wGKSkRDCY92TL.y8wGarBWmnqVoFYlRxLM7xr0eSCzPEm', '13800000002', 'brand@dmh.com', '品牌经理', 'brand_admin', 'active'),
+('user001', '$2a$10$iL5hmpD0wGKSkRDCY92TL.y8wGarBWmnqVoFYlRxLM7xr0eSCzPEm', '13800000003', 'user001@dmh.com', '张三', 'participant', 'active');
 
 -- 创建测试品牌
 INSERT INTO brands (name, logo, description, status) VALUES

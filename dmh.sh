@@ -17,6 +17,7 @@ MYSQL_USER="${MYSQL_USER:-root}"
 MYSQL_PASS="${MYSQL_PASS:-#Admin168}"
 MYSQL_DB="${MYSQL_DB:-dmh}"
 DOCKER_MYSQL_CONTAINER="${DOCKER_MYSQL_CONTAINER:-mysql8}"
+MYSQL_IMAGE="${MYSQL_IMAGE:-mysql:8.0}"
 
 # 实际找到的容器名（运行时更新）
 FOUND_MYSQL_CONTAINER=""
@@ -24,6 +25,50 @@ FOUND_MYSQL_CONTAINER=""
 # 工具函数
 command_exists() {
     command -v "$1" >/dev/null 2>&1
+}
+
+GO=(go)
+
+go_cmd() {
+    "${GO[@]}" "$@"
+}
+
+ensure_go_cmd() {
+    if command_exists go; then
+        GO=(go)
+        return 0
+    fi
+    if [ -x /opt/module/go/bin/go ]; then
+        GO=(/opt/module/go/bin/go)
+        return 0
+    fi
+    if [ -x /usr/local/go/bin/go ]; then
+        GO=(/usr/local/go/bin/go)
+        return 0
+    fi
+    return 1
+}
+
+DOCKER=(docker)
+
+docker_cmd() {
+    "${DOCKER[@]}" "$@"
+}
+
+ensure_docker_cmd() {
+    DOCKER=(docker)
+    if ! command_exists docker; then
+        return 1
+    fi
+
+    # 如果当前用户无权限访问 docker.sock，则自动回退到 sudo docker
+    local err=""
+    if ! err=$(docker info 2>&1 >/dev/null); then
+        if echo "$err" | grep -qiE 'permission denied|docker\.sock'; then
+            DOCKER=(sudo docker)
+        fi
+    fi
+    return 0
 }
 
 print_usage() {
@@ -81,9 +126,11 @@ check_docker_mysql() {
         echo -e "${RED}✗ Docker 未安装${NC}"
         return 1
     fi
+
+    ensure_docker_cmd || true
     
     # 检查 Docker 是否运行
-    if ! docker info > /dev/null 2>&1; then
+    if ! docker_cmd info > /dev/null 2>&1; then
         echo -e "${YELLOW}⚠ Docker 未运行${NC}"
         
         # 检测是否在 WSL 环境
@@ -104,9 +151,11 @@ check_docker_mysql() {
                 return 1
             fi
         fi
+
+        ensure_docker_cmd || true
         
         # 再次检查
-        if ! docker info > /dev/null 2>&1; then
+        if ! docker_cmd info > /dev/null 2>&1; then
             echo -e "${RED}✗ Docker 仍未运行${NC}"
             return 1
         fi
@@ -116,16 +165,16 @@ check_docker_mysql() {
     
     # 查找 MySQL 容器 - 优先使用配置的名字
     local container
-    container=$(docker ps -a --filter "name=^${DOCKER_MYSQL_CONTAINER}$" --format "{{.Names}}" 2>/dev/null | head -1)
+    container=$(docker_cmd ps -a --filter "name=^${DOCKER_MYSQL_CONTAINER}$" --format "{{.Names}}" 2>/dev/null | head -1)
     
     if [ -z "$container" ]; then
         # 模糊匹配包含 mysql 的容器
-        container=$(docker ps -a --format "{{.Names}}" 2>/dev/null | grep -i mysql | head -1)
+        container=$(docker_cmd ps -a --format "{{.Names}}" 2>/dev/null | grep -i mysql | head -1)
     fi
     
     if [ -z "$container" ]; then
         # 按镜像查找
-        container=$(docker ps -a --filter "ancestor=mysql" --format "{{.Names}}" 2>/dev/null | head -1)
+        container=$(docker_cmd ps -a --filter "ancestor=mysql" --format "{{.Names}}" 2>/dev/null | head -1)
     fi
     
     if [ -n "$container" ]; then
@@ -133,15 +182,15 @@ check_docker_mysql() {
         FOUND_MYSQL_CONTAINER="$container"
         
         local status
-        status=$(docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null)
+        status=$(docker_cmd inspect -f '{{.State.Status}}' "$container" 2>/dev/null)
         
         if [ "$status" != "running" ]; then
             echo -e "${YELLOW}启动 MySQL 容器: $container${NC}"
-            docker start "$container"
+            docker_cmd start "$container"
             sleep 5
             
             # 再次检查状态
-            status=$(docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null)
+            status=$(docker_cmd inspect -f '{{.State.Status}}' "$container" 2>/dev/null)
             if [ "$status" == "running" ]; then
                 echo -e "${GREEN}✓ MySQL 容器已启动: $container${NC}"
             else
@@ -163,27 +212,54 @@ check_docker_mysql() {
 create_mysql_container() {
     echo -e "${YELLOW}创建 MySQL 容器...${NC}"
     
-    docker run -d \
+    ensure_docker_cmd || true
+
+    local run_output
+    if ! run_output=$(docker_cmd run -d \
         --name "$DOCKER_MYSQL_CONTAINER" \
         -p 3306:3306 \
         -e MYSQL_ROOT_PASSWORD="$MYSQL_PASS" \
         -e MYSQL_DATABASE="$MYSQL_DB" \
         -v mysql_data:/var/lib/mysql \
-        mysql:8.0
+        --restart unless-stopped \
+        "$MYSQL_IMAGE" 2>&1); then
+        echo -e "${RED}✗ MySQL 容器创建失败${NC}"
+        echo -e "${YELLOW}Docker 输出：${NC}"
+        echo "$run_output" | sed 's/^/  /'
+        echo -e "${YELLOW}常见原因：无法拉取 mysql:8.0 镜像（网络超时/未配置镜像加速）。${NC}"
+        echo -e "${YELLOW}建议：先配置 /etc/docker/daemon.json 镜像加速并重启 Docker，然后执行：docker pull mysql:8.0${NC}"
+        echo -e "${YELLOW}或临时指定镜像（腾讯云常用）：MYSQL_IMAGE=mirror.ccs.tencentyun.com/library/mysql:8.0 ./dmh.sh start${NC}"
+        return 1
+    fi
     
     # 保存容器名
     FOUND_MYSQL_CONTAINER="$DOCKER_MYSQL_CONTAINER"
     
     echo -e "${YELLOW}等待 MySQL 启动...${NC}"
-    sleep 30
-    
-    echo -e "${GREEN}✓ MySQL 容器创建成功${NC}"
+    local status=""
+    local count=0
+    while [ $count -lt 60 ]; do
+        status=$(docker_cmd inspect -f '{{.State.Status}}' "$DOCKER_MYSQL_CONTAINER" 2>/dev/null || true)
+        if [ "$status" == "running" ]; then
+            echo -e "${GREEN}✓ MySQL 容器创建成功: $DOCKER_MYSQL_CONTAINER${NC}"
+            return 0
+        fi
+        sleep 1
+        count=$((count + 1))
+    done
+
+    echo -e "${RED}✗ MySQL 容器未能启动 (status: ${status:-unknown})${NC}"
+    echo -e "${YELLOW}最近 50 行日志：${NC}"
+    docker_cmd logs --tail 50 "$DOCKER_MYSQL_CONTAINER" 2>/dev/null || true
+    return 1
 }
 
 # 初始化数据库
 init_database() {
     echo -e "${YELLOW}初始化数据库...${NC}"
     
+    ensure_docker_cmd || true
+
     # 使用实际找到的容器名，如果没有则使用默认配置
     local container="${FOUND_MYSQL_CONTAINER:-$DOCKER_MYSQL_CONTAINER}"
     
@@ -198,7 +274,7 @@ init_database() {
     for script in "${scripts[@]}"; do
         if [ -f "$script" ]; then
             echo -e "${BLUE}导入: $script${NC}"
-            if ! docker exec -i "$container" mysql -u "$MYSQL_USER" -p"$MYSQL_PASS" "$MYSQL_DB" < "$script" 2>/dev/null; then
+            if ! docker_cmd exec -i "$container" mysql -u "$MYSQL_USER" -p"$MYSQL_PASS" "$MYSQL_DB" < "$script" 2>/dev/null; then
                 echo -e "${YELLOW}⚠ 导入 $script 时出现警告（可能表已存在）${NC}"
             fi
         fi
@@ -217,7 +293,7 @@ init_database() {
         for script in "${test_scripts[@]}"; do
             if [ -f "$script" ]; then
                 echo -e "${BLUE}导入测试数据: $script${NC}"
-                if ! docker exec -i "$container" mysql -u "$MYSQL_USER" -p"$MYSQL_PASS" "$MYSQL_DB" < "$script" 2>/dev/null; then
+                if ! docker_cmd exec -i "$container" mysql -u "$MYSQL_USER" -p"$MYSQL_PASS" "$MYSQL_DB" < "$script" 2>/dev/null; then
                     echo -e "${YELLOW}⚠ 导入 $script 时出现警告${NC}"
                 fi
             fi
@@ -242,7 +318,7 @@ check_port() {
 start_backend() {
     echo -e "${YELLOW}启动后端服务...${NC}"
     
-    if ! command_exists go; then
+    if ! ensure_go_cmd; then
         echo -e "${RED}✗ Go 未安装${NC}"
         return 1
     fi
@@ -250,7 +326,9 @@ start_backend() {
     mkdir -p logs
     
     cd backend
-    nohup go run api/dmh.go -f api/etc/dmh-api.yaml > ../logs/backend.log 2>&1 &
+    local bin="../logs/dmh-api"
+    go_cmd build -o "$bin" api/dmh.go
+    nohup "$bin" -f api/etc/dmh-api.yaml > ../logs/backend.log 2>&1 &
     echo $! > ../logs/backend.pid
     cd ..
     
@@ -313,7 +391,9 @@ cmd_init() {
         echo -e "${YELLOW}未找到 MySQL 容器，是否创建？(y/n)${NC}"
         read -r response
         if [[ "$response" =~ ^[Yy]$ ]]; then
-            create_mysql_container
+            if ! create_mysql_container; then
+                exit 1
+            fi
         else
             echo -e "${RED}需要 MySQL 才能继续${NC}"
             exit 1
@@ -329,7 +409,11 @@ cmd_init() {
     
     # 3. 安装依赖
     echo -e "${YELLOW}安装后端依赖...${NC}"
-    cd backend && go mod download && cd ..
+    if ! ensure_go_cmd; then
+        echo -e "${RED}✗ Go 未安装${NC}"
+        exit 1
+    fi
+    cd backend && go_cmd mod download && cd ..
     
     echo -e "${YELLOW}安装 H5 前端依赖...${NC}"
     cd frontend-h5 && npm install && cd ..
@@ -355,7 +439,9 @@ cmd_start() {
         echo -e "${YELLOW}是否创建 MySQL 容器？(y/n)${NC}"
         read -r response
         if [[ "$response" =~ ^[Yy]$ ]]; then
-            create_mysql_container
+            if ! create_mysql_container; then
+                exit 1
+            fi
             echo -e "${YELLOW}是否初始化数据库？(y/n)${NC}"
             read -r response
             if [[ "$response" =~ ^[Yy]$ ]]; then
@@ -374,10 +460,13 @@ cmd_start() {
     check_port 3100 || exit 1
     
     # 启动服务
-    start_backend
+    if ! start_backend; then
+        echo -e "${RED}✗ 后端启动失败，已停止继续启动其它服务${NC}"
+        exit 1
+    fi
     sleep 3
-    start_frontend "h5" "frontend-h5" 3100
-    start_frontend "admin" "frontend-admin" 3000
+    start_frontend "h5" "frontend-h5" 3100 || exit 1
+    start_frontend "admin" "frontend-admin" 3000 || exit 1
     
     echo -e "${GREEN}========================================${NC}"
     echo -e "${GREEN}   所有服务已启动${NC}"
@@ -400,7 +489,14 @@ cmd_stop() {
     
     # 清理残留进程
     pkill -f "dmh.go" 2>/dev/null || true
+    pkill -f "/tmp/go-build.*/exe/dmh" 2>/dev/null || true
     pkill -f "vite" 2>/dev/null || true
+
+    # 兜底：清理仍占用端口的进程（例如 go run 子进程残留）
+    if command_exists lsof; then
+        lsof -tiTCP:8889 -sTCP:LISTEN 2>/dev/null | xargs -r kill 2>/dev/null || true
+        lsof -tiTCP:8889 -sTCP:LISTEN 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+    fi
     
     echo -e "${GREEN}所有服务已停止${NC}"
 }

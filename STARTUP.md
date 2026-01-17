@@ -23,8 +23,8 @@
 
 ## 环境要求
 
-- **Go**: 1.19+
-- **Node.js**: 16+
+- **Go**: 1.23+
+- **Node.js**: 20+
 - **Docker**: 用于运行 MySQL
 
 ### 检查环境
@@ -54,7 +54,8 @@ docker --version
 | 服务 | 地址 | 说明 |
 |------|------|------|
 | 后端 API | http://localhost:8889 | RESTful API |
-| H5 前端 | http://localhost:3100 | 用户端 |
+| H5 用户端 | http://localhost:3100 | 普通用户活动中心 |
+| H5 品牌端 | http://localhost:3100/brand/login | 品牌管理端 |
 | 管理后台 | http://localhost:3000 | 管理员后台 |
 
 ---
@@ -65,6 +66,7 @@ docker --version
 |------|--------|------|----------|
 | 平台管理员 | admin | 123456 | http://localhost:3000 |
 | 品牌管理员 | brand_manager | 123456 | http://localhost:3100/brand/login |
+| 普通用户 | user001 | 123456 | http://localhost:3100 |
 
 ---
 
@@ -117,22 +119,13 @@ docker exec -i mysql8 mysql -u root -p'#Admin168' dmh < backend/scripts/seed_mem
 | 页面 | 链接 | 说明 |
 |------|------|------|
 | 活动列表 | http://localhost:3100/ | 所有活动列表 |
-| 活动详情 | http://localhost:3100/campaign/{id} | 活动详情页 |
-| 活动报名 | http://localhost:3100/campaign/{id}/form | 报名表单页 |
-| 推广链接 | http://localhost:3100/campaign/{id}?ref={推荐人ID} | 带推荐人的活动链接 |
+| 登录 | http://localhost:3100/ | 账号 `user001` / `123456` |
 
 ### 品牌管理端 (H5)
 
 | 页面 | 链接 | 说明 |
 |------|------|------|
 | 登录 | http://localhost:3100/brand/login | 品牌管理员登录 |
-| 仪表板 | http://localhost:3100/brand/dashboard | 数据概览 |
-| 活动管理 | http://localhost:3100/brand/campaigns | 活动列表 |
-| 活动编辑 | http://localhost:3100/brand/campaigns/edit/{id} | 编辑活动 |
-| 页面设计 | http://localhost:3100/brand/campaigns/{id}/designer | 可视化页面设计器 |
-| 会员管理 | http://localhost:3100/brand/members | 会员列表 |
-| 订单管理 | http://localhost:3100/brand/orders | 订单列表 |
-| 推广员 | http://localhost:3100/brand/promoters | 推广员管理 |
 
 ### 管理后台
 
@@ -207,6 +200,13 @@ lsof -i :3100
 ./dmh.sh stop
 ./dmh.sh start
 ```
+
+### 访问路径串了（品牌端/用户端打开不对）
+当前 H5 的入口约定：
+- 用户端：`/`（http://localhost:3100）
+- 品牌端：`/brand/login`（http://localhost:3100/brand/login）
+
+如果浏览器打开仍显示不对，建议使用无痕窗口或清理该站点 localStorage 后重试。
 
 ### MySQL 连接失败
 
