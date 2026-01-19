@@ -50,7 +50,7 @@ echo "磁盘使用率: $(df -h / | awk 'NR==2{printf "%s", $5}')"
 
 echo
 echo "--- API健康检查 ---"
-if curl -f http://localhost:8080/api/v1/health &> /dev/null; then
+if curl -f http://localhost:8080/health &> /dev/null; then
     echo "✓ API服务正常"
 else
     echo "✗ API服务异常"
@@ -109,7 +109,7 @@ nethogs
 
 # 测试网络连接
 ping google.com
-curl -I http://localhost:8080/api/v1/health
+curl -I http://localhost:8080/health
 ```
 
 ## 服务启动问题

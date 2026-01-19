@@ -4,6 +4,43 @@
 
 本指南详细说明了DMH数字营销中台RBAC权限管理系统的部署流程、配置要求和最佳实践。
 
+## 推荐部署方式（生产环境）
+
+生产环境推荐使用本仓库提供的 **Docker Compose + Nginx** 一键部署脚本，默认部署目录为 `/opt/dmh`。
+
+### 前置条件
+
+- 已安装 `docker` 与 `docker compose`（或 `docker-compose`）
+- 服务器开放 80/443（对外）与 3306/8080（按需，仅内部可关闭）
+
+### 一键部署
+
+在仓库根目录执行：
+
+```bash
+bash docs/deployment/scripts/deploy.sh production latest
+```
+
+首次运行会在 `/opt/dmh/.env` 生成模板，请至少配置：
+
+- `MYSQL_ROOT_PASSWORD`
+- `MYSQL_PASSWORD`（dmh_user 使用）
+- `JWT_SECRET`（生产环境必须更换，建议 32 位以上随机串）
+
+部署成功后访问：
+
+- 管理后台：`http://<server>/`
+- H5：`http://<server>/h5/`
+- API：`http://<server>/api/v1/...`
+- 健康检查：`http://<server>/health`
+
+### 目录与配置说明
+
+- `/opt/dmh/current`：代码仓库（脚本拉取/更新）
+- `/opt/dmh/docker-compose.yml`：生产 compose（引用 `./current/*` 的相对路径）
+- `/opt/dmh/config/*`：可持久化的配置（nginx/mysql/redis 与后端 `dmh-api.yaml`）
+- `/opt/dmh/.env`：敏感变量（密码、JWT 等）
+
 ## 系统要求
 
 ### 硬件要求
@@ -40,8 +77,8 @@
 - **备份**: 定期备份策略
 
 #### 运行时环境
-- **Go**: 1.21+
-- **Node.js**: 18+ (前端构建)
+- **Go**: 1.23+（以 `backend/go.mod` 为准）
+- **Node.js**: 20+（前端构建）
 - **Nginx**: 1.20+ (反向代理)
 
 ## 部署架构

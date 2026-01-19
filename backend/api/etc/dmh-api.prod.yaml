@@ -1,0 +1,48 @@
+Name: dmh-api
+Host: 0.0.0.0
+Port: 8080
+
+# CORS配置
+CorsConf:
+  AccessControlAllowOrigin: "*"
+  AccessControlAllowMethods: "GET,POST,PUT,DELETE,OPTIONS"
+  AccessControlAllowHeaders: "Content-Type,Authorization,X-Requested-With"
+  AccessControlExposeHeaders: "Content-Length,Access-Control-Allow-Origin,Access-Control-Allow-Headers,Content-Type"
+  AccessControlAllowCredentials: true
+
+# 数据库配置（生产环境建议使用环境变量覆盖：DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME）
+Mysql:
+  DataSource: root:password@tcp(mysql:3306)/dmh?charset=utf8mb4&parseTime=true&loc=Local
+
+# Redis配置（目前仅部分组件使用；没有 Redis 也能启动）
+Redis:
+  Host: redis:6379
+  Type: node
+  Pass: ""
+
+# 日志配置
+Log:
+  ServiceName: dmh-api
+  Mode: console
+  Level: info
+
+# 超时配置
+Timeout: 30000
+
+# JWT配置（生产环境必须用环境变量 JWT_SECRET 覆盖）
+Auth:
+  AccessSecret: change-me-in-production
+  AccessExpire: 86400
+
+# 外部同步配置（未接入时建议关闭）
+ExternalSync:
+  Enabled: false
+  Database:
+    Type: mysql
+    Host: ""
+    Port: 3306
+    User: ""
+    Password: ""
+    Database: ""
+    Schema: ""
+    Charset: utf8mb4

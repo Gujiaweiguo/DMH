@@ -5,6 +5,7 @@ import MemberListView from './views/MemberListView';
 import MemberDetailView from './views/MemberDetailView';
 import MemberMergeView from './views/MemberMergeView';
 import MemberExportView from './views/MemberExportView';
+import { DistributorManagementView, renderDistributorManagementView } from './views/DistributorManagementView';
 import './styles/member.css';
 
 // 简单的Badge组件
@@ -786,12 +787,17 @@ const AdminApp = defineComponent({
     const activeTab = ref('dashboard');
     const memberRoute = ref<'list' | 'detail' | 'merge' | 'export'>('list');
 
-    const syncFromHash = () => {
-      const hash = window.location.hash || '';
-      if (hash.startsWith('#/members')) {
-        activeTab.value = 'members';
-        if (hash.startsWith('#/members/merge')) {
-          memberRoute.value = 'merge';
+	    const syncFromHash = () => {
+	      const hash = window.location.hash || '';
+	      if (hash.startsWith('#/distributor-approval')) {
+	        activeTab.value = 'distributor-management';
+	        window.location.hash = '#/distributor-management';
+	        return;
+	      }
+	      if (hash.startsWith('#/members')) {
+	        activeTab.value = 'members';
+	        if (hash.startsWith('#/members/merge')) {
+	          memberRoute.value = 'merge';
         } else if (hash.startsWith('#/members/export')) {
           memberRoute.value = 'export';
         } else if (/^#\/members\/\d+/.test(hash)) {
@@ -801,18 +807,25 @@ const AdminApp = defineComponent({
         }
         return;
       }
+	
+	      const tabFromHash = hash.replace('#/', '');
+	      const validTabs = new Set(['dashboard', 'users', 'brands', 'campaigns', 'system', 'distributor-management']);
+	      if (validTabs.has(tabFromHash)) {
+	        activeTab.value = tabFromHash;
+	      }
+	    };
 
-      const tabFromHash = hash.replace('#/', '');
-      const validTabs = new Set(['dashboard', 'users', 'brands', 'campaigns', 'system']);
-      if (validTabs.has(tabFromHash)) {
-        activeTab.value = tabFromHash;
-      }
-    };
-
-    // 检查登录状态
-    const checkLoginStatus = () => {
-      isLoggedIn.value = authApi.isLoggedIn();
-    };
+	    // 检查登录状态
+	    const checkLoginStatus = () => {
+	      const loggedIn = authApi.isLoggedIn();
+	      if (loggedIn && !authApi.isPlatformAdmin()) {
+	        authApi.logout();
+	        isLoggedIn.value = false;
+	        loginError.value = '管理后台仅限平台管理员访问，请使用 H5 端登录';
+	        return;
+	      }
+	      isLoggedIn.value = loggedIn;
+	    };
 
     // 监听登录状态变化
     onMounted(() => {
@@ -875,14 +888,15 @@ const AdminApp = defineComponent({
     };
 
     // 侧边栏菜单项
-    const sidebarItems = [
-      { id: 'dashboard', label: '控制面板', icon: 'LayoutDashboard' },
-      { id: 'users', label: '用户管理', icon: 'Users' },
-      { id: 'brands', label: '品牌管理', icon: 'Shield' },
-      { id: 'campaigns', label: '活动监控', icon: 'Monitor' },
-      { id: 'members', label: '会员管理', icon: 'Users' },
-      { id: 'system', label: '系统设置', icon: 'Settings' },
-    ];
+	    const sidebarItems = [
+	      { id: 'dashboard', label: '控制面板', icon: 'LayoutDashboard' },
+	      { id: 'users', label: '用户管理', icon: 'Users' },
+	      { id: 'brands', label: '品牌管理', icon: 'Shield' },
+	      { id: 'campaigns', label: '活动监控', icon: 'Monitor' },
+	      { id: 'members', label: '会员管理', icon: 'Users' },
+	      { id: 'distributor-management', label: '分销监控', icon: 'TrendingUp' },
+	      { id: 'system', label: '系统设置', icon: 'Settings' },
+	    ];
 
     return () => {
       // 未登录状态 - 显示登录界面
@@ -890,11 +904,11 @@ const AdminApp = defineComponent({
         return h('div', { class: 'min-h-screen bg-gradient-to-br from-indigo-50 to-slate-100 flex items-center justify-center p-4' }, [
           h('div', { class: 'bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md' }, [
             h('div', { class: 'text-center mb-8' }, [
-              h('div', { class: 'w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-600/30' }, 
+              h('div', { class: 'w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-600/30' },
                 h(LucideIcons.Zap, { class: 'text-white', size: 32 })
               ),
-              h('h1', { class: 'text-2xl font-black text-slate-900 mb-2' }, 'DMH 管理后台'),
-              h('p', { class: 'text-slate-500 text-sm' }, '数字营销中台管理系统')
+              h('h1', { class: 'text-2xl font-black text-slate-900 mb-2' }, 'DMH 平台管理后台'),
+              h('p', { class: 'text-slate-500 text-sm' }, '仅限平台管理员访问')
             ]),
             h('form', { 
               onSubmit: (e: Event) => { 
@@ -931,17 +945,18 @@ const AdminApp = defineComponent({
               }, loginLoading.value ? '登录中...' : '登录')
             ]),
             h('div', { class: 'mt-6 text-center text-sm text-slate-500' }, [
-              h('div', { class: 'mb-4 p-4 bg-amber-50 border border-amber-200 rounded-2xl' }, [
-                h('p', { class: 'text-amber-800 font-bold mb-2' }, '⚠️ 测试账号'),
-                h('div', { class: 'text-amber-700 text-xs space-y-1' }, [
-                  h('p', '管理员: admin / 123456')
+              h('div', { class: 'mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-2xl' }, [
+                h('p', { class: 'text-indigo-800 font-bold mb-2' }, '🔒 平台管理员登录'),
+                h('div', { class: 'text-indigo-700 text-xs space-y-1' }, [
+                  h('p', '账号: admin / 123456'),
+                  h('p', { class: 'text-indigo-600 mt-2' }, '品牌管理员请使用 H5 端访问')
                 ]),
                 h('div', { class: 'flex gap-2 mt-3' }, [
                   h('button', {
                     type: 'button',
                     onClick: quickFillAdmin,
-                    class: 'w-full px-3 py-2 bg-amber-100 text-amber-800 rounded-xl text-xs font-bold hover:bg-amber-200 transition-colors'
-                  }, '填充管理员')
+                    class: 'w-full px-3 py-2 bg-indigo-100 text-indigo-800 rounded-xl text-xs font-bold hover:bg-indigo-200 transition-colors'
+                  }, '填充账号')
                 ])
               ])
             ])
@@ -992,28 +1007,36 @@ const AdminApp = defineComponent({
             ]),
             h('div', { class: 'flex items-center gap-6' }, [
               h('div', { class: 'flex items-center gap-3 border-l pl-6 border-slate-100' }, [
-                h('div', { class: 'text-right' }, [h('p', { class: 'text-[10px] font-black text-slate-900' }, '管理员'), h('p', { class: 'text-[9px] font-bold text-slate-400 uppercase' }, 'Super Admin')]),
-                h('img', { src: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin', class: 'w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition-all' })
+                h('div', { class: 'text-right' }, [h('p', { class: 'text-[10px] font-black text-slate-900' }, authApi.getUsername() || 'Admin'), h('p', { class: 'text-[9px] font-bold text-slate-400 uppercase' }, 'Platform Admin')]),
+                h('img', { src: `https://api.dicebear.com/7.x/avataaars/svg?seed=${authApi.getUsername() || 'Admin'}`, class: 'w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition-all' })
               ])
             ])
           ]),
           h('div', { class: 'p-10 flex-1 overflow-auto' }, [
             h(Transition, { name: 'fade', mode: 'out-in' }, {
-              default: () => {
-                if (activeTab.value === 'dashboard') return h(DashboardView);
-                if (activeTab.value === 'users') return h(UserManagementView);
-                if (activeTab.value === 'brands') return h(BrandManagementView);
-                if (activeTab.value === 'campaigns') return h(CampaignManagementView);
-                if (activeTab.value === 'members') {
-                  if (memberRoute.value === 'detail') return h(MemberDetailView);
-                  if (memberRoute.value === 'merge') return h(MemberMergeView);
-                  if (memberRoute.value === 'export') return h(MemberExportView);
-                  return h(MemberListView);
-                }
-                if (activeTab.value === 'system') return h(SystemSettingsView);
-                return h(DashboardView);
-              }
-            })
+	              default: () => {
+	                if (activeTab.value === 'dashboard') return h(DashboardView);
+	                if (activeTab.value === 'users') return h(UserManagementView);
+	                if (activeTab.value === 'brands') return h(BrandManagementView);
+	                if (activeTab.value === 'campaigns') return h(CampaignManagementView);
+	                if (activeTab.value === 'members') {
+	                  if (memberRoute.value === 'detail') return h(MemberDetailView);
+	                  if (memberRoute.value === 'merge') return h(MemberMergeView);
+	                  if (memberRoute.value === 'export') return h(MemberExportView);
+	                  return h(MemberListView);
+	                }
+	                if (activeTab.value === 'distributor-management') {
+	                  return defineComponent({
+	                    setup: () => {
+	                      const viewModel = DistributorManagementView({ brandId: 1, readOnly: true });
+	                      return () => renderDistributorManagementView(viewModel);
+	                    }
+	                  });
+	                }
+	                if (activeTab.value === 'system') return h(SystemSettingsView);
+	                return h(DashboardView);
+	              }
+	            })
           ])
         ])
       ]);

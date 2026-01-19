@@ -10,6 +10,8 @@ import (
 	auth "dmh/api/internal/handler/auth"
 	brand "dmh/api/internal/handler/brand"
 	campaign "dmh/api/internal/handler/campaign"
+	distributor "dmh/api/internal/handler/distributor"
+	health "dmh/api/internal/handler/health"
 	member "dmh/api/internal/handler/member"
 	menu "dmh/api/internal/handler/menu"
 	order "dmh/api/internal/handler/order"
@@ -24,6 +26,16 @@ import (
 )
 
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/health",
+				Handler: health.GetHealthHandler(serverCtx),
+			},
+		},
+	)
+
 	server.AddRoutes(
 		[]rest.Route{
 			{
@@ -503,6 +515,139 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	// 分销商相关路由（需要认证）
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodPost,
+				Path:    "/distributor/apply",
+				Handler: distributor.DistributorApplyHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/distributor/applications",
+				Handler: distributor.GetDistributorApplicationsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/distributor/applications/:id",
+				Handler: distributor.GetDistributorApplicationHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/distributor/dashboard",
+				Handler: distributor.GetMyDistributorDashboardHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/distributor/statistics/:brandId",
+				Handler: distributor.GetDistributorStatisticsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/distributor/rewards/:brandId",
+				Handler: distributor.GetDistributorRewardsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/distributor/subordinates/:brandId",
+				Handler: distributor.GetDistributorSubordinatesHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/distributor/link/generate",
+				Handler: distributor.GenerateDistributorLinkHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/distributor/links",
+				Handler: distributor.GetDistributorLinksHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/distributor/qrcode/:linkCode",
+				Handler: distributor.GetDistributorQrcodeHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/distributor/status/:brandId",
+				Handler: distributor.GetMyDistributorStatusHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	// 品牌管理员分销商管理路由（需要认证）
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/brands/:brandId/distributor/applications",
+				Handler: distributor.GetBrandDistributorApplicationsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/brands/:brandId/distributor/applications/:id",
+				Handler: distributor.GetBrandDistributorApplicationHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/brands/:brandId/distributor/approve/:id",
+				Handler: distributor.ApproveDistributorApplicationHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/brands/:brandId/distributors",
+				Handler: distributor.GetBrandDistributorsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/brands/:brandId/distributors/:id",
+				Handler: distributor.GetBrandDistributorHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/brands/distributors/:id/level",
+				Handler: distributor.UpdateDistributorLevelHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/brands/distributors/:id/status",
+				Handler: distributor.UpdateDistributorStatusHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/brands/:brandId/distributor/level-rewards",
+				Handler: distributor.GetDistributorLevelRewardsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/brands/:brandId/distributor/level-rewards",
+				Handler: distributor.SetDistributorLevelRewardsHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	// 分销商推广追踪（公开路由，不需要认证）
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/distributor/track/:linkCode",
+				Handler: distributor.TrackDistributorLinkHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/distributor/info/:linkCode",
+				Handler: distributor.GetDistributorByCodeHandler(serverCtx),
+			},
+		},
 		rest.WithPrefix("/api/v1"),
 	)
 }

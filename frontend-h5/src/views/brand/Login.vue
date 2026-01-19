@@ -106,10 +106,17 @@ const handleLogin = async () => {
       throw new Error('您没有品牌管理权限')
     }
 
+    // 保存当前品牌ID（默认取第一个）
+    const firstBrandId = Array.isArray(data.brandIds) && data.brandIds.length > 0 ? data.brandIds[0] : null
+    if (!firstBrandId) {
+      throw new Error('未绑定品牌，请联系管理员为该账号分配品牌权限')
+    }
+
     // 保存登录信息
     localStorage.setItem('dmh_token', data.token)
     localStorage.setItem('dmh_user_role', 'brand_admin')
     localStorage.setItem('dmh_user_info', JSON.stringify(data))
+    localStorage.setItem('dmh_current_brand_id', String(firstBrandId))
 
     console.log('登录成功，跳转到工作台')
     

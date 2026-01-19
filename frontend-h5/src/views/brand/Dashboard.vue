@@ -47,6 +47,10 @@
           <div class="action-icon">📝</div>
           <div class="action-text">创建活动</div>
         </router-link>
+        <router-link to="/brand/distributors" class="action-card">
+          <div class="action-icon">🧭</div>
+          <div class="action-text">分销管理</div>
+        </router-link>
         <router-link to="/brand/materials" class="action-card">
           <div class="action-icon">🎨</div>
           <div class="action-text">素材库</div>
@@ -100,6 +104,10 @@
       <router-link to="/brand/orders" class="nav-item">
         <div class="nav-icon">📋</div>
         <div class="nav-text">订单</div>
+      </router-link>
+      <router-link to="/brand/distributors" class="nav-item">
+        <div class="nav-icon">🧭</div>
+        <div class="nav-text">分销</div>
       </router-link>
       <router-link to="/brand/members" class="nav-item">
         <div class="nav-icon">👤</div>

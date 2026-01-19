@@ -20,6 +20,16 @@ import BrandAnalytics from '../views/brand/Analytics.vue'
 import BrandSettings from '../views/brand/Settings.vue'
 import BrandMembers from '../views/brand/Members.vue'
 import BrandMemberDetail from '../views/brand/MemberDetail.vue'
+import BrandDistributorApproval from '../views/brand/DistributorApproval.vue'
+import BrandDistributors from '../views/brand/Distributors.vue'
+import BrandDistributorLevelRewards from '../views/brand/DistributorLevelRewards.vue'
+
+// 分销商页面
+import DistributorCenter from '../views/distributor/DistributorCenter.vue'
+import DistributorApply from '../views/distributor/DistributorApply.vue'
+import DistributorPromotion from '../views/distributor/DistributorPromotion.vue'
+import DistributorRewards from '../views/distributor/DistributorRewards.vue'
+import DistributorSubordinates from '../views/distributor/DistributorSubordinates.vue'
 
 const routes = [
   // 用户端路由
@@ -130,6 +140,56 @@ const routes = [
     name: 'BrandMemberDetail',
     component: BrandMemberDetail,
     meta: { requiresAuth: true, role: 'brand_admin' }
+  },
+  {
+    path: '/brand/distributor-approval',
+    name: 'BrandDistributorApproval',
+    component: BrandDistributorApproval,
+    meta: { requiresAuth: true, role: 'brand_admin' }
+  },
+  {
+    path: '/brand/distributors',
+    name: 'BrandDistributors',
+    component: BrandDistributors,
+    meta: { requiresAuth: true, role: 'brand_admin' }
+  },
+  {
+    path: '/brand/distributor-level-rewards',
+    name: 'BrandDistributorLevelRewards',
+    component: BrandDistributorLevelRewards,
+    meta: { requiresAuth: true, role: 'brand_admin' }
+  },
+
+  // 分销商路由
+  {
+    path: '/distributor',
+    name: 'DistributorCenter',
+    component: DistributorCenter,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/distributor/apply',
+    name: 'DistributorApply',
+    component: DistributorApply,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/distributor/promotion',
+    name: 'DistributorPromotion',
+    component: DistributorPromotion,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/distributor/rewards',
+    name: 'DistributorRewards',
+    component: DistributorRewards,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/distributor/subordinates',
+    name: 'DistributorSubordinates',
+    component: DistributorSubordinates,
+    meta: { requiresAuth: true }
   }
 ]
 
@@ -142,19 +202,19 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('dmh_token')
   const userRole = localStorage.getItem('dmh_user_role')
-  
+
   if (to.meta.requiresAuth) {
     if (!token) {
       next('/brand/login')
       return
     }
-    
+
     if (to.meta.role && userRole !== to.meta.role) {
       next('/')
       return
     }
   }
-  
+
   next()
 })
 

@@ -63,6 +63,13 @@
 - Node.js 20+
 - MySQL 8.0+
 
+> 开发环境（dev）推荐使用 `./dmh.sh`，只需要一个 MySQL 8 容器即可；生产环境（prod）推荐使用 `docs/deployment` 的 Docker Compose + Nginx（部署到 `/opt/dmh`）。
+
+**前端构建工具说明**
+- `frontend-admin` 使用 Vite 6（Vue 3）
+- `frontend-h5` 使用 Vite 5（未来可能迁移到小程序，暂不强行统一）
+- 仓库根目录提供 `.nvmrc`（建议在项目根执行 `nvm use` 以对齐 Node 版本）
+
 ### 1. 克隆项目
 ```bash
 git clone https://github.com/Gujiaweiguo/DMH.git

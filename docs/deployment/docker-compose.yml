@@ -15,7 +15,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./current/backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - ./config/mysql.cnf:/etc/mysql/conf.d/custom.cnf:ro
     networks:
       - dmh-network
@@ -46,7 +46,7 @@ services:
   # DMH后端API服务
   dmh-api:
     build:
-      context: ../../backend
+      context: ./current/backend
       dockerfile: Dockerfile
     container_name: dmh-api
     restart: unless-stopped
@@ -56,14 +56,13 @@ services:
       - DB_USER=dmh_user
       - DB_PASSWORD=${MYSQL_PASSWORD}
       - DB_NAME=dmh
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
       - JWT_SECRET=${JWT_SECRET}
       - APP_ENV=production
+      - APP_PORT=8080
     ports:
       - "8080:8080"
     volumes:
-      - ./config/config.yaml:/app/config/config.yaml:ro
+      - ./config/dmh-api.yaml:/app/config/dmh-api.yaml:ro
       - app_logs:/app/logs
       - app_uploads:/app/uploads
     networks:
@@ -71,10 +70,9 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+    command: ["-f", "/app/config/dmh-api.yaml"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       timeout: 10s
       retries: 5
       start_period: 30s
@@ -91,8 +89,8 @@ services:
       - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./config/nginx/sites:/etc/nginx/conf.d:ro
       - ./ssl:/etc/nginx/ssl:ro
-      - ../../frontend-admin/dist:/usr/share/nginx/html/admin:ro
-      - ../../frontend-h5/dist:/usr/share/nginx/html/h5:ro
+      - ./current/frontend-admin/dist:/usr/share/nginx/html/admin:ro
+      - ./current/frontend-h5/dist:/usr/share/nginx/html/h5:ro
       - nginx_logs:/var/log/nginx
     networks:
       - dmh-network

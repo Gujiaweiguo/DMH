@@ -1,12 +1,45 @@
 // DMH H5 品牌管理端
 let authToken = localStorage.getItem('h5_token');
+let brandIds = [];
+let currentBrandId = null;
 let campaigns = [];
 let members = [];
 let currentCampaign = null;
 let currentTab = 'home';
+let distributors = [];
+let distributorApplications = [];
+
+function loadBrandContext() {
+    try {
+        brandIds = JSON.parse(localStorage.getItem('h5_brand_ids') || '[]') || [];
+    } catch {
+        brandIds = [];
+    }
+    const fromStorage = Number(localStorage.getItem('h5_current_brand_id'));
+    if (Number.isFinite(fromStorage) && fromStorage > 0) {
+        currentBrandId = fromStorage;
+        return;
+    }
+    const first = Array.isArray(brandIds) && brandIds.length > 0 ? Number(brandIds[0]) : 0;
+    if (Number.isFinite(first) && first > 0) {
+        currentBrandId = first;
+        localStorage.setItem('h5_current_brand_id', String(first));
+        return;
+    }
+    currentBrandId = null;
+}
+
+function requireBrandId() {
+    loadBrandContext();
+    if (currentBrandId) return currentBrandId;
+    alert('当前账号未绑定品牌，请联系管理员分配品牌权限');
+    logout();
+    return null;
+}
 
 // 初始化应用
 function init() {
+    loadBrandContext();
     render();
     if (authToken) {
         showMainPage();
@@ -80,10 +113,54 @@ function render() {
                     <div class="empty-state">暂无内容</div>
                 </div>
             </div>
+            <div class="tab-content" data-tab="distributors">
+                <div class="section">
+                    <div class="section-header">
+                        <span class="section-title">🧭 分销管理</span>
+                        <button class="btn btn-sm btn-secondary" onclick="refreshDistributors()">刷新</button>
+                    </div>
+                    <div class="stats" style="margin-top: 0;">
+                        <div class="stat-card purple"><div class="number" id="distTotal">0</div><div class="label">分销商</div></div>
+                        <div class="stat-card green"><div class="number" id="distActive">0</div><div class="label">启用</div></div>
+                        <div class="stat-card orange"><div class="number" id="distSuspended">0</div><div class="label">停用</div></div>
+                        <div class="stat-card red"><div class="number" id="distPending">0</div><div class="label">待审批</div></div>
+                    </div>
+
+                    <div class="campaign-card" style="padding: 14px; margin-bottom: 12px;">
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                            <input id="distKeyword" placeholder="搜索用户名/手机号" style="flex:1; min-width: 180px; padding: 10px 12px; border: 1px solid #e1e5e9; border-radius: 10px;" />
+                            <select id="distStatus" style="padding: 10px 12px; border: 1px solid #e1e5e9; border-radius: 10px;">
+                                <option value="">全部状态</option>
+                                <option value="active">启用</option>
+                                <option value="suspended">停用</option>
+                            </select>
+                            <select id="distLevel" style="padding: 10px 12px; border: 1px solid #e1e5e9; border-radius: 10px;">
+                                <option value="">全部级别</option>
+                                <option value="1">一级</option>
+                                <option value="2">二级</option>
+                                <option value="3">三级</option>
+                            </select>
+                            <button class="btn btn-sm" onclick="refreshDistributors()">查询</button>
+                            <button class="btn btn-sm btn-secondary" onclick="openLevelRewards()">奖励设置</button>
+                        </div>
+                    </div>
+
+                    <div class="section-header">
+                        <span class="section-title">✅ 待审批申请</span>
+                    </div>
+                    <div id="distPendingList"><div class="empty-state">加载中...</div></div>
+
+                    <div class="section-header" style="margin-top: 10px;">
+                        <span class="section-title">📋 分销商列表</span>
+                    </div>
+                    <div id="distList"><div class="empty-state">加载中...</div></div>
+                </div>
+            </div>
             <div class="tab-bar">
                 <div class="tab-item active" data-tab="home" onclick="switchTab('home')"><div class="icon">🏠</div>首页</div>
                 <div class="tab-item" data-tab="campaigns" onclick="switchTab('campaigns')"><div class="icon">📋</div>活动</div>
                 <div class="tab-item" data-tab="create" onclick="openCreateModal()"><div class="icon">➕</div>创建</div>
+                <div class="tab-item" data-tab="distributors" onclick="switchTab('distributors')"><div class="icon">🧭</div>分销</div>
                 <div class="tab-item" data-tab="members" onclick="switchTab('members')"><div class="icon">👥</div>会员</div>
                 <div class="tab-item" data-tab="profile" onclick="switchTab('profile')"><div class="icon">👤</div>我的</div>
             </div>
@@ -197,6 +274,11 @@ async function handleLogin(e) {
             authToken = data.token;
             localStorage.setItem('h5_token', authToken);
             localStorage.setItem('h5_brand_ids', JSON.stringify(data.brandIds || []));
+            const firstBrandId = Array.isArray(data.brandIds) && data.brandIds.length > 0 ? Number(data.brandIds[0]) : 0;
+            if (Number.isFinite(firstBrandId) && firstBrandId > 0) {
+                localStorage.setItem('h5_current_brand_id', String(firstBrandId));
+            }
+            loadBrandContext();
             showMainPage();
         } else {
             throw new Error(data.message || '登录失败');
@@ -212,6 +294,7 @@ async function handleLogin(e) {
 // 退出登录
 function logout() {
     localStorage.removeItem('h5_token');
+    localStorage.removeItem('h5_current_brand_id');
     authToken = null;
     document.getElementById('loginPage').classList.remove('hidden');
     document.getElementById('mainPage').classList.remove('active');
@@ -241,6 +324,280 @@ function switchTab(tab) {
     if (tab === 'members') {
         loadMembers();
     }
+    if (tab === 'distributors') {
+        refreshDistributors();
+    }
+}
+
+function openLevelRewards() {
+    alert('奖励设置：请在后端接口接通后完善页面（当前可用 API：GET/PUT /api/v1/brands/:brandId/distributor/level-rewards）');
+}
+
+async function refreshDistributors() {
+    const brandId = requireBrandId();
+    if (!brandId) return;
+    await Promise.all([loadDistributorPending(brandId), loadDistributors(brandId)]);
+    updateDistributorStats();
+}
+
+function getDistFilters() {
+    const keyword = (document.getElementById('distKeyword')?.value || '').trim();
+    const status = document.getElementById('distStatus')?.value || '';
+    const level = document.getElementById('distLevel')?.value || '';
+    return { keyword, status, level };
+}
+
+function updateDistributorStats() {
+    const totalEl = document.getElementById('distTotal');
+    const activeEl = document.getElementById('distActive');
+    const suspendedEl = document.getElementById('distSuspended');
+    const pendingEl = document.getElementById('distPending');
+    if (!totalEl || !activeEl || !suspendedEl || !pendingEl) return;
+
+    const activeCount = distributors.filter(d => d.status === 'active').length;
+    const suspendedCount = distributors.filter(d => d.status === 'suspended').length;
+    totalEl.textContent = String(distributors.length);
+    activeEl.textContent = String(activeCount);
+    suspendedEl.textContent = String(suspendedCount);
+    pendingEl.textContent = String(distributorApplications.length);
+}
+
+async function loadDistributorPending(brandId) {
+    const listEl = document.getElementById('distPendingList');
+    if (listEl) listEl.innerHTML = '<div class="empty-state">加载中...</div>';
+    try {
+        const response = await fetch(`/api/v1/brands/${brandId}/distributor/applications?page=1&pageSize=50&status=pending`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || '加载失败');
+        }
+        const data = await response.json();
+        distributorApplications = data.applications || [];
+        renderDistributorPending();
+    } catch (error) {
+        distributorApplications = [];
+        if (listEl) listEl.innerHTML = `<div class="empty-state">加载失败: ${error.message}</div>`;
+    }
+}
+
+function renderDistributorPending() {
+    const listEl = document.getElementById('distPendingList');
+    if (!listEl) return;
+    if (!distributorApplications || distributorApplications.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">暂无待审批申请</div>';
+        return;
+    }
+    listEl.innerHTML = distributorApplications.map(app => `
+        <div class="campaign-card">
+            <h4>申请人：${app.username || ('#' + app.userId)} <span class="status draft">待审批</span></h4>
+            <div class="campaign-meta">
+                <span>🧾 申请ID #${app.id}</span>
+                <span>🏷️ 品牌 ${app.brandName || app.brandId || '-'}</span>
+                <span>🕒 ${formatDateTime(app.createdAt)}</span>
+            </div>
+            <p style="color:#666;font-size:13px;line-height:1.5;margin: 0 0 12px 0;">${escapeHtml(app.reason || '无')}</p>
+            <div class="campaign-actions">
+                <button class="btn-publish" onclick="approveDistributor(${app.id})">通过</button>
+                <button class="btn-delete" onclick="rejectDistributor(${app.id})">拒绝</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function approveDistributor(appId) {
+    const brandId = requireBrandId();
+    if (!brandId) return;
+    const levelRaw = prompt('请输入分销级别（1-3）', '1');
+    if (levelRaw === null) return;
+    const level = Number(levelRaw);
+    if (![1, 2, 3].includes(level)) {
+        alert('级别必须是 1/2/3');
+        return;
+    }
+    const notes = prompt('审批备注（可选）', '') || '';
+    try {
+        const response = await fetch(`/api/v1/brands/${brandId}/distributor/approve/${appId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action: 'approve', level, reason: notes })
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || '审批失败');
+        }
+        alert('已通过');
+        await refreshDistributors();
+    } catch (error) {
+        alert(`审批失败: ${error.message}`);
+    }
+}
+
+async function rejectDistributor(appId) {
+    const brandId = requireBrandId();
+    if (!brandId) return;
+    const reason = prompt('请输入拒绝原因', '');
+    if (reason === null) return;
+    if (!reason.trim()) {
+        alert('拒绝原因不能为空');
+        return;
+    }
+    try {
+        const response = await fetch(`/api/v1/brands/${brandId}/distributor/approve/${appId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action: 'reject', reason: reason.trim() })
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || '审批失败');
+        }
+        alert('已拒绝');
+        await refreshDistributors();
+    } catch (error) {
+        alert(`审批失败: ${error.message}`);
+    }
+}
+
+async function loadDistributors(brandId) {
+    const listEl = document.getElementById('distList');
+    if (listEl) listEl.innerHTML = '<div class="empty-state">加载中...</div>';
+    const { keyword, status, level } = getDistFilters();
+    const qs = new URLSearchParams();
+    qs.set('page', '1');
+    qs.set('pageSize', '50');
+    qs.set('brandId', String(brandId));
+    if (keyword) qs.set('keyword', keyword);
+    if (status) qs.set('status', status);
+    if (level) qs.set('level', level);
+
+    try {
+        const response = await fetch(`/api/v1/brands/${brandId}/distributors?${qs.toString()}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || '加载失败');
+        }
+        const data = await response.json();
+        distributors = data.distributors || [];
+        renderDistributorList();
+    } catch (error) {
+        distributors = [];
+        if (listEl) listEl.innerHTML = `<div class="empty-state">加载失败: ${error.message}</div>`;
+    }
+}
+
+function renderDistributorList() {
+    const listEl = document.getElementById('distList');
+    if (!listEl) return;
+    if (!distributors || distributors.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">暂无分销商</div>';
+        return;
+    }
+    listEl.innerHTML = distributors.map(d => `
+        <div class="campaign-card">
+            <h4>${d.username || ('#' + d.userId)} <span class="status ${getDistributorStatusClass(d.status)}">${getDistributorStatusText(d.status)}</span></h4>
+            <div class="campaign-meta">
+                <span>🏷️ 品牌 ${d.brandName || d.brandId || '-'}</span>
+                <span>🎚️ 级别 ${d.level || 1}</span>
+                <span>👥 下级 ${d.subordinatesCount || 0}</span>
+                <span>💰 收益 ¥${Number(d.totalEarnings || 0).toFixed(2)}</span>
+            </div>
+            <div class="campaign-actions">
+                <button class="btn-edit" onclick="changeDistributorLevel(${d.id}, ${d.level || 1})">调级</button>
+                <button class="btn-publish" onclick="toggleDistributorStatus(${d.id}, '${d.status || ''}')">${d.status === 'active' ? '停用' : '启用'}</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function getDistributorStatusClass(status) {
+    if (status === 'active') return 'active';
+    if (status === 'suspended') return 'paused';
+    return 'draft';
+}
+
+function getDistributorStatusText(status) {
+    if (status === 'active') return '启用';
+    if (status === 'suspended') return '停用';
+    return status || '未知';
+}
+
+async function changeDistributorLevel(distributorId, currentLevel) {
+    const nextRaw = prompt('请输入新级别（1-3）', String(currentLevel || 1));
+    if (nextRaw === null) return;
+    const level = Number(nextRaw);
+    if (![1, 2, 3].includes(level)) {
+        alert('级别必须是 1/2/3');
+        return;
+    }
+    try {
+        const response = await fetch(`/api/v1/brands/distributors/${distributorId}/level`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ level })
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || '更新失败');
+        }
+        alert('已更新级别');
+        await refreshDistributors();
+    } catch (error) {
+        alert(`更新失败: ${error.message}`);
+    }
+}
+
+async function toggleDistributorStatus(distributorId, currentStatus) {
+    const nextStatus = currentStatus === 'active' ? 'suspended' : 'active';
+    const ok = confirm(`确定要${nextStatus === 'active' ? '启用' : '停用'}该分销商吗？`);
+    if (!ok) return;
+    const reason = prompt('原因（可选）', '') || '';
+    try {
+        const response = await fetch(`/api/v1/brands/distributors/${distributorId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: nextStatus, reason })
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || '更新失败');
+        }
+        alert('已更新状态');
+        await refreshDistributors();
+    } catch (error) {
+        alert(`更新失败: ${error.message}`);
+    }
+}
+
+function escapeHtml(str) {
+    return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
+function formatDateTime(timeString) {
+    if (!timeString) return '-';
+    const date = new Date(timeString);
+    if (Number.isNaN(date.getTime())) return String(timeString);
+    return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 

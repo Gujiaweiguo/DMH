@@ -12,12 +12,28 @@ function brandLoginPage() {
 
         const url = req.url || ''
         const pathname = url.split('?')[0]
-        if (pathname !== '/brand/login' && pathname !== '/brand/login/') return next()
+        if (pathname === '/app.js') {
+          const jsPath = path.resolve(__dirname, 'app.js')
+          const js = fs.readFileSync(jsPath, 'utf-8')
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'application/javascript; charset=utf-8')
+          res.setHeader('Cache-Control', 'no-store')
+          res.end(js)
+          return
+        }
+
+        const isBrandEntry =
+          pathname === '/brand' ||
+          pathname === '/brand/' ||
+          pathname === '/brand/login' ||
+          pathname === '/brand/login/'
+        if (!isBrandEntry) return next()
 
         const htmlPath = path.resolve(__dirname, 'brand.html')
         const html = fs.readFileSync(htmlPath, 'utf-8')
         res.statusCode = 200
         res.setHeader('Content-Type', 'text/html; charset=utf-8')
+        res.setHeader('Cache-Control', 'no-store')
         res.end(html)
       })
     },

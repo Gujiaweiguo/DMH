@@ -42,6 +42,15 @@ VERSION=${2:-"latest"}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 DEPLOY_DIR="/opt/dmh"
+REPO_URL="${REPO_URL:-$(git -C "$PROJECT_ROOT" config --get remote.origin.url 2>/dev/null || echo "https://github.com/Gujiaweiguo/DMH.git")}"
+
+compose() {
+    if command -v docker-compose >/dev/null 2>&1; then
+        docker-compose "$@"
+        return
+    fi
+    docker compose "$@"
+}
 
 log_info "开始部署DMH系统"
 log_info "环境: $ENVIRONMENT"
@@ -58,10 +67,12 @@ check_environment() {
         exit 1
     fi
     
-    # 检查Docker Compose
-    if ! command -v docker-compose &> /dev/null; then
-        log_error "Docker Compose未安装，请先安装Docker Compose"
-        exit 1
+    # 检查Docker Compose (plugin or legacy)
+    if ! command -v docker-compose >/dev/null 2>&1; then
+        if ! docker compose version >/dev/null 2>&1; then
+            log_error "Docker Compose未安装，请先安装 docker compose 插件或 docker-compose"
+            exit 1
+        fi
     fi
     
     # 检查Git
@@ -110,7 +121,7 @@ pull_code() {
     log_info "拉取最新代码..."
     
     if [ ! -d "$DEPLOY_DIR/current" ]; then
-        git clone https://github.com/your-org/dmh-system.git $DEPLOY_DIR/current
+        git clone "$REPO_URL" $DEPLOY_DIR/current
     else
         cd $DEPLOY_DIR/current
         git fetch origin
@@ -157,19 +168,16 @@ setup_config() {
         read -p "按回车键继续..."
     fi
     
-    # 复制Docker Compose配置
+    # 复制Docker Compose配置与 deployment 资源（保持相对路径可用）
     cp $DEPLOY_DIR/current/docs/deployment/docker-compose.yml $DEPLOY_DIR/
+    mkdir -p $DEPLOY_DIR/config
+    cp -r $DEPLOY_DIR/current/docs/deployment/config/* $DEPLOY_DIR/config/
     
-    # 复制应用配置
-    if [ ! -f "$DEPLOY_DIR/config/config.yaml" ]; then
-        cp $DEPLOY_DIR/current/backend/config/config.yaml.example $DEPLOY_DIR/config/config.yaml
-        log_warning "请编辑 $DEPLOY_DIR/config/config.yaml 文件配置应用参数"
+    # 复制后端配置（生产模板）- 优先使用现有文件避免覆盖
+    if [ ! -f "$DEPLOY_DIR/config/dmh-api.yaml" ]; then
+        cp $DEPLOY_DIR/current/backend/api/etc/dmh-api.prod.yaml $DEPLOY_DIR/config/dmh-api.yaml
+        log_warning "请编辑 $DEPLOY_DIR/config/dmh-api.yaml（或使用 .env 覆盖 DB_*/JWT_SECRET）"
     fi
-    
-    # 复制Nginx配置
-    mkdir -p $DEPLOY_DIR/config/nginx/sites
-    cp $DEPLOY_DIR/current/docs/deployment/config/nginx.conf $DEPLOY_DIR/config/
-    cp $DEPLOY_DIR/current/docs/deployment/config/nginx/sites/* $DEPLOY_DIR/config/nginx/sites/
     
     log_success "配置文件设置完成"
 }
@@ -203,14 +211,14 @@ deploy_services() {
     export $(cat .env | grep -v '^#' | xargs)
     
     # 停止现有服务
-    if docker-compose ps | grep -q Up; then
+    if compose ps | grep -q Up; then
         log_info "停止现有服务..."
-        docker-compose down
+        compose down
     fi
     
     # 构建并启动服务
     log_info "构建并启动服务..."
-    docker-compose up -d --build
+    compose up -d --build
     
     log_success "服务部署完成"
 }
@@ -223,7 +231,7 @@ wait_for_services() {
     log_info "等待数据库启动..."
     timeout=60
     while [ $timeout -gt 0 ]; do
-        if docker-compose exec -T mysql mysqladmin ping -h localhost --silent; then
+        if compose exec -T mysql mysqladmin ping -h localhost --silent; then
             break
         fi
         sleep 2
@@ -259,13 +267,13 @@ init_database() {
     log_info "初始化数据库..."
     
     # 检查是否需要初始化
-    if docker-compose exec -T mysql mysql -u dmh_user -p$MYSQL_PASSWORD dmh -e "SELECT COUNT(*) FROM users;" &> /dev/null; then
+    if compose exec -T mysql mysql -u dmh_user -p"$MYSQL_PASSWORD" dmh -e "SELECT COUNT(*) FROM users;" &> /dev/null; then
         log_info "数据库已初始化，跳过"
         return
     fi
     
     # 执行初始化脚本
-    docker-compose exec -T mysql mysql -u dmh_user -p$MYSQL_PASSWORD dmh < $DEPLOY_DIR/current/backend/scripts/init.sql
+    compose exec -T mysql mysql -u dmh_user -p"$MYSQL_PASSWORD" dmh < "$DEPLOY_DIR/current/backend/scripts/init.sql"
     
     log_success "数据库初始化完成"
 }
@@ -287,7 +295,7 @@ run_tests() {
     fi
     
     # 测试数据库连接
-    if ! docker-compose exec -T mysql mysql -u dmh_user -p$MYSQL_PASSWORD dmh -e "SELECT 1;"; then
+    if ! compose exec -T mysql mysql -u dmh_user -p"$MYSQL_PASSWORD" dmh -e "SELECT 1;"; then
         log_error "数据库连接测试失败"
         return 1
     fi
@@ -318,7 +326,7 @@ show_info() {
     echo "  API接口: http://localhost:8080"
     echo
     echo "服务状态:"
-    docker-compose ps
+    compose ps
     echo
     echo "日志查看:"
     echo "  docker-compose logs -f [服务名]"

@@ -9,6 +9,10 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span>我的报名</span>
       </button>
+      <button class="distributor-btn" @click="goDistributor">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-3 3-3-3a2 2 0 0 1 2.83-2.83L12 7Z"/><path d="M2 12h20"/></svg>
+        <span>分销中心</span>
+      </button>
     </div>
 
     <!-- 筛选标签 -->
@@ -264,7 +268,11 @@ const goDetail = (id) => {
 
 // 跳转到我的报名
 const goMyOrders = () => {
-  router.push('/my-orders')
+  router.push('/orders')
+}
+
+const goDistributor = () => {
+  router.push('/distributor')
 }
 
 onMounted(() => {
@@ -304,6 +312,24 @@ onMounted(() => {
 }
 
 .my-orders-btn:active {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: scale(0.95);
+}
+
+.distributor-btn {
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.distributor-btn:active {
   background-color: rgba(255, 255, 255, 0.3);
   transform: scale(0.95);
 }

@@ -2,6 +2,8 @@
 
 ## 快速开始
 
+> **开发环境（dev）建议只依赖一个 MySQL 8 容器即可**。当前后端 Redis 配置存在但默认不影响启动；`./dmh.sh` 也不会启动 Redis/Nginx。
+
 ```bash
 # 首次运行（初始化环境）
 ./dmh.sh init
@@ -25,7 +27,20 @@
 
 - **Go**: 1.23+
 - **Node.js**: 20+
-- **Docker**: 用于运行 MySQL
+- **Docker**: 用于运行 MySQL（开发环境仅需 mysql8 容器）
+
+### Node 版本对齐（推荐）
+
+仓库根目录有 `.nvmrc`，建议在项目根执行：
+
+```bash
+nvm use
+```
+
+### 前端构建工具说明
+
+- `frontend-admin` 使用 Vite 6（Vue 3）
+- `frontend-h5` 使用 Vite 5（未来可能迁移到小程序，暂不强行统一）
 
 ### 检查环境
 ```bash
@@ -57,6 +72,8 @@ docker --version
 | H5 用户端 | http://localhost:3100 | 普通用户活动中心 |
 | H5 品牌端 | http://localhost:3100/brand/login | 品牌管理端 |
 | 管理后台 | http://localhost:3000 | 管理员后台 |
+
+> 生产环境（prod）推荐使用 `docs/deployment` 的 Docker Compose + Nginx 方案，见 `docs/deployment/Deployment-Guide.md`。
 
 ---
 

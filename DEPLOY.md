@@ -1,5 +1,9 @@
 # DMH 部署指南
 
+> 本仓库目前提供两条路径：
+> - **开发环境（dev）**：推荐用 `./dmh.sh`，只需要一个 MySQL 8 容器（mysql8）即可。
+> - **生产环境（prod）**：推荐用 `docs/deployment` 的 Docker Compose + Nginx，一键部署到 `/opt/dmh`。
+
 ## 技术栈
 
 ### 后端
@@ -374,6 +378,24 @@ docker exec -i mysql8 mysql -uroot -p'#Admin168' dmh -e "SHOW TABLES LIKE 'users
 # 修改 backend/api/etc/dmh-api.yaml
 Mysql:
   DataSource: root:#Admin168@tcp(172.17.0.1:3306)/dmh?charset=utf8mb4&parseTime=true&loc=Local
+
+## 生产环境（Docker Compose，推荐）
+
+生产环境请不要把密码写死在配置文件里，使用 `.env` 管理：
+
+```bash
+# 1) 在服务器上准备 docker + docker compose
+# 2) 在项目根目录执行（会部署到 /opt/dmh）
+bash docs/deployment/scripts/deploy.sh production latest
+
+# 3) 首次会生成 /opt/dmh/.env，请按提示填写 MYSQL_ROOT_PASSWORD / MYSQL_PASSWORD / JWT_SECRET
+```
+
+部署成功后：
+- 管理后台：`http://<server>/`
+- H5：`http://<server>/h5/`
+- API：`http://<server>/api/v1/...`
+- 健康检查：`http://<server>/health`
 ```
 
 ### Go 编译失败

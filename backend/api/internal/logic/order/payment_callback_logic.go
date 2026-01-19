@@ -7,6 +7,7 @@ import (
 
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
+	distributorLogic "dmh/api/internal/logic/distributor"
 	"dmh/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -51,6 +52,7 @@ func (l *PaymentCallbackLogic) PaymentCallback(req *types.PaymentCallbackReq) er
 		order.PayStatus = "paid"
 		order.Status = "paid"
 		order.TradeNo = req.TradeNo
+		order.Amount = req.Amount // 更新实际支付金额
 		if err := tx.Save(&order).Error; err != nil {
 			return fmt.Errorf("更新订单状态失败: %w", err)
 		}
@@ -104,6 +106,17 @@ func (l *PaymentCallbackLogic) PaymentCallback(req *types.PaymentCallbackReq) er
 
 	if err != nil {
 		return err
+	}
+
+	// 处理多级分销商奖励分配（在事务外单独处理）
+	if order.ReferrerId > 0 && req.Amount > 0 {
+		rewardLogic := distributorLogic.NewRewardLogic(l.ctx, l.svcCtx)
+		if err := rewardLogic.DistributeReward(order.Id, req.Amount, campaign.BrandId); err != nil {
+			// 分销商奖励分配失败不影响订单支付，记录日志即可
+			logx.Errorf("分销商奖励分配失败: %v", err)
+		} else {
+			logx.Infof("订单 %d 分销商奖励分配成功", order.Id)
+		}
 	}
 
 	return nil
