@@ -64,8 +64,7 @@ func (suite *PermissionMiddlewareTestSuite) createTestData() {
 	// 创建角色
 	roles := []model.Role{
 		{ID: 1, Name: "平台管理员", Code: "platform_admin"},
-		{ID: 2, Name: "品牌管理员", Code: "brand_admin"},
-		{ID: 3, Name: "参与者", Code: "participant"},
+		{ID: 2, Name: "参与者", Code: "participant"},
 	}
 	for _, role := range roles {
 		suite.db.Create(&role)
@@ -88,10 +87,7 @@ func (suite *PermissionMiddlewareTestSuite) createTestData() {
 		{RoleID: 1, PermissionID: 2}, // platform_admin -> brand:manage
 		{RoleID: 1, PermissionID: 3}, // platform_admin -> campaign:manage
 		{RoleID: 1, PermissionID: 4}, // platform_admin -> order:read
-		{RoleID: 2, PermissionID: 2}, // brand_admin -> brand:manage
-		{RoleID: 2, PermissionID: 3}, // brand_admin -> campaign:manage
-		{RoleID: 2, PermissionID: 4}, // brand_admin -> order:read
-		{RoleID: 3, PermissionID: 4}, // participant -> order:read
+		{RoleID: 2, PermissionID: 4}, // participant -> order:read
 	}
 	for _, rp := range rolePermissions {
 		suite.db.Create(&rp)
@@ -100,7 +96,7 @@ func (suite *PermissionMiddlewareTestSuite) createTestData() {
 	// 创建用户
 	users := []model.User{
 		{Id: 1, Username: "admin", Role: "platform_admin", Status: "active"},
-		{Id: 2, Username: "brand_manager", Role: "brand_admin", Status: "active"},
+		{Id: 2, Username: "brand_manager", Role: "participant", Status: "active"},
 		{Id: 3, Username: "user", Role: "participant", Status: "active"},
 	}
 	for _, user := range users {
@@ -110,8 +106,8 @@ func (suite *PermissionMiddlewareTestSuite) createTestData() {
 	// 创建用户角色关联
 	userRoles := []model.UserRole{
 		{UserID: 1, RoleID: 1}, // admin -> platform_admin
-		{UserID: 2, RoleID: 2}, // brand_manager -> brand_admin
-		{UserID: 3, RoleID: 3}, // user -> participant
+		{UserID: 2, RoleID: 2}, // brand_manager -> participant
+		{UserID: 3, RoleID: 2}, // user -> participant
 	}
 	for _, ur := range userRoles {
 		suite.db.Create(&ur)
@@ -128,7 +124,7 @@ func (suite *PermissionMiddlewareTestSuite) createTestData() {
 
 	// 创建用户品牌关联
 	userBrands := []model.UserBrand{
-		{UserID: 2, BrandId: 1}, // brand_manager -> 品牌A
+		{UserId: 2, BrandId: 1}, // brand_manager -> 品牌A
 	}
 	for _, ub := range userBrands {
 		suite.db.Create(&ub)

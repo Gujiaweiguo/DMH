@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试活动表单字段功能</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h1>活动表单字段API测试</h1>
+        
+        <div class="test-section">
+            <h2>测试1: 创建带表单字段的活动</h2>
+            <textarea id="test1-request" rows="10" cols="80">
+{
+  "name": "测试活动",
+  "description": "测试活动描述",
+  "formFields": [
+    {
+      "type": "text",
+      "name": "username",
+      "label": "姓名",
+      "required": true,
+      "placeholder": "请输入姓名"
+    },
+    {
+      "type": "phone",
+      "name": "mobile",
+      "label": "手机号",
+      "required": true,
+      "placeholder": "请输入手机号"
+    },
+    {
+      "type": "select",
+      "name": "course",
+      "label": "意向课程",
+      "required": false,
+      "options": [
+        {"label": "前端开发", "value": "frontend"},
+        {"label": "后端开发", "value": "backend"}
+      ]
+    }
+  ],
+  "rewardRule": 10.00
+}
+            </textarea>
+            <br>
+            <button onclick="testCreateCampaign()">测试创建活动</button>
+            <pre id="test1-response"></pre>
+            
+            <h2>测试2: 查询活动详情</h2>
+            <input type="number" id="campaign-id" placeholder="输入活动ID" value="1">
+            <br>
+            <button onclick="testGetCampaign()">查询活动详情</button>
+            <pre id="test2-response"></pre>
+        </div>
+        
+        <div class="instructions">
+            <h3>测试说明</h3>
+            <p>1. 确保后端服务运行在 http://localhost:8889</p>
+            <p>2. 点击测试按钮发送API请求</p>
+            <p>3. 查看响应验证FormField结构是否正确</p>
+            <p>4. FormField应该包含: type, name, label, required, placeholder, options</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8889/api/v1';
+        
+        async function testCreateCampaign() {
+            const request = JSON.parse(document.getElementById('test1-request').value);
+            
+            try {
+                const response = await fetch(`${API_BASE}/campaign/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token') || 'test-token-123'}`
+                    },
+                    body: JSON.stringify(request)
+                });
+                
+                const data = await response.json();
+                document.getElementById('test1-response').textContent = 
+                    JSON.stringify(data, null, 2);
+                    
+                // 验证FormField结构
+                if (data.code === 0 && data.data) {
+                    console.log('活动创建成功');
+                    console.log('FormFields:', data.data.formFields);
+                    
+                    // 验证每个FormField的字段
+                    data.data.formFields.forEach((field, index) => {
+                        console.log(`字段${index + 1}:`, field);
+                        
+                        const hasType = field.hasOwnProperty('type');
+                        const hasName = field.hasOwnProperty('name');
+                        const hasLabel = field.hasOwnProperty('label');
+                        const hasRequired = field.hasOwnProperty('required');
+                        
+                        console.log(`  - type: ${hasType ? '✓' : '✗'}`);
+                        console.log(`  - name: ${hasName ? '✓' : '✗'}`);
+                        console.log(`  - label: ${hasLabel ? '✓' : '✗'}`);
+                        console.log(`  - required: ${hasRequired ? '✓' : '✗'}`);
+                        
+                        if (field.type === 'select') {
+                            const hasOptions = field.hasOwnProperty('options');
+                            console.log(`  - options: ${hasOptions ? '✓' : '✗'}`);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('测试失败:', error);
+                document.getElementById('test1-response').textContent = 
+                    `错误: ${error.message}`;
+            }
+        }
+        
+        async function testGetCampaign() {
+            const campaignId = document.getElementById('campaign-id').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/campaign/detail/${campaignId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token') || 'test-token-123'}`
+                    }
+                });
+                
+                const data = await response.json();
+                document.getElementById('test2-response').textContent = 
+                    JSON.stringify(data, null, 2);
+                    
+                // 验证FormField结构
+                if (data.code === 0 && data.data) {
+                    console.log('活动查询成功');
+                    console.log('FormFields:', data.data.formFields);
+                    
+                    // 验证每个FormField的字段
+                    data.data.formFields.forEach((field, index) => {
+                        console.log(`字段${index + 1}:`, field);
+                        
+                        const hasType = field.hasOwnProperty('type');
+                        const hasName = field.hasOwnProperty('name');
+                        const hasLabel = field.hasOwnProperty('label');
+                        
+                        console.log(`  - type: ${hasType ? '✓' : '✗'}`);
+                        console.log(`  - name: ${hasName ? '✓' : '✗'}`);
+                        console.log(`  - label: ${hasLabel ? '✓' : '✗'}`);
+                        
+                        if (field.type === 'select') {
+                            const hasOptions = field.hasOwnProperty('options');
+                            console.log(`  - options: ${hasOptions ? '✓' : '✗'}`);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('测试失败:', error);
+                document.getElementById('test2-response').textContent = 
+                    `错误: ${error.message}`;
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            color: #007bff;
+            margin-top: 20px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        textarea {
+            width: 100%;
+            font-family: monospace;
+            font-size: 14px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        input {
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 400px;
+            font-size: 12px;
+        }
+        
+        .instructions {
+            background-color: #fff3cd;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+        }
+    </style>
+</body>
+</html>

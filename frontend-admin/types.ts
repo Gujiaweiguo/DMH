@@ -101,6 +101,8 @@ export interface Campaign {
   endTime: string;
   status: 'active' | 'paused' | 'ended';
   createdAt: string;
+  paymentConfig?: string;
+  posterTemplateId?: number;
 }
 
 export interface Industry {

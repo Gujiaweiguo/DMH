@@ -33,11 +33,11 @@ type Permission struct {
 
 // UserPermissions 用户权限缓存结构
 type UserPermissions struct {
-	UserID      int64               `json:"userId"`
-	Roles       []string            `json:"roles"`
-	Permissions map[string]bool     `json:"permissions"` // permission_code -> bool
-	BrandIDs    []int64             `json:"brandIds"`
-	CachedAt    time.Time           `json:"cachedAt"`
+	UserID      int64           `json:"userId"`
+	Roles       []string        `json:"roles"`
+	Permissions map[string]bool `json:"permissions"` // permission_code -> bool
+	BrandIDs    []int64         `json:"brandIds"`
+	CachedAt    time.Time       `json:"cachedAt"`
 }
 
 // PermissionCache 权限缓存
@@ -67,10 +67,10 @@ func NewPermissionCache(ttl time.Duration) *PermissionCache {
 		cache: make(map[int64]*UserPermissions),
 		ttl:   ttl,
 	}
-	
+
 	// 启动清理goroutine
 	go cache.cleanup()
-	
+
 	return cache
 }
 
@@ -154,7 +154,7 @@ func (m *PermissionMiddleware) getUserPermissions(userID int64) (*UserPermission
 
 	// 存入缓存
 	m.cache.Set(userID, userPerms)
-	
+
 	return userPerms, nil
 }
 
@@ -172,7 +172,7 @@ func (m *PermissionMiddleware) loadUserPermissionsFromDB(userID int64) (*UserPer
 		FROM user_roles ur 
 		JOIN roles r ON ur.role_id = r.id 
 		WHERE ur.user_id = ?`
-	
+
 	rows, err := m.db.Query(roleQuery, userID)
 	if err != nil {
 		return nil, fmt.Errorf("查询用户角色失败: %v", err)
@@ -196,7 +196,7 @@ func (m *PermissionMiddleware) loadUserPermissionsFromDB(userID int64) (*UserPer
 		JOIN role_permissions rp ON ur.role_id = rp.role_id 
 		JOIN permissions p ON rp.permission_id = p.id 
 		WHERE ur.user_id = ?`
-	
+
 	rows, err = m.db.Query(permQuery, userID)
 	if err != nil {
 		return nil, fmt.Errorf("查询用户权限失败: %v", err)
@@ -219,16 +219,31 @@ func (m *PermissionMiddleware) getUserBrandIDs(userID int64) ([]int64, error) {
 	return []int64{}, nil
 }
 
-// checkDataLevelPermission 检查数据级权限（已简化，只有平台管理员可以访问所有数据）
+// checkDataLevelPermission 检查数据级权限
 func (m *PermissionMiddleware) checkDataLevelPermission(ctx context.Context, r *http.Request) error {
-	// 只有平台管理员可以访问所有数据
-	if !IsPlatformAdmin(ctx) {
-		// 从URL中提取品牌ID
-		brandID := m.extractBrandIDFromPath(r.URL.Path)
-		if brandID != 0 {
-			return fmt.Errorf("只有平台管理员可以访问品牌数据")
+	// 平台管理员可以访问所有数据
+	if IsPlatformAdmin(ctx) {
+		return nil
+	}
+
+	// 获取用户角色
+	roles, err := GetUserRolesFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	path := r.URL.Path
+
+	// 普通用户只能访问公开接口
+	for _, role := range roles {
+		if role == "participant" {
+			// 普通用户不能访问 /api/v1/brands
+			if strings.HasPrefix(path, "/api/v1/brands") && r.Method == http.MethodGet {
+				return fmt.Errorf("普通用户无权访问品牌管理接口")
+			}
 		}
 	}
+
 	return nil
 }
 
@@ -236,13 +251,13 @@ func (m *PermissionMiddleware) checkDataLevelPermission(ctx context.Context, r *
 func (m *PermissionMiddleware) extractResourceAction(r *http.Request) (string, string) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/")
 	parts := strings.Split(path, "/")
-	
+
 	var resource, action string
-	
+
 	if len(parts) > 0 {
 		resource = parts[0]
 	}
-	
+
 	// 根据HTTP方法和路径模式确定操作
 	switch r.Method {
 	case http.MethodGet:
@@ -265,7 +280,7 @@ func (m *PermissionMiddleware) extractResourceAction(r *http.Request) (string, s
 	default:
 		action = "read"
 	}
-	
+
 	return resource, action
 }
 
@@ -281,11 +296,11 @@ func (m *PermissionMiddleware) extractBrandIDFromPath(path string) int64 {
 			}
 		}
 	}
-	
+
 	// 匹配其他可能包含品牌ID的路径
 	// 例如 /api/v1/campaigns?brandId=1
 	// 这种情况在业务逻辑中处理
-	
+
 	return 0
 }
 
@@ -293,7 +308,7 @@ func (m *PermissionMiddleware) extractBrandIDFromPath(path string) int64 {
 func (m *PermissionMiddleware) isPublicPath(path string) bool {
 	publicPaths := []string{
 		"/api/v1/auth/login",
-		"/api/v1/auth/register", 
+		"/api/v1/auth/register",
 		"/api/v1/auth/refresh",
 		"/health",
 		"/ping",
@@ -317,12 +332,12 @@ func (m *PermissionMiddleware) isPublicPath(path string) bool {
 func (m *PermissionMiddleware) writeErrorResponse(w http.ResponseWriter, statusCode int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	
+
 	response := PermissionResponse{
 		Code:    statusCode,
 		Message: message,
 	}
-	
+
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -344,18 +359,18 @@ func (m *PermissionMiddleware) ClearAllCache() {
 func (c *PermissionCache) Get(userID int64) *UserPermissions {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	userPerms, exists := c.cache[userID]
 	if !exists {
 		return nil
 	}
-	
+
 	// 检查是否过期
 	if time.Since(userPerms.CachedAt) > c.ttl {
 		delete(c.cache, userID)
 		return nil
 	}
-	
+
 	return userPerms
 }
 
@@ -363,7 +378,7 @@ func (c *PermissionCache) Get(userID int64) *UserPermissions {
 func (c *PermissionCache) Set(userID int64, userPerms *UserPermissions) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	c.cache[userID] = userPerms
 }
 
@@ -371,7 +386,7 @@ func (c *PermissionCache) Set(userID int64, userPerms *UserPermissions) {
 func (c *PermissionCache) Delete(userID int64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	delete(c.cache, userID)
 }
 
@@ -379,7 +394,7 @@ func (c *PermissionCache) Delete(userID int64) {
 func (c *PermissionCache) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	c.cache = make(map[int64]*UserPermissions)
 }
 
@@ -387,7 +402,7 @@ func (c *PermissionCache) Clear() {
 func (c *PermissionCache) cleanup() {
 	ticker := time.NewTicker(10 * time.Minute) // 每10分钟清理一次
 	defer ticker.Stop()
-	
+
 	for range ticker.C {
 		c.mu.Lock()
 		now := time.Now()
@@ -406,11 +421,11 @@ func ValidatePermission(permissionCode string) error {
 	if len(parts) != 2 {
 		return fmt.Errorf("权限格式错误，应为 resource:action 格式")
 	}
-	
+
 	resource, action := parts[0], parts[1]
 	if resource == "" || action == "" {
 		return fmt.Errorf("资源和操作不能为空")
 	}
-	
+
 	return nil
 }

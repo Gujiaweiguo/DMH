@@ -1,13 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// 用户端页面
 import CampaignList from '../views/CampaignList.vue'
 import CampaignDetail from '../views/CampaignDetail.vue'
 import CampaignForm from '../views/CampaignForm.vue'
 import MyOrders from '../views/MyOrders.vue'
 import Success from '../views/Success.vue'
+import PaymentQrcode from '../views/PaymentQrcode.vue'
 
-// 品牌人员页面
 import BrandLogin from '../views/brand/Login.vue'
 import BrandDashboard from '../views/brand/Dashboard.vue'
 import BrandCampaigns from '../views/brand/Campaigns.vue'
@@ -23,16 +22,19 @@ import BrandMemberDetail from '../views/brand/MemberDetail.vue'
 import BrandDistributorApproval from '../views/brand/DistributorApproval.vue'
 import BrandDistributors from '../views/brand/Distributors.vue'
 import BrandDistributorLevelRewards from '../views/brand/DistributorLevelRewards.vue'
+import VerificationRecords from '../views/brand/VerificationRecords.vue'
+import PosterRecords from '../views/brand/PosterRecords.vue'
 
-// 分销商页面
 import DistributorCenter from '../views/distributor/DistributorCenter.vue'
 import DistributorApply from '../views/distributor/DistributorApply.vue'
 import DistributorPromotion from '../views/distributor/DistributorPromotion.vue'
 import DistributorRewards from '../views/distributor/DistributorRewards.vue'
 import DistributorSubordinates from '../views/distributor/DistributorSubordinates.vue'
 
+import PosterGeneratorView from '../views/poster/PosterGenerator.vue'
+import OrderVerificationView from '../views/order/OrderVerification.vue'
+
 const routes = [
-  // 用户端路由
   {
     path: '/',
     name: 'Home',
@@ -58,8 +60,17 @@ const routes = [
     name: 'Success',
     component: Success
   },
-
-  // 品牌人员路由
+  {
+    path: '/verify',
+    name: 'OrderVerify',
+    component: OrderVerificationView,
+    meta: { requiresAuth: true, role: 'brand_admin' }
+  },
+  {
+    path: '/campaign/:id/payment',
+    name: 'PaymentQrcode',
+    component: PaymentQrcode
+  },
   {
     path: '/brand/login',
     name: 'BrandLogin',
@@ -112,6 +123,18 @@ const routes = [
     meta: { requiresAuth: true, role: 'brand_admin' }
   },
   {
+    path: '/brand/verification-records',
+    name: 'VerificationRecords',
+    component: VerificationRecords,
+    meta: { requiresAuth: true, role: 'brand_admin' }
+  },
+  {
+    path: '/brand/poster-records',
+    name: 'PosterRecords',
+    component: PosterRecords,
+    meta: { requiresAuth: true, role: 'brand_admin' }
+  },
+  {
     path: '/brand/promoters',
     name: 'BrandPromoters',
     component: BrandPromoters,
@@ -159,8 +182,6 @@ const routes = [
     component: BrandDistributorLevelRewards,
     meta: { requiresAuth: true, role: 'brand_admin' }
   },
-
-  // 分销商路由
   {
     path: '/distributor',
     name: 'DistributorCenter',
@@ -190,6 +211,12 @@ const routes = [
     name: 'DistributorSubordinates',
     component: DistributorSubordinates,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/poster-generator/:id',
+    name: 'PosterGenerator',
+    component: PosterGeneratorView,
+    meta: { requiresAuth: true }
   }
 ]
 
@@ -198,7 +225,6 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫
 router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('dmh_token')
   const userRole = localStorage.getItem('dmh_user_role')

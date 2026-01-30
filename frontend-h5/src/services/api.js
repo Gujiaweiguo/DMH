@@ -76,5 +76,26 @@ export const api = {
   // DELETE 请求
   delete: (url) => {
     return request(url, { method: 'DELETE' })
+  },
+
+  // 海报生成相关 API
+  generateCampaignPoster: (campaignId) => {
+    return post(`/campaigns/${campaignId}/poster`, { campaignId })
+  },
+
+  generateDistributorPoster: () => {
+    return post('/distributor/poster', {})
+  },
+
+  getPoster: (posterId) => {
+    return get(`/posters/${posterId}`)
+  },
+
+  downloadPoster: (posterId) => {
+    return get(`/posters/${posterId}`)
+  },
+  
+  getPaymentQrcode: (campaignId) => {
+    return get(`/campaigns/${campaignId}/payment-qrcode`)
   }
 }

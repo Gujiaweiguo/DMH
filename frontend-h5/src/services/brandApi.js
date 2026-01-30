@@ -53,6 +53,11 @@ export const campaignApi = {
   // 获取页面配置
   getPageConfig: (campaignId) => {
     return api.get(`/campaign/page-config/${campaignId}`)
+  },
+
+  // 获取支付二维码
+  getPaymentQrcode: (campaignId) => {
+    return api.get(`/campaigns/${campaignId}/payment-qrcode`)
   }
 }
 
@@ -71,6 +76,22 @@ export const orderApi = {
   // 更新订单状态
   updateOrderStatus: (id, status) => {
     return api.put(`/order/status/${id}`, { status })
+  },
+
+  scanOrderCode: (code) => {
+    return api.get('/orders/scan', { code })
+  },
+
+  verifyOrder: (code, data) => {
+    return api.post('/orders/verify', { code, ...data })
+  },
+
+  unverifyOrder: (code, data) => {
+    return api.post('/orders/unverify', { code, ...data })
+  },
+
+  getVerificationRecords: () => {
+    return api.get('/order/verification-records')
   }
 }
 
@@ -117,6 +138,31 @@ export const analyticsApi = {
   // 获取推广员排行
   getPromoterRanking: (period = 'month') => {
     return api.get('/analytics/promoter-ranking', { period })
+  }
+}
+
+// 海报生成相关API
+export const posterApi = {
+  // 获取海报模板列表
+  getPosterTemplates: () => {
+    return api.get('/poster/templates')
+  },
+
+  // 生成海报（活动海报或分销商海报）
+  generatePoster: (campaignId, distributorId) => {
+    return api.post(`/campaigns/${campaignId}/poster`, {
+      distributorId: distributorId
+    })
+  },
+
+  // 获取海报文件
+  getPosterFile: (filename) => {
+    return api.get(`/poster/${filename}`)
+  },
+
+  // 获取海报生成记录
+  getPosterRecords: () => {
+    return api.get('/poster/records')
   }
 }
 

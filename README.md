@@ -196,9 +196,9 @@ npm run dev
 
 ## 🛠️ 开发指南
 
-### API文档
+ ### API文档
 - **接口定义**: `backend/api/dmh.api`
-- **在线文档**: http://localhost:8889/swagger/
+- **API文档**: `docs/api/RBAC-API-Documentation.md`
 
 ### 前端开发
 ```bash

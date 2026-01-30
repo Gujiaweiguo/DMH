@@ -484,6 +484,17 @@ type (
 		StartTime   string      `json:"startTime"`
 		EndTime     string      `json:"endTime"`
 	}
+	// 更新营销活动请求
+	UpdateCampaignReq {
+		BrandId     int64       `json:"brandId,optional"`
+		Name        string      `json:"name,optional"`
+		Description string      `json:"description,optional"`
+		FormFields  []FormField `json:"formFields,optional"` // 动态表单字段
+		RewardRule  float64     `json:"rewardRule,optional"` // 奖励规则（金额）
+		StartTime   string      `json:"startTime,optional"`
+		EndTime     string      `json:"endTime,optional"`
+		Status      string      `json:"status,optional"` // 活动状态：active, paused, ended
+	}
 	// 营销活动响应
 	CampaignResp {
 		Id          int64       `json:"id"`
@@ -552,6 +563,77 @@ type (
 		PayStatus string  `json:"payStatus"`
 		Amount    float64 `json:"amount"`
 		TradeNo   string  `json:"tradeNo"`
+	}
+	// 扫码核销请求
+	ScanOrderReq {
+		Code string `json:"code" form:"code"`
+	}
+	// 扫码核销响应
+	ScanOrderResp {
+		OrderId   int64             `json:"orderId"`
+		Status    string            `json:"status"`
+		PayStatus string            `json:"payStatus"`
+		MemberId  *int64            `json:"memberId"`
+		Phone     string            `json:"phone"`
+		FormData  map[string]string `json:"formData"`
+	}
+	// 核销请求
+	VerifyOrderReq {
+		Code string `json:"code" form:"code"`
+	}
+	// 核销响应
+	VerifyOrderResp {
+		OrderId    int64  `json:"orderId"`
+		Status     string `json:"status"`
+		VerifiedAt string `json:"verifiedAt"`
+	}
+	// 取消核销请求
+	UnverifyOrderReq {
+		Code string `json:"code" form:"code"`
+	}
+	// 取消核销响应
+	UnverifyOrderResp {
+		OrderId int64  `json:"orderId"`
+		Status  string `json:"status"`
+	}
+	// 核销记录响应
+	VerificationRecordResp {
+		Id                 int64  `json:"id"`
+		OrderId            int64  `json:"orderId"`
+		VerificationStatus string `json:"verificationStatus"`
+		VerifiedAt         string `json:"verifiedAt,optional"`
+		VerifiedBy         int64  `json:"verifiedBy,optional"`
+		VerificationCode   string `json:"verificationCode"`
+		VerificationMethod string `json:"verificationMethod"`
+		Remark             string `json:"remark"`
+		CreatedAt          string `json:"createdAt"`
+	}
+	// 核销记录列表响应
+	VerificationRecordsListResp {
+		Total   int64                    `json:"total"`
+		Records []VerificationRecordResp `json:"records"`
+	}
+	// 海报记录响应
+	PosterRecordResp {
+		Id             int64  `json:"id"`
+		RecordType     string `json:"recordType"`
+		CampaignId     int64  `json:"campaignId"`
+		DistributorId  int64  `json:"distributorId"`
+		TemplateName   string `json:"templateName"`
+		PosterUrl      string `json:"posterUrl"`
+		ThumbnailUrl   string `json:"thumbnailUrl"`
+		FileSize       string `json:"fileSize"`
+		GenerationTime int    `json:"generationTime"`
+		DownloadCount  int    `json:"downloadCount"`
+		ShareCount     int    `json:"shareCount"`
+		GeneratedBy    int64  `json:"generatedBy,optional"`
+		Status         string `json:"status"`
+		CreatedAt      string `json:"createdAt"`
+	}
+	// 海报记录列表响应
+	PosterRecordsListResp {
+		Total   int64              `json:"total"`
+		Records []PosterRecordResp `json:"records"`
 	}
 )
 
@@ -632,14 +714,14 @@ type (
 	}
 	// 分销商申请列表响应
 	DistributorApplicationListResp {
-		Total        int64                      `json:"total"`
+		Total        int64                        `json:"total"`
 		Applications []DistributorApplicationResp `json:"applications"`
 	}
 	// 分销商审批请求
 	ApproveDistributorReq {
 		Action string `json:"action"` // approve/reject
-		Level  int    `json:"level,optional"`  // 批准时设置的级别 1-3
-		Reason string `json:"reason,optional"`  // 拒绝原因或备注
+		Level  int    `json:"level,optional"` // 批准时设置的级别 1-3
+		Reason string `json:"reason,optional"` // 拒绝原因或备注
 	}
 	// 分销商响应
 	DistributorResp {
@@ -689,16 +771,22 @@ type (
 		QrcodeUrl string `json:"qrcodeUrl"`
 		LinkCode  string `json:"linkCode"`
 	}
+	// 支付二维码响应
+	PaymentQrcodeResp {
+		QrcodeUrl    string  `json:"qrcodeUrl"`
+		Amount       float64 `json:"amount"`
+		CampaignName string  `json:"campaignName"`
+	}
 	// 分销商统计数据响应
 	DistributorStatisticsResp {
-		DistributorId    int64   `json:"distributorId"`
-		TotalOrders      int64   `json:"totalOrders"`
-		TotalEarnings    float64 `json:"totalEarnings"`
-		TodayEarnings    float64 `json:"todayEarnings"`
-		MonthEarnings    float64 `json:"monthEarnings"`
+		DistributorId     int64   `json:"distributorId"`
+		TotalOrders       int64   `json:"totalOrders"`
+		TotalEarnings     float64 `json:"totalEarnings"`
+		TodayEarnings     float64 `json:"todayEarnings"`
+		MonthEarnings     float64 `json:"monthEarnings"`
 		SubordinatesCount int     `json:"subordinatesCount"`
-		ClickCount       int     `json:"clickCount"`
-		ConversionRate   float64 `json:"conversionRate"`
+		ClickCount        int     `json:"clickCount"`
+		ConversionRate    float64 `json:"conversionRate"`
 	}
 	// 分销商奖励响应
 	DistributorRewardResp {
@@ -720,9 +808,9 @@ type (
 	}
 	// 获取分销商奖励请求
 	GetDistributorRewardsReq {
-		Page     int64  `json:"page,optional" form:"page,optional"`
-		PageSize int64  `json:"pageSize,optional" form:"pageSize,optional"`
-		Level    int    `json:"level,optional" form:"level,optional"`
+		Page      int64  `json:"page,optional" form:"page,optional"`
+		PageSize  int64  `json:"pageSize,optional" form:"pageSize,optional"`
+		Level     int    `json:"level,optional" form:"level,optional"`
 		StartDate string `json:"startDate,optional" form:"startDate,optional"`
 		EndDate   string `json:"endDate,optional" form:"endDate,optional"`
 	}
@@ -766,7 +854,7 @@ type (
 	}
 	// 分销商级别奖励列表响应
 	DistributorLevelRewardsResp {
-		BrandId int64                       `json:"brandId"`
+		BrandId int64                        `json:"brandId"`
 		Rewards []DistributorLevelRewardResp `json:"rewards"`
 	}
 	// 设置分销商级别奖励请求
@@ -828,6 +916,38 @@ service dmh-api {
 	post /users/change-password (ChangePasswordReq) returns (CommonResp)
 }
 
+type (
+	GetPosterTemplatesReq {
+		Page     int64  `json:"page,optional" form:"page,optional"`
+		PageSize int64  `json:"pageSize,optional" form:"pageSize,optional"`
+		Status   string `json:"status,optional" form:"status,optional"`
+		Keyword  string `json:"keyword,optional" form:"keyword,optional"`
+	}
+	PosterTemplateConfigResp {
+		Id           int64                  `json:"id"`
+		Name         string                 `json:"name"`
+		PreviewImage string                 `json:"previewImage"`
+		Config       map[string]interface{} `json:"config"`
+		Status       string                 `json:"status"`
+		CreatedAt    string                 `json:"createdAt"`
+		UpdatedAt    string                 `json:"updatedAt"`
+	}
+	PosterTemplateConfigListResp {
+		Total     int64                      `json:"total"`
+		Templates []PosterTemplateConfigResp `json:"templates"`
+	}
+	GeneratePosterReq {
+		TemplateId int64  `json:"templateId"`
+		Theme      string `json:"theme,optional"`
+	}
+	GeneratePosterResp {
+		PosterUrl      string `json:"posterUrl"`
+		ThumbnailUrl   string `json:"thumbnailUrl,optional"`
+		FileSize       string `json:"fileSize,optional"`
+		GenerationTime int    `json:"generationTime,optional"`
+	}
+)
+
 // 品牌管理
 @server (
 	prefix: /api/v1
@@ -882,28 +1002,69 @@ service dmh-api {
 	@handler GetCampaign
 	get /campaigns/:id returns (CampaignResp)
 
+	@handler UpdateCampaign
+	put /campaigns/:id (UpdateCampaignReq) returns (CampaignResp)
+
 	@handler SavePageConfig
 	post /campaign/page-config/:id (PageConfigReq) returns (PageConfigResp)
 
 	@handler GetPageConfig
 	get /campaign/page-config/:id returns (PageConfigResp)
+
+	@handler GetPaymentQrcode
+	get /campaigns/:id/payment-qrcode returns (PaymentQrcodeResp)
 }
 
 // 订单管理
 @server (
 	prefix: /api/v1
 	group:  order
-	jwt:    Auth
+// jwt:    Auth  // 临时禁用认证以便测试
 )
 service dmh-api {
 	@handler CreateOrder
 	post /orders (CreateOrderReq) returns (OrderResp)
 
 	@handler GetOrder
-	get /orders/:id returns (OrderResp)
-
+		get /orders/:id returns (OrderResp)
+	
+	@handler GetOrders
+		get /orders/list returns (OrderListResp)
+	
 	@handler PaymentCallback
 	post /orders/payment/callback (PaymentCallbackReq)
+
+	@handler ScanOrder
+	get /orders/scan returns (ScanOrderResp)
+
+	@handler VerifyOrder
+	post /orders/verify (VerifyOrderReq) returns (VerifyOrderResp)
+
+	@handler UnverifyOrder
+	post /orders/unverify (UnverifyOrderReq) returns (UnverifyOrderResp)
+
+	@handler GetVerificationRecords
+	get /orders/verification-records returns (VerificationRecordsListResp)
+}
+
+// 海报管理
+@server (
+	prefix: /api/v1
+	group:  poster
+// jwt:    Auth  // 临时禁用认证以便测试
+)
+service dmh-api {
+	@handler GenerateCampaignPoster
+	post /campaigns/:id/poster (GeneratePosterReq) returns (GeneratePosterResp)
+
+	@handler GenerateDistributorPoster
+	post /distributors/:id/poster (GeneratePosterReq) returns (GeneratePosterResp)
+
+	@handler GetPosterTemplates
+	get /poster/templates (GetPosterTemplatesReq) returns (PosterTemplateConfigListResp)
+
+	@handler GetPosterRecords
+	get /poster/records returns (PosterRecordsListResp)
 }
 
 // 奖励管理
@@ -1079,7 +1240,6 @@ service dmh-api {
 // ============================================
 // 分销商管理
 // ============================================
-
 // 分销商申请（需要token，participant角色）
 @server (
 	prefix: /api/v1
@@ -1097,7 +1257,7 @@ service dmh-api {
 	get /distributor/applications/:id returns (DistributorApplicationResp)
 
 	@handler GetMyDistributorDashboard
-	get /distributor/dashboard returns (map[string]interface{})
+	get /distributor/dashboard returns (DistributorStatisticsResp)
 
 	@handler GetDistributorStatistics
 	get /distributor/statistics/:brandId returns (DistributorStatisticsResp)

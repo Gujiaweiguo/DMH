@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(100) DEFAULT '' COMMENT '邮箱',
     avatar VARCHAR(255) DEFAULT '' COMMENT '头像URL',
     real_name VARCHAR(50) DEFAULT '' COMMENT '真实姓名',
-    role VARCHAR(50) NOT NULL DEFAULT 'participant' COMMENT '用户角色: platform_admin/brand_admin/participant',
+    role VARCHAR(50) NOT NULL DEFAULT 'participant' COMMENT '用户角色: platform_admin/participant',
     status VARCHAR(20) NOT NULL DEFAULT 'active' COMMENT '用户状态: active/disabled/locked',
     login_attempts INT DEFAULT 0 COMMENT '登录尝试次数',
     locked_until DATETIME NULL COMMENT '锁定到期时间',
@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
--- 用户品牌关联表（替代原来的brand_admins）
+-- 用户品牌关联表（用户与品牌的关联关系）
 CREATE TABLE IF NOT EXISTS user_brands (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '关联ID',
     user_id BIGINT NOT NULL COMMENT '用户ID',
@@ -427,7 +427,6 @@ ALTER TABLE campaigns ADD INDEX idx_brand_id (brand_id);
 -- 创建基础角色
 INSERT INTO roles (name, code, description) VALUES
 ('平台管理员', 'platform_admin', '拥有系统所有权限的超级管理员'),
-('品牌管理员', 'brand_admin', '管理品牌相关业务的管理员'),
 ('参与者', 'participant', '普通用户，可参与活动'),
 ('匿名用户', 'anonymous', '未登录的访客用户');
 
@@ -512,19 +511,9 @@ INSERT INTO menus (name, code, path, icon, parent_id, sort, type, platform, stat
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 1, id FROM permissions;
 
--- 品牌管理员权限
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT 2, id FROM permissions WHERE code IN (
-    'brand:read', 'brand:update',
-    'campaign:read', 'campaign:create', 'campaign:update', 'campaign:delete',
-    'order:read', 'order:create', 'order:update',
-    'reward:read', 'reward:grant',
-    'withdrawal:apply'
-);
-
 -- 参与者权限
 INSERT INTO role_permissions (role_id, permission_id)
-SELECT 3, id FROM permissions WHERE code IN (
+SELECT 2, id FROM permissions WHERE code IN (
     'campaign:read',
     'order:create',
     'reward:read',
@@ -536,20 +525,9 @@ SELECT 3, id FROM permissions WHERE code IN (
 INSERT INTO role_menus (role_id, menu_id)
 SELECT 1, id FROM menus WHERE platform = 'admin';
 
--- 品牌管理员菜单
-INSERT INTO role_menus (role_id, menu_id)
-SELECT 2, id FROM menus WHERE code IN (
-    'dashboard',
-    'brand-management', 'brand-list', 'brand-relation',
-    'campaign-management', 'campaign-list', 'campaign-create', 'campaign-config',
-    'order-management', 'order-list', 'order-stats',
-    'reward-management', 'reward-list', 'reward-stats',
-    'withdrawal-management', 'withdrawal-apply', 'withdrawal-list'
-);
-
 -- 参与者菜单（H5端，这里先创建admin端的基础菜单）
 INSERT INTO role_menus (role_id, menu_id)
-SELECT 3, id FROM menus WHERE code IN (
+SELECT 2, id FROM menus WHERE code IN (
     'dashboard',
     'campaign-management', 'campaign-list',
     'order-management', 'order-list',
@@ -561,7 +539,7 @@ SELECT 3, id FROM menus WHERE code IN (
 -- 密码都是 123456 的bcrypt加密: $2a$10$iL5hmpD0wGKSkRDCY92TL.y8wGarBWmnqVoFYlRxLM7xr0eSCzPEm
 INSERT INTO users (username, password, phone, email, real_name, role, status) VALUES
 ('admin', '$2a$10$iL5hmpD0wGKSkRDCY92TL.y8wGarBWmnqVoFYlRxLM7xr0eSCzPEm', '13800000001', 'admin@dmh.com', '系统管理员', 'platform_admin', 'active'),
-('brand_manager', '$2a$10$iL5hmpD0wGKSkRDCY92TL.y8wGarBWmnqVoFYlRxLM7xr0eSCzPEm', '13800000002', 'brand@dmh.com', '品牌经理', 'brand_admin', 'active'),
+('brand_manager', '$2a$10$iL5hmpD0wGKSkRDCY92TL.y8wGarBWmnqVoFYlRxLM7xr0eSCzPEm', '13800000002', 'brand@dmh.com', '品牌经理', 'participant', 'active'),
 ('user001', '$2a$10$iL5hmpD0wGKSkRDCY92TL.y8wGarBWmnqVoFYlRxLM7xr0eSCzPEm', '13800000003', 'user001@dmh.com', '张三', 'participant', 'active');
 
 -- 创建测试品牌
@@ -576,8 +554,8 @@ INSERT INTO user_brands (user_id, brand_id) VALUES
 -- 分配用户角色
 INSERT INTO user_roles (user_id, role_id) VALUES
 (1, 1), -- admin -> platform_admin
-(2, 2), -- brand_manager -> brand_admin  
-(3, 3); -- user001 -> participant
+(2, 2), -- brand_manager -> participant
+(3, 2); -- user001 -> participant
 
 -- 插入测试活动数据
 INSERT INTO campaigns (brand_id, name, description, form_fields, reward_rule, start_time, end_time, status) VALUES

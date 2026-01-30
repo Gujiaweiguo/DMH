@@ -178,6 +178,44 @@
         <div class="nav-icon">⚙️</div>
         <div class="nav-text">设置</div>
       </router-link>
+      </div>
+    </div>
+
+    <!-- 快捷入口 -->
+    <div class="quick-actions">
+      <div class="action-card" @click="goToVerificationRecords">
+        <div class="action-icon">📋</div>
+        <div class="action-title">核销记录</div>
+        <div class="action-desc">查看订单核销历史</div>
+      </div>
+      <div class="action-card" @click="goToPosterRecords">
+        <div class="action-icon">🖼️</div>
+        <div class="action-title">海报生成</div>
+        <div class="action-desc">查看海报生成记录</div>
+      </div>
+    </div>
+
+    <!-- 统计信息 -->
+    <div class="stats-section">
+      <h2 class="stats-title">订单统计</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">{{ orderStats.total }}</div>
+          <div class="stat-label">总订单数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">¥{{ orderStats.totalAmount }}</div>
+          <div class="stat-label">总金额</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">¥{{ orderStats.totalRewards }}</div>
+          <div class="stat-label">总奖励</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{{ orderStats.todayOrders }}</div>
+          <div class="stat-label">今日订单</div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -365,6 +403,14 @@ const exportOrder = (order) => {
 const viewOrderDetail = (order) => {
   // TODO: 实现订单详情页面
   alert(`查看订单 #${order.id} 详情`)
+}
+
+const goToVerificationRecords = () => {
+  router.push('/brand/verification-records')
+}
+
+const goToPosterRecords = () => {
+  router.push('/brand/poster-records')
 }
 
 // 监听筛选条件变化
@@ -701,6 +747,82 @@ onMounted(() => {
 .stat-label {
   font-size: 12px;
   color: #666;
+}
+
+/* 快捷入口 */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.action-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.action-icon {
+  font-size: 40px;
+  margin-bottom: 8px;
+}
+
+.action-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.action-desc {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  display: flex;
+  border-top: 1px solid #eee;
+  padding: 8px 0;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: #999;
+  padding: 8px;
+}
+
+.nav-item.active {
+  color: #667eea;
+}
+
+.nav-icon {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.nav-text {
+  font-size: 12px;
 }
 
 .bottom-nav {

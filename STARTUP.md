@@ -71,6 +71,7 @@ docker --version
 | 后端 API | http://localhost:8889 | RESTful API |
 | H5 用户端 | http://localhost:3100 | 普通用户活动中心 |
 | H5 品牌端 | http://localhost:3100/brand/login | 品牌管理端 |
+| H5 分销端 | http://localhost:3100/distributor | 分销商中心 |
 | 管理后台 | http://localhost:3000 | 管理员后台 |
 
 > 生产环境（prod）推荐使用 `docs/deployment` 的 Docker Compose + Nginx 方案，见 `docs/deployment/Deployment-Guide.md`。
@@ -83,6 +84,7 @@ docker --version
 |------|--------|------|----------|
 | 平台管理员 | admin | 123456 | http://localhost:3000 |
 | 品牌管理员 | brand_manager | 123456 | http://localhost:3100/brand/login |
+| 分销商 | distributor1 | 123456 | http://localhost:3100/distributor |
 | 普通用户 | user001 | 123456 | http://localhost:3100 |
 
 ---
@@ -143,6 +145,16 @@ docker exec -i mysql8 mysql -u root -p'#Admin168' dmh < backend/scripts/seed_mem
 | 页面 | 链接 | 说明 |
 |------|------|------|
 | 登录 | http://localhost:3100/brand/login | 品牌管理员登录 |
+
+### 分销商中心 (H5)
+
+| 页面 | 链接 | 说明 |
+|------|------|------|
+| 分销中心 | http://localhost:3100/distributor | 分销商主页 |
+| 申请成为分销商 | http://localhost:3100/distributor/apply | 普通用户申请 |
+| 推广管理 | http://localhost:3100/distributor/promotion | 推广链接和海报 |
+| 收益明细 | http://localhost:3100/distributor/rewards | 查看收益记录 |
+| 下级管理 | http://localhost:3100/distributor/subordinates | 管理下级分销商 |
 
 ### 管理后台
 

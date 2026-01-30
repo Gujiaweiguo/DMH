@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { Save, ArrowLeft, Plus, Trash2 } from 'lucide-vue-next';
+import { ref, onMounted } from 'vue';
+import { Save, ArrowLeft, Plus, Trash2, Setting } from 'lucide-vue-next';
 import { campaignApi, type CreateCampaignRequest, type UpdateCampaignRequest } from '../services/campaignApi';
-import type { Campaign } from '../types';
+import type { Campaign, PosterTemplate } from '../types';
 
 const props = defineProps<{
   campaignId?: number;
@@ -10,26 +10,46 @@ const props = defineProps<{
 
 const emit = defineEmits(['back', 'saved']);
 
-const form = ref<CreateCampaignRequest & { status?: 'active' | 'paused' | 'ended' }>({
-  brandId: 1, // 默认品牌ID，TODO: 从品牌列表中选择
+const form = ref<CreateCampaignRequest & { 
+  status?: 'active' | 'paused' | 'ended';
+  paymentConfig?: string;
+  posterTemplateId?: number;
+}>({
+  brandId: 1,
   name: '',
   description: '',
   formFields: [],
   rewardRule: 0,
   startTime: '',
   endTime: '',
-  status: 'active'
+  status: 'active',
+  paymentConfig: '',
+  posterTemplateId: 1
 });
+
+const posterTemplates = ref<PosterTemplate[]>([]);
+const posterTemplatesLoading = ref(false);
 
 const newField = ref('');
 const loading = ref(false);
 const saving = ref(false);
 
+const showPaymentConfigDialog = ref(false);
+
 const isEditMode = computed(() => !!props.campaignId);
+
+const paymentConfigForm = ref({
+  paymentType: 'order_amount' as 'order_amount' | 'full_amount',
+  merchantId: '',
+  appId: '',
+  apiKey: '',
+  minAmount: undefined as number | undefined,
+  maxAmount: undefined as number | undefined
+});
 
 const loadCampaign = async () => {
   if (!props.campaignId) return;
-  
+
   loading.value = true;
   try {
     const campaign = await campaignApi.getCampaign(props.campaignId);
@@ -41,13 +61,28 @@ const loadCampaign = async () => {
       rewardRule: campaign.rewardRule,
       startTime: campaign.startTime,
       endTime: campaign.endTime,
-      status: campaign.status
+      status: campaign.status,
+      paymentConfig: campaign.paymentConfig || '',
+      posterTemplateId: campaign.posterTemplateId || 1
     };
   } catch (error) {
     console.error('Failed to load campaign:', error);
     alert('加载活动失败');
   } finally {
     loading.value = false;
+  }
+};
+
+const loadPosterTemplates = async () => {
+  posterTemplatesLoading.value = true;
+  try {
+    const templates = await campaignApi.getPosterTemplates();
+    posterTemplates.value = templates.filter((t: PosterTemplate) => t.status === 'active');
+  } catch (error) {
+    console.error('Failed to load poster templates:', error);
+    alert('加载海报模板失败');
+  } finally {
+    posterTemplatesLoading.value = false;
   }
 };
 
@@ -107,8 +142,15 @@ const handleSave = async () => {
   }
 };
 
+const handleSavePaymentConfig = () => {
+  form.value.paymentConfig = JSON.stringify(paymentConfigForm.value);
+  showPaymentConfigDialog.value = false;
+  alert('支付配置已保存');
+};
+
 onMounted(() => {
   loadCampaign();
+  loadPosterTemplates();
 });
 </script>
 
@@ -169,13 +211,32 @@ onMounted(() => {
           />
         </div>
 
-        <div v-if="isEditMode" class="form-group">
+        <div class="form-group" v-if="isEditMode">
           <label>活动状态</label>
           <select v-model="form.status">
             <option value="active">进行中</option>
             <option value="paused">已暂停</option>
             <option value="ended">已结束</option>
           </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>海报模板</label>
+            <select v-model="form.posterTemplateId" :disabled="posterTemplatesLoading">
+              <option value="">暂不选择</option>
+              <option v-for="template in posterTemplates" :key="template.id" :value="template.id">
+                {{ template.name }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>支付配置</label>
+            <button class="btn-config" @click="showPaymentConfigDialog = true">
+              <Setting :size="20" />
+              <span>{{ form.paymentConfig ? '已配置' : '未配置' }}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -214,6 +275,57 @@ onMounted(() => {
           <Save :size="20" />
           <span>{{ saving ? '保存中...' : '保存' }}</span>
         </button>
+      </div>
+    </div>
+
+    <div v-if="showPaymentConfigDialog" class="dialog-overlay">
+      <div class="dialog-content">
+        <div class="dialog-header">
+          <h3>支付配置</h3>
+          <button class="btn-close" @click="showPaymentConfigDialog = false">
+            <ArrowLeft :size="20" />
+          </button>
+        </div>
+
+        <div class="dialog-body">
+          <div class="form-group">
+            <label>支付方式</label>
+            <select v-model="paymentConfigForm.paymentType">
+              <option value="order_amount">按订单金额支付</option>
+              <option value="full_amount">固定全款</option>
+            </select>
+          </div>
+
+          <div class="form-group" v-if="paymentConfigForm.paymentType === 'order_amount'">
+            <label>最低金额（元）</label>
+            <input v-model.number="paymentConfigForm.minAmount" type="number" step="0.01" min="0" />
+          </div>
+
+          <div class="form-group" v-if="paymentConfigForm.paymentType === 'order_amount'">
+            <label>最高金额（元）</label>
+            <input v-model.number="paymentConfigForm.maxAmount" type="number" step="0.01" min="0" />
+          </div>
+
+          <div class="form-group">
+            <label>商户号</label>
+            <input v-model="paymentConfigForm.merchantId" type="text" placeholder="请输入微信商户号" />
+          </div>
+
+          <div class="form-group">
+            <label>应用ID</label>
+            <input v-model="paymentConfigForm.appId" type="text" placeholder="请输入微信应用ID" />
+          </div>
+
+          <div class="form-group">
+            <label>API密钥</label>
+            <input v-model="paymentConfigForm.apiKey" type="password" placeholder="请输入微信API密钥" />
+          </div>
+        </div>
+
+        <div class="dialog-footer">
+          <button class="btn-cancel" @click="showPaymentConfigDialog = false">取消</button>
+          <button class="btn-save" @click="handleSavePaymentConfig">保存</button>
+        </div>
       </div>
     </div>
   </div>
@@ -257,36 +369,28 @@ onMounted(() => {
 
 .loading {
   text-align: center;
-  padding: 60px;
+  padding: 60px 20px;
   color: #6b7280;
+  font-size: 16px;
 }
 
 .form-container {
   background: white;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
-  padding: 24px;
+  overflow: hidden;
 }
 
 .form-section {
   margin-bottom: 32px;
-}
-
-.form-section:last-of-type {
-  margin-bottom: 0;
+  padding: 0;
 }
 
 .section-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #f3f4f6;
-}
-
-.form-group {
-  margin-bottom: 20px;
+  color: #374151;
+  margin-bottom: 16px;
 }
 
 .form-group label {
@@ -298,7 +402,6 @@ onMounted(() => {
 }
 
 .form-group input,
-.form-group textarea,
 .form-group select {
   width: 100%;
   padding: 10px 12px;
@@ -306,10 +409,10 @@ onMounted(() => {
   border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 .form-group input:focus,
-.form-group textarea:focus,
 .form-group select:focus {
   outline: none;
   border-color: #3b82f6;
@@ -322,11 +425,27 @@ onMounted(() => {
   gap: 16px;
 }
 
-.field-list {
-  background: #f9fafb;
+.btn-config {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: white;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
-  padding: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  width: 100%;
+}
+
+.btn-config:hover {
+  background: #f9fafb;
+}
+
+.field-list {
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 16px;
   margin-bottom: 16px;
   min-height: 100px;
 }
@@ -342,10 +461,6 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
-.field-item:last-child {
-  margin-bottom: 0;
-}
-
 .field-name {
   font-size: 14px;
   color: #374151;
@@ -358,6 +473,7 @@ onMounted(() => {
   color: #ef4444;
   cursor: pointer;
   border-radius: 4px;
+  transition: background 0.2s;
 }
 
 .btn-remove:hover {
@@ -374,6 +490,7 @@ onMounted(() => {
 .add-field {
   display: flex;
   gap: 12px;
+  margin-top: 16px;
 }
 
 .add-field input {
@@ -387,8 +504,8 @@ onMounted(() => {
 .btn-add {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 20px;
+  gap: 8px;
+  padding: 10px 16px;
   background: #3b82f6;
   color: white;
   border: none;
@@ -406,8 +523,7 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 32px;
-  padding-top: 24px;
+  padding-top: 32px;
   border-top: 1px solid #e5e7eb;
 }
 
@@ -427,7 +543,7 @@ onMounted(() => {
 
 .btn-save {
   display: flex;
-  align-items: center;
+  align-items:.ts-center;
   gap: 8px;
   padding: 10px 24px;
   background: #3b82f6;
@@ -446,5 +562,67 @@ onMounted(() => {
 .btn-save:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.btn-close {
+  padding: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.dialog-body {
+  margin-bottom: 24px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.dialog-footer .btn-cancel,
+.dialog-footer .btn-save {
+  padding: 8px 20px;
 }
 </style>

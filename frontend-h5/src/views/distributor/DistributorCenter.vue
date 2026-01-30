@@ -95,6 +95,18 @@
           is-link
           @click="goToSubordinates"
         />
+        <van-cell
+          title="生成海报"
+          icon="photo-o"
+          is-link
+          @click="goToPosterGenerator"
+        />
+        <van-cell
+          title="订单核销"
+          icon="checked"
+          is-link
+          @click="goToOrderVerify"
+        />
          <van-cell
            title="推广数据"
            icon="bar-chart-o"
@@ -143,16 +155,9 @@ export default {
     const hasDistributor = ref(false)
     const brands = ref([])
     const selectedBrandId = ref(null)
-    const statistics = ref({
-      totalEarnings: 0,
-      totalOrders: 0,
-      subordinatesCount: 0,
-      todayEarnings: 0,
-      monthEarnings: 0
-    })
-     const applicationStatus = ref(null)
-     const activeTab = ref(1)
-     const statistics = ref({
+      const applicationStatus = ref(null)
+      const activeTab = ref(1)
+      const statistics = ref({
        totalEarnings: 0,
        totalOrders: 0,
        subordinatesCount: 0,
@@ -239,6 +244,15 @@ export default {
        router.push(`/distributor/withdrawals?brandId=${selectedBrandId.value}`)
      }
 
+      const goToPosterGenerator = () => {
+        const campaignId = localStorage.getItem('currentCampaignId') || '1'
+        router.push(`/poster-generator/${campaignId}`)
+      }
+
+      const goToOrderVerify = () => {
+        router.push('/verify')
+      }
+
     // 刷新
     const refresh = () => {
       loadDistributorStatus()
@@ -284,6 +298,8 @@ export default {
       goToPromotion,
       goToRewards,
       goToSubordinates,
+      goToPosterGenerator,
+      goToOrderVerify,
       goToStatistics,
       refresh,
       getStatusType,

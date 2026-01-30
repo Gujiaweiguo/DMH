@@ -75,8 +75,33 @@
             </template>
           </van-cell>
           
-          <van-cell title="奖励金额" :value="`¥${campaign.rewardRule}`" />
+           <van-cell title="奖励金额" :value="`¥${campaign.rewardRule}`" />
           <van-cell title="参与人数" :value="campaign.participantCount || 0" />
+          
+          <!-- 支付配置 -->
+          <van-cell v-if="campaign.paymentConfig" title="支付方式">
+            <template #value>
+              <van-tag
+                :type="campaign.paymentConfig.requirePayment ? 'primary' : 'success'"
+                size="medium"
+              >
+                {{ campaign.paymentConfig.requirePayment ? '需支付' : '免费' }}
+              </van-tag>
+            </template>
+          </van-cell>
+          
+          <van-cell
+            v-if="campaign.paymentConfig && campaign.paymentConfig.requirePayment"
+            title="支付类型"
+            :value="campaign.paymentConfig.paymentType === 'deposit' ? '订金' : '全款'"
+          />
+          
+          <van-cell
+            v-if="campaign.paymentConfig && campaign.paymentConfig.requirePayment"
+            title="支付金额"
+            :value="`¥${campaign.paymentConfig.paymentAmount?.toFixed(2) || '0.00'}`"
+          />
+          
           <van-cell
             title="活动时间"
             :value="`${formatDate(campaign.startTime)} - ${formatDate(campaign.endTime)}`"

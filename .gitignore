@@ -1,8 +1,8 @@
-# 依赖文件
+# ==================== 依赖文件 ====================
 node_modules/
 vendor/
 
-# 构建输出
+# ==================== 构建输出 ====================
 dist/
 build/
 *.exe
@@ -10,25 +10,27 @@ build/
 *.so
 *.dylib
 
-# 日志文件
+# ==================== 日志文件 ====================
 *.log
 logs/
+*.pid
 
-# 环境配置
+# ==================== 环境配置 ====================
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# IDE配置
+# ==================== IDE 配置 ====================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.fleet/
 
-# 操作系统
+# ==================== 操作系统 ====================
 .DS_Store
 .DS_Store?
 ._*
@@ -36,25 +38,32 @@ logs/
 .Trashes
 ehthumbs.db
 Thumbs.db
+desktop.ini
 
-# 临时文件
+# ==================== 临时文件 ====================
 *.tmp
 *.temp
 .cache/
+.tmp/
 
-# 数据库文件
+# ==================== 数据库文件 ====================
 *.db
 *.sqlite
 *.sqlite3
 .dmh-data/
 
-# Go特定
+# ==================== Go 特定 ====================
 *.test
 *.out
 go.work
 go.work.sum
+# Go 编译产物
+backend/dmh-api
+backend/api/dmh
+backend/api/dmh-api
+backend/api/*.log
 
-# 前端特定
+# ==================== 前端特定 ====================
 .nuxt/
 .next/
 .vuepress/dist/
@@ -62,30 +71,42 @@ go.work.sum
 .fusebox/
 .dynamodb/
 .tern-port
+# 前端构建产物
+frontend-admin/dist/
+frontend-h5/dist/
+# 依赖锁文件（可选）
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
 
-# 测试覆盖率
+# ==================== 测试覆盖率 ====================
 coverage/
 *.cover
 *.coverprofile
+.nyc_output/
 
-# 备份文件
+# ==================== 备份文件 ====================
 *.bak
 *.backup
 *-backup.*
 *-complete.*
 *-fixed.*
 
-# Windows Zone.Identifier
+# ==================== Windows Zone.Identifier ====================
 *:Zone.Identifier
 *.Zone.Identifier
 
-# Go 编译产物
-backend/dmh-api
-backend/api/dmh
-backend/api/dmh-api
-
+# ==================== AI 工具配置 ====================
 # Kiro/AI 工具配置（可选保留）
 # .kiro/
-
 # 其他 AI 工具
 .qoder/
+# 保留 .opencode/
+# .opencode/
+
+# ==================== 其他 ====================
+# 文件存储（开发环境）
+backend/storage/posters/*.png
+backend/storage/posters/*.jpg
+backend/storage/posters/*.jpeg
+!backend/storage/posters/.gitkeep

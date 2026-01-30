@@ -5,7 +5,10 @@ import MemberListView from './views/MemberListView';
 import MemberDetailView from './views/MemberDetailView';
 import MemberMergeView from './views/MemberMergeView';
 import MemberExportView from './views/MemberExportView';
-import { DistributorManagementView, renderDistributorManagementView } from './views/DistributorManagementView';
+import { DistributorManagementView } from './views/DistributorManagementView';
+import VerificationRecordsView from './views/VerificationRecordsView.vue';
+import PosterRecordsView from './views/PosterRecordsView.vue';
+import './src/index.css';
 import './styles/member.css';
 
 // 简单的Badge组件
@@ -809,7 +812,7 @@ const AdminApp = defineComponent({
       }
 	
 	      const tabFromHash = hash.replace('#/', '');
-	      const validTabs = new Set(['dashboard', 'users', 'brands', 'campaigns', 'system', 'distributor-management']);
+	      const validTabs = new Set(['dashboard', 'users', 'brands', 'campaigns', 'system', 'distributor-management', 'verification-records', 'poster-records']);
 	      if (validTabs.has(tabFromHash)) {
 	        activeTab.value = tabFromHash;
 	      }
@@ -887,7 +890,7 @@ const AdminApp = defineComponent({
       window.location.hash = `#/${tabId}`;
     };
 
-    // 侧边栏菜单项
+	    // 侧边栏菜单项
 	    const sidebarItems = [
 	      { id: 'dashboard', label: '控制面板', icon: 'LayoutDashboard' },
 	      { id: 'users', label: '用户管理', icon: 'Users' },
@@ -895,6 +898,8 @@ const AdminApp = defineComponent({
 	      { id: 'campaigns', label: '活动监控', icon: 'Monitor' },
 	      { id: 'members', label: '会员管理', icon: 'Users' },
 	      { id: 'distributor-management', label: '分销监控', icon: 'TrendingUp' },
+	      { id: 'verification-records', label: '核销记录', icon: 'CheckCircle' },
+	      { id: 'poster-records', label: '海报记录', icon: 'Image' },
 	      { id: 'system', label: '系统设置', icon: 'Settings' },
 	    ];
 
@@ -1025,16 +1030,13 @@ const AdminApp = defineComponent({
 	                  if (memberRoute.value === 'export') return h(MemberExportView);
 	                  return h(MemberListView);
 	                }
-	                if (activeTab.value === 'distributor-management') {
-	                  return defineComponent({
-	                    setup: () => {
-	                      const viewModel = DistributorManagementView({ brandId: 1, readOnly: true });
-	                      return () => renderDistributorManagementView(viewModel);
-	                    }
-	                  });
-	                }
-	                if (activeTab.value === 'system') return h(SystemSettingsView);
-	                return h(DashboardView);
+                if (activeTab.value === 'distributor-management') {
+                  return h(DistributorManagementView, { readOnly: true, isPlatformAdmin: true });
+                }
+                if (activeTab.value === 'verification-records') return h(VerificationRecordsView);
+                if (activeTab.value === 'poster-records') return h(PosterRecordsView);
+                if (activeTab.value === 'system') return h(SystemSettingsView);
+                return h(DashboardView);
 	              }
 	            })
           ])

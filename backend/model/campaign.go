@@ -1,8 +1,42 @@
 package model
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"fmt"
 	"time"
 )
+
+// FormField 动态表单字段结构
+type FormField struct {
+	Type        string   `json:"type"`        // 字段类型: text, phone, email, select, textarea, address
+	Name        string   `json:"name"`        // 字段名称（英文）
+	Label       string   `json:"label"`       // 字段标签（中文）
+	Required    bool     `json:"required"`    // 是否必填
+	Placeholder string   `json:"placeholder"` // 占位符
+	Options     []string `json:"options"`     // 选项列表（仅select类型）
+}
+
+// FormFields 动态表单字段数组（用于 JSON 存储）
+type FormFields []FormField
+
+// 实现数据库的 Scanner 和 Valuer 接口，用于 JSON 存储和读取
+func (ff *FormFields) Scan(value interface{}) error {
+	if value == nil {
+		*ff = nil
+		return nil
+	}
+
+	bytes, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("unexpected type for FormFields: %T", value)
+	}
+	return json.Unmarshal(bytes, ff)
+}
+
+func (ff FormFields) Value() (driver.Value, error) {
+	return json.Marshal(ff)
+}
 
 // Campaign 营销活动模型
 type Campaign struct {
@@ -10,7 +44,7 @@ type Campaign struct {
 	BrandId             int64      `gorm:"column:brand_id;not null;index" json:"brandId"`
 	Name                string     `gorm:"column:name;type:varchar(200);not null" json:"name"`
 	Description         string     `gorm:"column:description;type:text" json:"description"`
-	FormFields          string     `gorm:"column:form_fields;type:json" json:"formFields"` // JSON格式存储
+	FormFields          FormFields `gorm:"column:form_fields;type:json;serializer:json" json:"formFields"` // JSON格式存储动态表单字段
 	RewardRule          float64    `gorm:"column:reward_rule;type:decimal(10,2);not null;default:0.00" json:"rewardRule"`
 	StartTime           time.Time  `gorm:"column:start_time;not null" json:"startTime"`
 	EndTime             time.Time  `gorm:"column:end_time;not null" json:"endTime"`
@@ -18,6 +52,8 @@ type Campaign struct {
 	EnableDistribution  bool       `gorm:"column:enable_distribution;not null;default:false;index" json:"enableDistribution"` // 是否启用分销
 	DistributionLevel   int        `gorm:"column:distribution_level;not null;default:1" json:"distributionLevel"`             // 分销层级(1/2/3)
 	DistributionRewards *string    `gorm:"column:distribution_rewards;type:json" json:"distributionRewards,omitempty"`        // 各级奖励比例
+	PaymentConfig       *string    `gorm:"column:payment_config;type:json" json:"paymentConfig,omitempty"`                    // 支付配置
+	PosterTemplateId    int64      `gorm:"column:poster_template_id;default:1" json:"posterTemplateId"`                       // 海报模板ID
 	CreatedAt           time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
 	UpdatedAt           time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
 	DeletedAt           *time.Time `gorm:"column:deleted_at" json:"deletedAt,omitempty"`
@@ -30,23 +66,27 @@ func (m *Campaign) TableName() string {
 
 // Order 订单模型
 type Order struct {
-	Id              int64      `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	CampaignId      int64      `gorm:"column:campaign_id;not null;index" json:"campaignId"`
-	MemberID        *int64     `gorm:"column:member_id;index" json:"memberId"`                // 关联会员ID（可选）
-	UnionID         string     `gorm:"column:unionid;type:varchar(100);index" json:"unionid"` // 微信 unionid
-	Phone           string     `gorm:"column:phone;type:varchar(20);not null;index" json:"phone"`
-	FormData        string     `gorm:"column:form_data;type:json" json:"formData"` // JSON格式存储
-	ReferrerId      int64      `gorm:"column:referrer_id;default:0;index" json:"referrerId"`
-	DistributorPath string     `gorm:"column:distributor_path;type:varchar(100);default:'';index:idx_distributor_path" json:"distributorPath"` // 分销链路径 "一级ID,二级ID,三级ID"
-	Status          string     `gorm:"column:status;type:varchar(20);not null;default:pending;index" json:"status"`                            // pending, paid, cancelled
-	Amount          float64    `gorm:"column:amount;type:decimal(10,2);not null;default:0.00" json:"amount"`
-	PayStatus       string     `gorm:"column:pay_status;type:varchar(20);not null;default:unpaid;index" json:"payStatus"` // unpaid, paid, refunded
-	TradeNo         string     `gorm:"column:trade_no;type:varchar(100);default:''" json:"tradeNo"`
-	PaidAt          *time.Time `gorm:"column:paid_at" json:"paidAt,omitempty"`                                               // 支付时间
-	SyncStatus      string     `gorm:"column:sync_status;type:varchar(20);not null;default:pending;index" json:"syncStatus"` // pending, synced, failed
-	CreatedAt       time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
-	UpdatedAt       time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
-	DeletedAt       *time.Time `gorm:"column:deleted_at" json:"deletedAt,omitempty"`
+	Id                 int64      `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	CampaignId         int64      `gorm:"column:campaign_id;not null;index" json:"campaignId"`
+	MemberID           *int64     `gorm:"column:member_id;index" json:"memberId"`                // 关联会员ID（可选）
+	UnionID            string     `gorm:"column:unionid;type:varchar(100);index" json:"unionid"` // 微信 unionid
+	Phone              string     `gorm:"column:phone;type:varchar(20);not null;index" json:"phone"`
+	FormData           string     `gorm:"column:form_data;type:json" json:"formData"` // JSON格式存储
+	ReferrerId         int64      `gorm:"column:referrer_id;default:0;index" json:"referrerId"`
+	DistributorPath    string     `gorm:"column:distributor_path;type:varchar(100);default:'';index:idx_distributor_path" json:"distributorPath"` // 分销链路径 "一级ID,二级ID,三级ID"
+	Status             string     `gorm:"column:status;type:varchar(20);not null;default:pending;index" json:"status"`                            // pending, paid, cancelled
+	Amount             float64    `gorm:"column:amount;type:decimal(10,2);not null;default:0.00" json:"amount"`
+	PayStatus          string     `gorm:"column:pay_status;type:varchar(20);not null;default:unpaid;index" json:"payStatus"` // unpaid, paid, refunded
+	TradeNo            string     `gorm:"column:trade_no;type:varchar(100);default:''" json:"tradeNo"`
+	PaidAt             *time.Time `gorm:"column:paid_at" json:"paidAt,omitempty"`                                                         // 支付时间
+	SyncStatus         string     `gorm:"column:sync_status;type:varchar(20);not null;default:pending;index" json:"syncStatus"`           // pending, synced, failed
+	VerificationStatus string     `gorm:"column:verification_status;type:varchar(20);default:unverified;index" json:"verificationStatus"` // unverified, verified, cancelled
+	VerifiedAt         *time.Time `gorm:"column:verified_at" json:"verifiedAt,omitempty"`                                                 // 核销时间
+	VerifiedBy         *int64     `gorm:"column:verified_by" json:"verifiedBy,omitempty"`                                                 // 核销人用户ID
+	VerificationCode   string     `gorm:"column:verification_code;type:varchar(50);null" json:"verificationCode,omitempty"`               // 核销码（包含签名）
+	CreatedAt          time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
+	UpdatedAt          time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	DeletedAt          *time.Time `gorm:"column:deleted_at" json:"deletedAt,omitempty"`
 }
 
 // TableName 表名

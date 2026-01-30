@@ -55,9 +55,17 @@
           <div class="action-icon">🎨</div>
           <div class="action-text">素材库</div>
         </router-link>
-        <router-link to="/brand/orders" class="action-card">
+         <router-link to="/brand/orders" class="action-card">
           <div class="action-icon">📊</div>
           <div class="action-text">订单管理</div>
+        </router-link>
+        <router-link to="/brand/verification-records" class="action-card">
+          <div class="action-icon">📋</div>
+          <div class="action-text">核销记录</div>
+        </router-link>
+        <router-link to="/brand/poster-records" class="action-card">
+          <div class="action-icon">🖼️</div>
+          <div class="action-text">海报记录</div>
         </router-link>
         <router-link to="/brand/analytics" class="action-card">
           <div class="action-icon">📈</div>

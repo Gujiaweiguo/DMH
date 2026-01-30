@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -26,10 +28,41 @@ func main() {
 
 	applyEnvOverrides(&c)
 
-	server := rest.MustNewServer(c.RestConf)
+	// 配置 CORS - 允许所有来源
+	server := rest.MustNewServer(c.RestConf, rest.WithCors("*"))
 	defer server.Stop()
 
 	ctx := svc.NewServiceContext(c)
+
+	// 在注册其他路由之前，先注册静态文件路由
+	server.AddRoute(rest.Route{
+		Method: http.MethodGet,
+		Path:   "/api/v1/posters/:filename",
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Printf("[DEBUG] URL Path: %s\n", r.URL.Path)
+			pathParts := strings.Split(r.URL.Path, "/")
+			fmt.Printf("[DEBUG] Path parts: %v\n", pathParts)
+			filename := pathParts[len(pathParts)-1]
+			fmt.Printf("[DEBUG] Filename: %s\n", filename)
+
+			if filename == "" {
+				http.Error(w, "Invalid filename", http.StatusBadRequest)
+				return
+			}
+
+			filePath := filepath.Join("/opt/data/posters", filename)
+
+			if _, err := os.Stat(filePath); os.IsNotExist(err) {
+				http.Error(w, "File not found", http.StatusNotFound)
+				return
+			}
+
+			w.Header().Set("Content-Type", "image/png")
+			w.Header().Set("Cache-Control", "public, max-age=86400")
+			http.ServeFile(w, r, filePath)
+		}),
+	})
+
 	handler.RegisterHandlers(server, ctx)
 
 	fmt.Printf("Starting server at %s:%d...\n", c.Host, c.Port)
