@@ -5,9 +5,9 @@ package distributor
 
 import (
 	"context"
-
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
+	"dmh/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -27,7 +27,28 @@ func NewGetDistributorLevelRewardsLogic(ctx context.Context, svcCtx *svc.Service
 }
 
 func (l *GetDistributorLevelRewardsLogic) GetDistributorLevelRewards() (resp *types.DistributorLevelRewardsResp, err error) {
-	// todo: add your logic here and delete this line
+	brandId := l.ctx.Value("brandId").(int64)
 
-	return
+	var levelRewards []model.DistributorLevelReward
+	if err := l.svcCtx.DB.Where("brand_id = ?", brandId).Find(&levelRewards).Error; err != nil {
+		return nil, err
+	}
+
+	resp = &types.DistributorLevelRewardsResp{
+		BrandId: brandId,
+		Rewards: make([]types.DistributorLevelRewardResp, 0, len(levelRewards)),
+	}
+
+	for _, reward := range levelRewards {
+		rewardResp := types.DistributorLevelRewardResp{
+			Id:               reward.Id,
+			BrandId:          reward.BrandId,
+			Level:            reward.Level,
+			RewardPercentage: reward.RewardPercentage,
+		}
+
+		resp.Rewards = append(resp.Rewards, rewardResp)
+	}
+
+	return resp, nil
 }

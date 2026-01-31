@@ -1329,3 +1329,81 @@ service dmh-api {
 	get /distributor/info/:linkCode returns (DistributorResp)
 }
 
+// ============================================
+// 会员管理相关类型
+// ============================================
+type (
+	// 会员响应
+	MemberResp {
+		Id          int64     `json:"id"`
+		UnionID     string    `json:"unionid"`
+		Nickname    string    `json:"nickname"`
+		Avatar      string    `json:"avatar"`
+		Phone       string    `json:"phone"`
+		Gender      int       `json:"gender"`
+		Source      string    `json:"source"`
+		Status      string    `json:"status"`
+		CreatedAt   string    `json:"createdAt"`
+		UpdatedAt   string    `json:"updatedAt"`
+	}
+	// 会员画像响应
+	MemberProfileResp {
+		MemberId                int64   `json:"memberId"`
+		TotalOrders             int      `json:"totalOrders"`
+		TotalPayment            float64  `json:"totalPayment"`
+		TotalReward             float64  `json:"totalReward"`
+		FirstOrderAt           string   `json:"firstOrderAt"`
+		LastOrderAt            string   `json:"lastOrderAt"`
+		FirstPaymentAt          string   `json:"firstPaymentAt"`
+		LastPaymentAt           string   `json:"lastPaymentAt"`
+		ParticipatedCampaigns   int      `json:"participatedCampaigns"`
+	}
+	// 获取会员列表请求
+	GetMembersReq {
+		Page     int64  `json:"page,optional" form:"page,optional"`
+		PageSize int64  `json:"pageSize,optional" form:"pageSize,optional"`
+		Status   string `json:"status,optional" form:"status,optional"`
+		Keyword  string `json:"keyword,optional" form:"keyword,optional"`
+		Source   string `json:"source,optional" form:"source,optional"`
+		Gender   int    `json:"gender,optional" form:"gender,optional"`
+	}
+	// 获取会员列表响应
+	GetMembersResp {
+		Total   int64        `json:"total"`
+		Members []MemberResp `json:"members"`
+	}
+	// 更新会员状态请求
+	UpdateMemberStatusReq {
+		Status string `json:"status"`
+	}
+	// 更新会员信息请求
+	UpdateMemberReq {
+		Nickname string `json:"nickname,optional"`
+		Avatar   string `json:"avatar,optional"`
+		Gender   int    `json:"gender,optional"`
+	}
+)
+
+// 会员管理（品牌管理员/平台管理员）
+@server (
+	prefix: /api/v1
+	group:  member
+	jwt:    Auth
+)
+service dmh-api {
+	@handler GetMembers
+	get /members (GetMembersReq) returns (GetMembersResp)
+
+	@handler GetMember
+	get /members/:id returns (MemberResp)
+
+	@handler UpdateMemberStatus
+	put /members/:id/status (UpdateMemberStatusReq) returns (CommonResp)
+
+	@handler UpdateMember
+	put /members/:id (UpdateMemberReq) returns (MemberResp)
+
+	@handler GetMemberProfile
+	get /members/:id/profile returns (MemberProfileResp)
+}
+

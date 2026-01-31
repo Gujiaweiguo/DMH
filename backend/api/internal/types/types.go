@@ -850,3 +850,62 @@ type WithdrawalResp struct {
 	ApprovedAt  string  `json:"approvedAt,optional"`
 	CreatedAt   string  `json:"createdAt"`
 }
+
+// ============================================
+// 会员管理相关类型
+// ============================================
+type (
+	// 会员响应
+	MemberResp struct {
+		Id          int64  `json:"id"`
+		UnionID     string `json:"unionid"`
+		Nickname    string `json:"nickname"`
+		Avatar      string `json:"avatar"`
+		Phone       string `json:"phone"`
+		Gender      int    `json:"gender"`
+		Source      string `json:"source"`
+		Status      string `json:"status"`
+		CreatedAt   string `json:"createdAt"`
+		UpdatedAt   string `json:"updatedAt"`
+	}
+	// 会员画像响应
+	MemberProfileResp struct {
+		MemberId                int64   `json:"memberId"`
+		TotalOrders             int      `json:"totalOrders"`
+		TotalPayment            float64 `json:"totalPayment"`
+		TotalReward             float64 `json:"totalReward"`
+		FirstOrderAt           string   `json:"firstOrderAt"`
+		LastOrderAt            string   `json:"lastOrderAt"`
+		FirstPaymentAt          string   `json:"firstPaymentAt"`
+		LastPaymentAt           string   `json:"lastPaymentAt"`
+		ParticipatedCampaigns   int      `json:"participatedCampaigns"`
+	}
+	// 获取会员列表请求
+	GetMembersReq struct {
+		Page     int64  `json:"page,optional" form:"page,optional"`
+		PageSize int64  `json:"pageSize,optional" form:"pageSize,optional"`
+		Status   string `json:"status,optional" form:"status,optional"`
+		Keyword  string `json:"keyword,optional" form:"keyword,optional"`
+		Source   string `json:"source,optional" form:"source,optional"`
+		Gender   int    `json:"gender,optional" form:"gender,optional"`
+	}
+	// 获取会员列表响应
+	GetMembersResp struct {
+		Total   int64        `json:"total"`
+		Members []MemberResp `json:"members"`
+	}
+	// 更新会员信息请求
+	UpdateMemberReq struct {
+		Nickname string `json:"nickname,optional"`
+		Avatar   string `json:"avatar,optional"`
+		Gender   int    `json:"gender,optional"`
+	}
+	// 更新会员状态请求
+	UpdateMemberStatusReq struct {
+		Status string `json:"status"`
+	}
+	// 获取会员请求
+	GetMemberReq struct {
+		Id int64 `path:"id" json:"id"`
+	}
+)

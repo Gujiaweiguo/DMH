@@ -5,9 +5,9 @@ package distributor
 
 import (
 	"context"
-
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
+	"dmh/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -27,7 +27,32 @@ func NewSetDistributorLevelRewardsLogic(ctx context.Context, svcCtx *svc.Service
 }
 
 func (l *SetDistributorLevelRewardsLogic) SetDistributorLevelRewards(req *types.SetDistributorLevelRewardsReq) (resp *types.CommonResp, err error) {
-	// todo: add your logic here and delete this line
+	brandId := l.ctx.Value("brandId").(int64)
 
-	return
+	for _, reward := range req.Rewards {
+		var levelReward model.DistributorLevelReward
+		result := l.svcCtx.DB.Where("brand_id = ? AND level = ?", brandId, reward.Level).First(&levelReward)
+
+		if result.Error != nil {
+			newReward := model.DistributorLevelReward{
+				BrandId:          brandId,
+				Level:            int(reward.Level),
+				RewardPercentage: reward.RewardPercentage,
+			}
+			if err := l.svcCtx.DB.Create(&newReward).Error; err != nil {
+				return nil, err
+			}
+		} else {
+			levelReward.RewardPercentage = reward.RewardPercentage
+			if err := l.svcCtx.DB.Save(&levelReward).Error; err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	resp = &types.CommonResp{
+		Message: "Success",
+	}
+
+	return resp, nil
 }
