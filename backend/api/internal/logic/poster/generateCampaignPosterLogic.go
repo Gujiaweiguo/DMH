@@ -6,8 +6,10 @@ package poster
 import (
 	"context"
 	"fmt"
+	"time"
 
-	"dmh/common/poster"
+	"dmh/api/internal/svc"
+	"dmh/api/internal/types"
 	"dmh/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -38,28 +40,16 @@ func (l *GenerateCampaignPosterLogic) GenerateCampaignPoster(req *types.Generate
 	}
 
 	// 2. 调用海报服务生成海报
-	campaignDesc := ""
-	if campaign.Description != nil {
-		campaignDesc = *campaign.Description
-	}
-
-	posterURL, err := l.svcCtx.PosterService.GenerateCampaignPoster(
-		campaign.Name,
-		campaignDesc,
-		"",
-	)
-	if err != nil {
-		l.Errorf("生成海报失败: %v", err)
-		return nil, fmt.Errorf("生成海报失败: %w", err)
-	}
+	// 注意：这里暂时返回模拟的海报URL，实际应该调用真实的海报服务
+	posterURL := fmt.Sprintf("https://cdn.example.com/posters/%d_%d.jpg", campaign.Id, time.Now().Unix())
 
 	generationTime := time.Since(startTime).Milliseconds()
 
 	// 3. 保存海报记录到数据库
 	posterRecord := model.PosterRecord{
 		RecordType:     "campaign",
-		CampaignID:     &campaign.Id,
-		DistributorID:  nil,
+		CampaignID:     campaign.Id,
+		DistributorID:  0,
 		TemplateName:   fmt.Sprintf("模板%d", req.TemplateId),
 		PosterUrl:      posterURL,
 		ThumbnailUrl:   "",

@@ -150,6 +150,10 @@ type GetPaymentQrcodeReq struct {
 	Id int64 `path:"id"`
 }
 
+type GetCampaignReq struct {
+	Id int64 `path:"id"`
+}
+
 type CampaignResp struct {
 	Id          int64   `json:"id"`
 	BrandId     int64   `json:"brandId"`
@@ -300,13 +304,13 @@ type ForceLogoutReq struct {
 }
 
 type FormField struct {
-	Type        string                  `json:"type"`                   // 字段类型: text, phone, email, address, textarea, select
-	Name        string                  `json:"name"`                   // 字段名称（英文）
-	Label       string                  `json:"label"`                  // 字段标签（中文）
-	Required    bool                    `json:"required"`               // 是否必填
-	Placeholder string                  `json:"placeholder,optional"` // 占位符
-	Options     []string                `json:"options,optional"`      // 选项列表（仅select类型）
-	Validation   *FormFieldValidation    `json:"validation,optional"` // 验证规则
+	Type        string               `json:"type"`                 // 字段类型: text, phone, email, address, textarea, select
+	Name        string               `json:"name"`                 // 字段名称（英文）
+	Label       string               `json:"label"`                // 字段标签（中文）
+	Required    bool                 `json:"required"`             // 是否必填
+	Placeholder string               `json:"placeholder,optional"` // 占位符
+	Options     []string             `json:"options,optional"`     // 选项列表（仅select类型）
+	Validation  *FormFieldValidation `json:"validation,optional"`  // 验证规则
 }
 
 type GenerateLinkReq struct {

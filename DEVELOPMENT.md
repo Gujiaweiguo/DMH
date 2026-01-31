@@ -80,6 +80,115 @@ go mod download
 go run api/dmh.go -f api/etc/dmh-api.yaml
 ```
 
+后端服务将在 http://localhost:8889 启动
+
+---
+
+### 容器化开发环境 ⭐
+
+#### 一键启动（推荐）
+
+```bash
+cd /opt/code/DMH/deployment/scripts
+./quick-start.sh
+```
+
+服务启动后访问：
+- 📱 H5前端：http://localhost:3100
+- 💻 管理后台：http://localhost:3000
+- 🔧 后端API：http://localhost:8889
+
+#### 容器内调试
+
+**进入 API 容器**：
+```bash
+docker exec -it dmh-api sh
+```
+
+**查看 API 日志**：
+```bash
+docker logs -f dmh-api
+```
+
+**进入 Nginx 容器**：
+```bash
+docker exec -it dmh-nginx sh
+```
+
+**查看 Nginx 日志**：
+```bash
+docker logs -f dmh-nginx
+```
+
+#### 容器管理命令
+
+**查看容器状态**：
+```bash
+cd /opt/code/DMH/deployment
+docker compose -f docker-compose-simple.yml ps
+```
+
+**重启容器**：
+```bash
+# 重启所有服务
+docker compose -f docker-compose-simple.yml restart
+
+# 重启单个容器
+docker restart dmh-api
+docker restart dmh-nginx
+```
+
+**查看日志**：
+```bash
+# 所有服务
+docker compose -f docker-compose-simple.yml logs -f
+
+# 单个服务
+docker logs -f dmh-api
+docker logs -f dmh-nginx
+```
+
+**详细部署文档**：[/deployment/README.md](../deployment/README.md)
+
+---
+
+### 方式二：手动启动
+
+如果需要单独启动某个服务或自定义配置：
+
+**1. 环境准备**
+
+如果还没有安装环境，请参考 [SETUP.md](./SETUP.md) 安装：
+- Docker（用于 MySQL）
+- Go 1.23+
+- Node.js 20+
+
+**2. 初始化数据库**
+
+```bash
+# 使用脚本（推荐）
+./dmh.sh init
+
+# 或手动启动 MySQL 容器
+docker run -d \
+  --name mysql8 \
+  -p 3306:3306 \
+  -e MYSQL_ROOT_PASSWORD='#Admin168' \
+  -e MYSQL_DATABASE=dmh \
+  mysql:8.0
+
+# 导入初始化脚本
+docker exec -i mysql8 mysql -uroot -p'#Admin168' < backend/scripts/init.sql
+```
+
+**3. 启动后端**
+
+```bash
+cd backend
+go mod download
+go run api/dmh.go -f api/etc/dmh-api.yaml
+```
+
 **4. 启动前端**
 
 管理后台：

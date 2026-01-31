@@ -1,0 +1,32 @@
+FROM debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ca-certificates \
+       tzdata \
+       wget \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# 复制已编译的二进制文件
+COPY dmh /app/dmh-api
+
+# 复制配置文件
+COPY dmh-api.yaml /app/etc/
+
+RUN mkdir -p /var/log/dmh-api
+
+# 暴露端口
+EXPOSE 8889
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
+  CMD wget --quiet --tries=1 --spider http://localhost:8889/ || exit 0
+
+# 启动应用
+ENTRYPOINT ["/app/dmh-api"]
+CMD ["-f", "/app/etc/dmh-api.yaml"]

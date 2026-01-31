@@ -33,28 +33,35 @@ func NewVerifyOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Verif
 }
 
 func (l *VerifyOrderLogic) VerifyOrder(req *types.VerifyOrderReq) (resp *types.VerifyOrderResp, err error) {
-	// 1. 从核销码中提取订单ID、手机号、时间戳
-	orderId, phone, timestamp := parseVerificationCode(req.Code)
+	// 1. 从核销码中提取订单ID、手机号、时间戳、签名
+	orderId, phone, timestamp, signature := parseVerificationCode(req.Code)
 	if orderId == 0 {
 		l.Errorf("核销码格式无效: %s", req.Code)
 		return nil, fmt.Errorf("核销码无效")
 	}
 
-	// 2. 查询订单
+	// 2. 验证签名
+	expectedSignature := generateSignature(fmt.Sprintf("%d", orderId), phone, timestamp)
+	if signature != expectedSignature {
+		l.Errorf("核销码签名验证失败: orderId=%d, code=%s", orderId, req.Code)
+		return nil, fmt.Errorf("核销码无效")
+	}
+
+	// 3. 查询订单
 	var order model.Order
 	if err := l.svcCtx.DB.Where("id = ? AND pay_status = ?", orderId, "paid").First(&order).Error; err != nil {
 		l.Errorf("查询订单失败: %v", err)
 		return nil, fmt.Errorf("订单不存在或未支付")
 	}
 
-	// 3. 验证订单状态（不允许重复核销）
+	// 4. 验证订单状态（不允许重复核销）
 	if order.VerificationStatus == "verified" {
 		return nil, fmt.Errorf("订单已核销")
 	}
 
-	// 4. 验证核销码
-	if !verifyCode(req.Code, orderId, phone, timestamp) {
-		l.Errorf("核销码验证失败: orderId=%d, code=%s", orderId, req.Code)
+	// 5. 验证订单手机号是否匹配
+	if order.Phone != phone {
+		l.Errorf("订单手机号不匹配: orderPhone=%s, codePhone=%s", order.Phone, phone)
 		return nil, fmt.Errorf("核销码无效")
 	}
 
@@ -108,9 +115,9 @@ func (l *VerifyOrderLogic) VerifyOrder(req *types.VerifyOrderReq) (resp *types.V
 
 // parseVerificationCode 解析核销码
 // 格式：{orderId}_{phone}_{timestamp}_{signature}
-func parseVerificationCode(code string) (orderId int64, phone string, timestamp string) {
+func parseVerificationCode(code string) (orderId int64, phone string, timestamp string, signature string) {
 	if code == "" {
-		return 0, "", ""
+		return 0, "", "", ""
 	}
 
 	parts := make([]string, 4)
@@ -126,15 +133,15 @@ func parseVerificationCode(code string) (orderId int64, phone string, timestamp 
 	parts[idx] = code[start:]
 
 	if len(parts) != 4 {
-		return 0, "", ""
+		return 0, "", "", ""
 	}
 
-	orderId := int64(0)
+	orderIdVal := int64(0)
 	if parts[0] != "" {
-		fmt.Sscanf(parts[0], "%d", &orderId)
+		fmt.Sscanf(parts[0], "%d", &orderIdVal)
 	}
 
-	return orderId, parts[1], parts[2]
+	return orderIdVal, parts[1], parts[2], parts[3]
 }
 
 // verifyCode 验证核销码签名
@@ -142,12 +149,12 @@ func verifyCode(code string, orderId int64, phone, timestamp string) bool {
 	// 签名：HMAC-SHA1({orderId}_{phone}_{timestamp}, "dmh_secret_key")
 	expectedSignature := generateSignature(fmt.Sprintf("%d", orderId), phone, timestamp)
 
-	parts := parseVerificationCode(code)
-	if len(parts) != 4 {
+	_, _, _, signature := parseVerificationCode(code)
+	if signature == "" {
 		return false
 	}
 
-	if parts[3] != expectedSignature {
+	if signature != expectedSignature {
 		return false
 	}
 

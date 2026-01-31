@@ -1,0 +1,73 @@
+Name: dmh-api
+Host: 0.0.0.0
+Port: 8889
+
+# CORS配置
+CorsOrigins:
+  - "*"
+
+# 数据库配置（容器环境）
+Mysql:
+  DataSource: root:#Admin168@tcp(mysql8:3306)/dmh?charset=utf8mb4&parseTime=true&loc=Local
+
+# Redis配置（容器环境）
+Redis:
+  Host: redis7:6379
+  Type: node
+  Pass: ""
+
+# 日志配置
+Log:
+  ServiceName: dmh-api
+  Mode: file
+  Path: /var/log/dmh-api
+  Level: info
+  KeepDays: 7
+  Compress: true
+
+# 超时配置
+Timeout: 30000
+
+# JWT配置
+Auth:
+  AccessSecret: dmh-access-secret-key
+  AccessExpire: 86400
+
+# 频率限制配置
+RateLimit:
+  # 海报生成频率限制
+  PosterGenerate:
+    MaxRequests: 5
+    WindowDuration: 60
+    Storage: redis
+  # 通用API频率限制
+  Default:
+    MaxRequests: 100
+    WindowDuration: 60
+    Storage: redis
+
+# 微信支付配置
+WeChatPay:
+  AppID: "your_appid"
+  MchID: "your_mchid"
+  APIKey: "your_api_key"
+  APIKeyV3: "your_api_key_v3"
+  APIClientCert: ""
+  APIClientKey: ""
+  NotifyURL: "https://your-domain.com/api/v1/payment/wechat/notify"
+  RefundNotifyURL: "https://your-domain.com/api/v1/payment/wechat/refund/notify"
+  Sandbox: true
+  CacheTTL: 7200
+
+# 外部同步配置
+ExternalSync:
+  Enabled: true
+  Database:
+    Type: mysql
+    Host: 172.21.45.24
+    Port: 3306
+    User: root
+    Password: "#Admin168"
+    Database: dmh
+    Schema: ""
+    Charset: utf8mb4

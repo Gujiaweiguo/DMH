@@ -1,10 +1,9 @@
 package model
 
 import (
-	"database/sql/driver"
-	"encoding/json"
-	"fmt"
 	"time"
+
+	_ "gorm.io/gorm" // gorm tags are used by gorm.io/gorm
 )
 
 // FormField 动态表单字段结构
@@ -17,34 +16,13 @@ type FormField struct {
 	Options     []string `json:"options"`     // 选项列表（仅select类型）
 }
 
-// FormFields 动态表单字段数组（用于 JSON 存储）
-type FormFields []FormField
-
-// 实现数据库的 Scanner 和 Valuer 接口，用于 JSON 存储和读取
-func (ff *FormFields) Scan(value interface{}) error {
-	if value == nil {
-		*ff = nil
-		return nil
-	}
-
-	bytes, ok := value.([]byte)
-	if !ok {
-		return fmt.Errorf("unexpected type for FormFields: %T", value)
-	}
-	return json.Unmarshal(bytes, ff)
-}
-
-func (ff FormFields) Value() (driver.Value, error) {
-	return json.Marshal(ff)
-}
-
 // Campaign 营销活动模型
 type Campaign struct {
 	Id                  int64      `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	BrandId             int64      `gorm:"column:brand_id;not null;index" json:"brandId"`
 	Name                string     `gorm:"column:name;type:varchar(200);not null" json:"name"`
 	Description         string     `gorm:"column:description;type:text" json:"description"`
-	FormFields          FormFields `gorm:"column:form_fields;type:json;serializer:json" json:"formFields"` // JSON格式存储动态表单字段
+	FormFields          string     `gorm:"column:form_fields;type:json;serializer:json" json:"formFields"` // JSON格式存储动态表单字段
 	RewardRule          float64    `gorm:"column:reward_rule;type:decimal(10,2);not null;default:0.00" json:"rewardRule"`
 	StartTime           time.Time  `gorm:"column:start_time;not null" json:"startTime"`
 	EndTime             time.Time  `gorm:"column:end_time;not null" json:"endTime"`

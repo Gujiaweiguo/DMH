@@ -10,7 +10,7 @@
 
 ### 前置条件
 
-- 已安装 `docker` 与 `docker compose`（或 `docker-compose`）
+- 已安装 `docker` 与 `docker compose`
 - 服务器开放 80/443（对外）与 3306/8080（按需，仅内部可关闭）
 
 ### 一键部署

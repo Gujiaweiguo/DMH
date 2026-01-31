@@ -7,6 +7,72 @@
 
 ---
 
+## [1.1.0] - 2026-01-30
+
+### 新增
+- ✨ 容器化部署支持（dmh-nginx + dmh-api）✨
+  - 独立 Nginx 容器托管前端静态文件
+  - 独立 API 容器托管后端服务
+  - 加入 my-net 网络（172.19.0.0/16）
+  - 固定 IP：dmh-nginx (172.19.0.5), dmh-api (172.19.0.6)
+- ✨ 部署脚本和配置文件
+  - 快速启动脚本（quick-start.sh）
+  - 完整部署脚本（deploy-containers.sh）
+  - 回滚脚本（rollback-containers.sh）
+  - Docker Compose 编排文件
+- ✨ 部署文档
+  - deployment/README.md - 容器化部署指南
+  - 统一的部署管理文档
+- ✨ Nginx 配置优化
+  - API 代理到后端容器
+  - 静态资源缓存（1年）
+  - Gzip 压缩支持
+
+### 变更
+- 🔄 部署方式从独立进程改为容器化
+- 🔄 文档结构优化，移除临时文档
+- 🔄 前端构建产物路径适配容器化
+
+### 移除
+- ❌ AGENTS.md - 与 openspec/AGENTS.md 重复
+- ❌ API.md - 与 docs/API_Documentation.md 重复
+- ❌ SCRIPTS.md - 已废弃（改用容器化）
+- ❌ STARTUP.md - 已废弃（改用容器化）
+- ❌ API_TEST_AND_ISSUES_ANALYSIS.md - 临时测试报告
+- ❌ Deployment_Checklist.md - 被 deployment/README.md 替代
+- ❌ JWT_FIX_AND_API_TEST_REPORT.md - 临时测试报告
+- ❌ P0_COMPLETION_REPORT.md - 临时任务报告
+- ❌ P0_TEST_REPORT.md - 临时测试报告
+- ❌ deployment_summary_report.md - 临时报告
+- ❌ dmh-container-deployment-report.md - 临时报告
+- ❌ docker_migration_guide.md - 已整合到 deployment/README.md
+- ❌ docker_quick_reference.md - 已整合到 deployment/README.md
+
+### 优化
+- ⚡ 文档结构优化（文档数量减少53%）
+- ⚡ 部署方式更现代化、更易维护
+- ⚡ 服务隔离，故障影响更小
+- ⚡ 易于横向扩展
+
+### 技术栈
+- **后端**: Go 1.23 + go-zero 1.6 + GORM + MySQL 8.0
+- **前端**: Vue 3 + Vite 5/6 + TypeScript
+- **容器化**: Docker + Docker Compose
+- **反向代理**: Nginx 1.25
+- **认证**: JWT
+- **部署**: 容器化部署（Docker Compose）
+
+### 文档
+- 📚 完整的项目文档
+- 📚 部署文档：deployment/README.md（容器化）
+- 📚 架构文档：ARCHITECTURE.md
+- 📚 API 文档：docs/API_Documentation.md
+- 📚 用户手册：docs/User_Manual.md
+- 📚 开发指南：DEVELOPMENT.md
+- 📚 更新日志：CHANGELOG.md（本文件）
+
+---
+
 ## [Unreleased]
 
 ### 计划中

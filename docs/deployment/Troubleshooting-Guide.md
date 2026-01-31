@@ -32,8 +32,8 @@ echo
 
 # 检查服务状态
 echo "--- 服务状态 ---"
-if command -v docker-compose &> /dev/null; then
-    docker-compose ps
+if docker compose version >/dev/null 2>&1; then
+  docker compose ps
 else
     systemctl status dmh-api nginx mysql
 fi
@@ -126,8 +126,8 @@ curl -I http://localhost:8080/health
 1. **检查服务状态**
 ```bash
 # Docker环境
-docker-compose ps
-docker-compose logs dmh-api
+docker compose ps
+docker compose logs dmh-api
 
 # 系统服务环境
 systemctl status dmh-api
@@ -188,7 +188,7 @@ chmod +x /opt/dmh/bin/dmh-api
 1. **检查MySQL状态**
 ```bash
 # Docker环境
-docker-compose logs mysql
+docker compose logs mysql
 
 # 系统服务环境
 systemctl status mysql

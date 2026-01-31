@@ -384,24 +384,56 @@ docker exec -i mysql8 mysql -uroot -p'#Admin168' dmh -e "SHOW TABLES LIKE 'users
 Mysql:
   DataSource: root:#Admin168@tcp(172.17.0.1:3306)/dmh?charset=utf8mb4&parseTime=true&loc=Local
 
-## 生产环境（Docker Compose，推荐）
+## 生产环境（Docker Compose，推荐）⭐
 
-生产环境请不要把密码写死在配置文件里，使用 `.env` 管理：
+生产环境推荐使用容器化部署，提供更好的隔离性和可维护性。
+
+### 快速部署
 
 ```bash
 # 1) 在服务器上准备 docker + docker compose
-# 2) 在项目根目录执行（会部署到 /opt/dmh）
-bash docs/deployment/scripts/deploy.sh production latest
+sudo apt install -y docker.io docker-compose-plugin
 
-# 3) 首次会生成 /opt/dmh/.env，请按提示填写 MYSQL_ROOT_PASSWORD / MYSQL_PASSWORD / JWT_SECRET
+# 2) 一键部署（推荐）
+cd /opt/code/DMH/deployment/scripts
+./quick-start.sh
 ```
+
+首次启动需要 2-5 分钟（安装依赖），之后只需 10-30 秒。
+
+### 部署后访问
 
 部署成功后：
 - 管理后台：`http://<server>/`
-- H5：`http://<server>/h5/`
+- H5前端：`http://<server>/h5/`
 - API：`http://<server>/api/v1/...`
-- 健康检查：`http://<server>/health`
+
+### 详细文档
+
+完整的部署说明、故障排查、回滚操作请参考：[deployment/README.md](../deployment/README.md)
+
+### 配置管理
+
+生产环境请不要把密码写死在配置文件里，使用环境变量或 `.env` 管理：
+- 修改 docker-compose.yml 中的环境变量
+- 或使用 `.env` 文件管理敏感信息
+
+### 回滚方案
+
+如需回滚到独立进程部署方式：
+```bash
+cd /opt/code/DMH/deployment/scripts
+./rollback-containers.sh
 ```
+
+### 容器管理
+
+常用管理命令：
+- 查看状态：`docker compose ps`
+- 查看日志：`docker compose logs -f`
+- 重启服务：`docker compose restart`
+- 停止服务：`docker compose stop`
+- 启动服务：`docker compose start`
 
 ### Go 编译失败
 ```bash

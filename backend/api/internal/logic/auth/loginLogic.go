@@ -6,10 +6,13 @@ package auth
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"dmh/api/internal/middleware"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"dmh/model"
+	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -49,10 +52,10 @@ func (l *LoginLogic) Login(req *types.LoginReq) (resp *types.LoginResp, err erro
 
 	// 查询用户角色
 	var roles []model.Role
-	l.svcCtx.DB.Table("user_roles").
+	l.svcCtx.DB.Table("roles").
 		Select("roles.*").
-		Joins("INNER JOIN user_roles ON roles.id = user_roles.role_id").
-		Where("user_roles.user_id = ?", user.Id).
+		Joins("INNER JOIN user_roles ur ON roles.id = ur.role_id").
+		Where("ur.user_id = ?", user.Id).
 		Find(&roles)
 
 	roleCodes := make([]string, 0, len(roles))
@@ -89,7 +92,25 @@ func (l *LoginLogic) Login(req *types.LoginReq) (resp *types.LoginResp, err erro
 }
 
 func (l *LoginLogic) generateToken(userId int64, username string, roles []string) (string, error) {
-	token := fmt.Sprintf("%d:%s", userId, username)
+	now := time.Now()
+	expiresAt := now.Add(time.Duration(l.svcCtx.Config.Auth.AccessExpire) * time.Second)
 
-	return token, nil
+	claims := &middleware.JWTClaims{
+		UserID:   userId,
+		Username: username,
+		Roles:    roles,
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			NotBefore: jwt.NewNumericDate(now),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(l.svcCtx.Config.Auth.AccessSecret))
+	if err != nil {
+		return "", fmt.Errorf("生成JWT token失败: %w", err)
+	}
+
+	return tokenString, nil
 }

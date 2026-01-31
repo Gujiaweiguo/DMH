@@ -45,10 +45,6 @@ DEPLOY_DIR="/opt/dmh"
 REPO_URL="${REPO_URL:-$(git -C "$PROJECT_ROOT" config --get remote.origin.url 2>/dev/null || echo "https://github.com/Gujiaweiguo/DMH.git")}"
 
 compose() {
-    if command -v docker-compose >/dev/null 2>&1; then
-        docker-compose "$@"
-        return
-    fi
     docker compose "$@"
 }
 
@@ -67,12 +63,10 @@ check_environment() {
         exit 1
     fi
     
-    # 检查Docker Compose (plugin or legacy)
-    if ! command -v docker-compose >/dev/null 2>&1; then
-        if ! docker compose version >/dev/null 2>&1; then
-            log_error "Docker Compose未安装，请先安装 docker compose 插件或 docker-compose"
-            exit 1
-        fi
+    # 检查Docker Compose (plugin)
+    if ! docker compose version >/dev/null 2>&1; then
+        log_error "Docker Compose未安装，请先安装 docker compose 插件"
+        exit 1
     fi
     
     # 检查Git
@@ -329,12 +323,12 @@ show_info() {
     compose ps
     echo
     echo "日志查看:"
-    echo "  docker-compose logs -f [服务名]"
+echo "  docker compose logs -f [服务名]"
     echo
     echo "服务管理:"
-    echo "  启动: docker-compose up -d"
-    echo "  停止: docker-compose down"
-    echo "  重启: docker-compose restart"
+echo "  启动: docker compose up -d"
+echo "  停止: docker compose down"
+echo "  重启: docker compose restart"
 }
 
 # 主流程
