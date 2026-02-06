@@ -1,5 +1,7 @@
 # Implementation Tasks: Fix Distributor View Architecture
 
+> 归档状态索引：[`../ARCHIVE_STATUS_INDEX.md`](../ARCHIVE_STATUS_INDEX.md)
+
 ## Overview
 
 本任务清单将 Vue 3 从 CDN 迁移到 npm 本地安装，修复分销监控页面的渲染问题。任务分为 4 个阶段，共 11 个主要任务组和 33 个具体子任务。
@@ -123,6 +125,9 @@
 - [x] 验证浏览器控制台无 Vue 相关错误（需要浏览器验证）
 - [ ] **请在浏览器手动验证页面功能：筛选、刷新、分页**
 
+> 归档说明（2026-02-06）：后续变更 `update-distributor-view-stability-performance` 已补齐核心稳定性与发布验证。
+> 本文档中的未勾选项（含可选项）保留为历史记录，不再回填为已完成状态。
+
 ## Phase 3: 优化和测试
 
 ### Task 6: 性能优化和错误处理
@@ -232,4 +237,3 @@
    - 检查 npm 依赖冲突
    - 检查 TypeScript 编译错误
    - 联系开发团队支持
-
