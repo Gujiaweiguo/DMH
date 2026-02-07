@@ -93,6 +93,21 @@ jobs:
           mysql -h 127.0.0.1 -uroot -proot dmh < backend/migrations/20250120_create_distributor_tables_final.sql
           mysql -h 127.0.0.1 -uroot -proot dmh < backend/migrations/20250124_add_advanced_features.sql
 
+      - name: Normalize order schema for regression tests
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot dmh <<'SQL'
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS member_id BIGINT DEFAULT NULL AFTER campaign_id;
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS unionid VARCHAR(100) DEFAULT '' AFTER member_id;
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS distributor_path VARCHAR(100) DEFAULT '' AFTER referrer_id;
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS trade_no VARCHAR(100) DEFAULT '' AFTER pay_status;
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS paid_at DATETIME NULL AFTER trade_no;
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS sync_status VARCHAR(20) DEFAULT 'pending' AFTER paid_at;
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS verification_status VARCHAR(20) DEFAULT 'unverified' AFTER sync_status;
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS verified_at DATETIME NULL AFTER verification_status;
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS verified_by BIGINT DEFAULT NULL AFTER verified_at;
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS verification_code VARCHAR(255) DEFAULT '' AFTER verified_by;
+          SQL
+
       - name: Start API server
         run: |
           cd backend
