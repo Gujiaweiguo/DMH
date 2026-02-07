@@ -273,7 +273,7 @@
      // 加载活动列表
      const loadCampaigns = async () => {
        try {
-         const { data } = await axios.get('/api/v1/campaigns', {
+		const data = await axios.get('/campaigns', {
            params: { status: 'active', pageSize: 100 }
          })
          if (data.code === 200) {
@@ -287,7 +287,7 @@
      // 加载我的推广链接
      const loadMyLinks = async () => {
        try {
-         const { data } = await axios.get('/api/v1/distributor/links')
+		const data = await axios.get('/distributor/links')
          if (data.code === 200) {
            links.value = data.data || []
            // 获取活动名称
@@ -312,7 +312,7 @@
 
        generatingPoster.value = true
        try {
-         const { data } = await axios.post('/api/v1/posters/generate', {
+		const data = await axios.post('/posters/generate', {
            type: 'campaign',
            campaignId: selectedCampaignId.value
          })
@@ -332,7 +332,7 @@
      const generateDistributorPoster = async () => {
        generatingPoster.value = true
        try {
-         const { data } = await axios.post('/api/v1/posters/generate', {
+		const data = await axios.post('/posters/generate', {
            type: 'distributor'
          })
          if (data.code === 200) {
@@ -388,7 +388,7 @@
      // 生成推广链接
      const generateLink = async (campaignId) => {
        try {
-         const { data } = await axios.post('/api/v1/distributor/link/generate', {
+		const data = await axios.post('/distributor/link/generate', {
            campaignId: campaignId
          })
          if (data.code === 200) {

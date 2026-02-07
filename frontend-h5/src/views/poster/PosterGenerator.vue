@@ -312,12 +312,6 @@ const fallbackCopyText = (text) => {
     Toast.fail('复制失败，请手动复制链接')
   }
 }
-}
-  } catch (error) {
-    console.error('分享失败:', error)
-    Toast.fail('分享失败')
-  }
-}
 
 // 显示图片详情
 const showImageDetail = () => {

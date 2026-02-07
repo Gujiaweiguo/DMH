@@ -118,7 +118,7 @@ export default {
           }
         }
 
-        const { data } = await axios.get(`/api/v1/distributor/rewards/${brandId.value}`, { params })
+		const data = await axios.get(`/distributor/rewards/${brandId.value}`, { params })
 
         if (data.code === 200) {
           const newRewards = data.data.rewards || []

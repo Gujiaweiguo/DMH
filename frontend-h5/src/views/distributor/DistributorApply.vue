@@ -138,7 +138,7 @@ export default {
     // 加载品牌列表
     const loadBrands = async () => {
       try {
-        const { data } = await axios.get('/api/v1/brands')
+		const data = await axios.get('/brands')
         if (data.code === 200) {
           brands.value = data.data.brands || []
         }
@@ -170,7 +170,7 @@ export default {
 
       submitting.value = true
       try {
-        const { data } = await axios.post('/api/v1/distributor/apply', {
+		const data = await axios.post('/distributor/apply', {
           brandId: form.value.brandId,
           reason: form.value.reason
         })

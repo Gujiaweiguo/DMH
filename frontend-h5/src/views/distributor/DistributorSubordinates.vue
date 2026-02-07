@@ -85,7 +85,7 @@ export default {
 
       loading.value = true
       try {
-        const { data } = await axios.get(`/api/v1/distributor/subordinates/${brandId.value}`, {
+		const data = await axios.get(`/distributor/subordinates/${brandId.value}`, {
           params: {
             page: page.value,
             pageSize: pageSize

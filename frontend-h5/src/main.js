@@ -11,7 +11,7 @@ import {
 import 'vant/lib/index.css'
 
 // 引入触摸模拟器（用于桌面端调试）
-import '@vant/touch-emulator'
+// import '@vant/touch-emulator' // Temporarily disabled - package not installed
 
 const app = createApp(App)
 

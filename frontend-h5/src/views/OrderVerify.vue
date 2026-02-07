@@ -92,10 +92,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
-import api from '@/services/api'
+import { api, orderApi } from '@/services/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -126,7 +126,7 @@ const handleScan = async () => {
   processing.value = true
 
   try {
-    const response = await api.scanOrder(verificationCode.value)
+    const response = await orderApi.scanOrderCode(verificationCode.value)
     orderInfo.value = response
     showToast('订单信息加载成功')
   } catch (error) {
@@ -153,7 +153,7 @@ const verifyOrder = () => {
     processing.value = true
 
     try {
-      await api.verifyOrder(verificationCode.value)
+      await orderApi.verifyOrder(verificationCode.value)
       orderInfo.value.verificationStatus = 'verified'
       showToast('订单核销成功')
     } catch (error) {
@@ -179,7 +179,7 @@ const unverifyOrder = () => {
     processing.value = true
 
     try {
-      await api.unverifyOrder(verificationCode.value)
+      await orderApi.unverifyOrder(verificationCode.value)
       orderInfo.value.verificationStatus = 'unverified'
       showToast('已取消核销')
     } catch (error) {

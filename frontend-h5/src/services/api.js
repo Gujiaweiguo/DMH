@@ -21,11 +21,11 @@ const request = async (url, options = {}) => {
   try {
     const fullUrl = `${API_BASE_URL}${url}`
     console.log('API请求:', fullUrl, config)
-    
+
     const response = await fetch(fullUrl, config)
-    
+
     console.log('API响应:', response.status, response.statusText)
-    
+
     if (!response.ok) {
       // 尝试获取错误详情
       let errorMessage = `HTTP error! status: ${response.status}`
@@ -39,7 +39,7 @@ const request = async (url, options = {}) => {
       }
       throw new Error(errorMessage)
     }
-    
+
     const data = await response.json()
     console.log('API数据:', data)
     return data
@@ -76,26 +76,69 @@ export const api = {
   // DELETE 请求
   delete: (url) => {
     return request(url, { method: 'DELETE' })
+  }
+}
+
+// 导出默认对象（兼容性）
+export default api
+
+// 订单管理API
+export const orderApi = {
+  // 获取订单列表
+  getOrders: (params = {}) => {
+    return api.get('/orders/list', params)
   },
 
-  // 海报生成相关 API
-  generateCampaignPoster: (campaignId) => {
-    return post(`/campaigns/${campaignId}/poster`, { campaignId })
+  // 获取订单详情
+  getOrder: (id) => {
+    return api.get(`/orders/${id}`)
   },
 
-  generateDistributorPoster: () => {
-    return post('/distributor/poster', {})
+  // 更新订单状态
+  updateOrderStatus: (id, status) => {
+    return api.put(`/orders/${id}`, { status })
   },
 
-  getPoster: (posterId) => {
-    return get(`/posters/${posterId}`)
+  // 扫码获取订单信息（后端路由: GET /orders/scan）
+  scanOrderCode: (code) => {
+    return api.get('/orders/scan', { code })
   },
 
-  downloadPoster: (posterId) => {
-    return get(`/posters/${posterId}`)
+  // 核销订单（后端路由: POST /orders/verify）
+  verifyOrder: (code, notes) => {
+    return api.post('/orders/verify', { code, notes })
   },
-  
-  getPaymentQrcode: (campaignId) => {
-    return get(`/campaigns/${campaignId}/payment-qrcode`)
+
+  // 取消核销（后端路由: POST /orders/unverify）
+  unverifyOrder: (code, reason) => {
+    return api.post('/orders/unverify', { code, reason })
+  },
+
+  // 获取核销记录（后端路由: GET /orders/verification-records）
+  getVerificationRecords: () => {
+    return api.get('/orders/verification-records')
+  }
+}
+
+// 品牌管理员专用API
+export const brandApi = {
+  // 扫码核销（品牌管理员）
+  scanOrderCode: (code) => {
+    return api.get('/orders/scan', { code })
+  },
+
+  // 验证订单码（品牌管理员）- 后端路由: POST /orders/verify
+  verifyOrderCode: (code, notes) => {
+    return api.post('/orders/verify', { code, notes })
+  },
+
+  // 取消订单核销（品牌管理员）- 后端路由: POST /orders/unverify
+  unverifyOrderCode: (code, reason) => {
+    return api.post('/orders/unverify', { code, reason })
+  },
+
+  // 核销记录查询
+  getVerificationRecords: () => {
+    return api.get('/orders/verification-records')
   }
 }

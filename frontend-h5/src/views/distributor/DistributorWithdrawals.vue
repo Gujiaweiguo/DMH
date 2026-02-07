@@ -201,7 +201,7 @@ export default {
       loading.value = true
       
       try {
-        const { data } = await axios.get('/api/v1/withdrawals/my', {
+		const data = await axios.get('/withdrawals/my', {
           params: {
             page: page.value,
             pageSize: pageSize.value
@@ -247,7 +247,7 @@ export default {
     // 申请提现
     const applyWithdrawal = async () => {
       try {
-        const { data } = await axios.post('/api/v1/withdrawals/apply', {
+		const data = await axios.post('/withdrawals/apply', {
           amount: parseFloat(withdrawalForm.value.amount),
           payType: withdrawalForm.value.payType,
           payAccount: withdrawalForm.value.payAccount,

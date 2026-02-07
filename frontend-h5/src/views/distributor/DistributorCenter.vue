@@ -1,8 +1,11 @@
 <template>
   <div class="distributor-center">
-    <div class="header" v-if="hasDistributor">
-      <h1>分销中心</h1>
-      <div class="brand-selector" v-if="brands.length > 1">
+    <div class="header">
+      <div class="header-top">
+        <h1>分销中心</h1>
+        <button class="logout-btn" type="button" @click="handleLogout">退出登录</button>
+      </div>
+      <div class="brand-selector" v-if="hasDistributor && brands.length > 1">
         <select v-model="selectedBrandId" @change="switchBrand">
           <option v-for="brand in brands" :key="brand.brandId" :value="brand.brandId">
             {{ brand.brandName }}
@@ -143,170 +146,188 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { Toast } from 'vant'
-import axios from '@/utils/axios'
+import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import { authApi } from "@/services/brandApi.js";
+import axios from "@/utils/axios";
 
 export default {
-  name: 'DistributorCenter',
-  setup() {
-    const router = useRouter()
-    const hasDistributor = ref(false)
-    const brands = ref([])
-    const selectedBrandId = ref(null)
-      const applicationStatus = ref(null)
-      const activeTab = ref(1)
-      const statistics = ref({
-       totalEarnings: 0,
-       totalOrders: 0,
-       subordinatesCount: 0,
-       todayEarnings: 0,
-       monthEarnings: 0,
-       balance: 0 // 新增：可提现余额
-     })
+	name: "DistributorCenter",
+	setup() {
+		const router = useRouter();
+		const hasDistributor = ref(false);
+		const brands = ref([]);
+		const selectedBrandId = ref(null);
+		const applicationStatus = ref(null);
+		const activeTab = ref(1);
+		const statistics = ref({
+			totalEarnings: 0,
+			totalOrders: 0,
+			subordinatesCount: 0,
+			todayEarnings: 0,
+			monthEarnings: 0,
+			balance: 0, // 新增：可提现余额
+		});
 
-    // 加载分销商状态
-    const loadDistributorStatus = async () => {
-      try {
-        const { data } = await axios.get('/api/v1/distributor/dashboard')
-        if (data.code === 200) {
-          hasDistributor.value = data.data.hasDistributor
-          if (data.data.hasDistributor) {
-            brands.value = data.data.brands || []
-            if (brands.value.length > 0) {
-              selectedBrandId.value = brands.value[0].brandId
-              loadStatistics(selectedBrandId.value)
-            }
-          }
-        }
-      } catch (error) {
-        console.error('获取分销商状态失败:', error)
-      }
-    }
+		// 加载分销商状态
+		const loadDistributorStatus = async () => {
+			try {
+			const data = await axios.get("/distributor/dashboard");
+				if (data.code === 200) {
+					hasDistributor.value = data.data.hasDistributor;
+					if (data.data.hasDistributor) {
+						brands.value = data.data.brands || [];
+						if (brands.value.length > 0) {
+							selectedBrandId.value = brands.value[0].brandId;
+							loadStatistics(selectedBrandId.value);
+						}
+					}
+				}
+			} catch (error) {
+				console.error("获取分销商状态失败:", error);
+			}
+		};
 
-    // 加载统计数据
-    const loadStatistics = async (brandId) => {
-      try {
-        const { data } = await axios.get(`/api/v1/distributor/statistics/${brandId}`)
-        if (data.code === 200) {
-          statistics.value = data.data || {}
-        }
-      } catch (error) {
-        console.error('获取统计数据失败:', error)
-      }
-    }
+		// 加载统计数据
+		const loadStatistics = async (brandId) => {
+			try {
+				const data = await axios.get(
+					`/distributor/statistics/${brandId}`,
+				);
+				if (data.code === 200) {
+					statistics.value = data.data || {};
+				}
+			} catch (error) {
+				console.error("获取统计数据失败:", error);
+			}
+		};
 
-    // 加载申请状态
-    const loadApplicationStatus = async () => {
-      try {
-        const { data } = await axios.get('/api/v1/distributor/applications')
-        if (data.code === 200 && data.data.applications.length > 0) {
-          applicationStatus.value = data.data.applications[0]
-        }
-      } catch (error) {
-        console.error('获取申请状态失败:', error)
-      }
-    }
+		// 加载申请状态
+		const loadApplicationStatus = async () => {
+			try {
+			const data = await axios.get("/distributor/applications");
+				if (data.code === 200 && data.data.applications.length > 0) {
+					applicationStatus.value = data.data.applications[0];
+				}
+			} catch (error) {
+				console.error("获取申请状态失败:", error);
+			}
+		};
 
-    // 切换品牌
-    const switchBrand = () => {
-      loadStatistics(selectedBrandId.value)
-    }
+		// 切换品牌
+		const switchBrand = () => {
+			loadStatistics(selectedBrandId.value);
+		};
 
-    // 跳转到申请页面
-    const goToApply = () => {
-      router.push('/distributor/apply')
-    }
+		const handleLogout = async () => {
+			try {
+				await authApi.logout();
+			} catch (error) {
+				console.warn("登出失败:", error);
+			}
 
-     // 跳转到推广工具
-     const goToPromotion = () => {
-       router.push(`/distributor/promotion?brandId=${selectedBrandId.value}`)
-     }
- 
-     // 跳转到奖励明细
-     const goToRewards = () => {
-       router.push(`/distributor/rewards?brandId=${selectedBrandId.value}`)
-     }
- 
-     // 跳转到下级列表
-     const goToSubordinates = () => {
-       router.push(`/distributor/subordinates?brandId=${selectedBrandId.value}`)
-     }
- 
-     // 跳转到统计数据
-     const goToStatistics = () => {
-       router.push(`/distributor/statistics?brandId=${selectedBrandId.value}`)
-     }
- 
-     // 跳转到提现管理
-     const goToWithdrawals = () => {
-       router.push(`/distributor/withdrawals?brandId=${selectedBrandId.value}`)
-     }
+			localStorage.removeItem("dmh_token");
+			localStorage.removeItem("dmh_user_role");
+			localStorage.removeItem("dmh_user_info");
+			localStorage.removeItem("dmh_current_brand_id");
+			router.push("/distributor/login");
+		};
 
-      const goToPosterGenerator = () => {
-        const campaignId = localStorage.getItem('currentCampaignId') || '1'
-        router.push(`/poster-generator/${campaignId}`)
-      }
+		// 跳转到申请页面
+		const goToApply = () => {
+			router.push("/distributor/apply");
+		};
 
-      const goToOrderVerify = () => {
-        router.push('/verify')
-      }
+		// 跳转到推广工具
+		const goToPromotion = () => {
+			router.push(`/distributor/promotion?brandId=${selectedBrandId.value}`);
+		};
 
-    // 刷新
-    const refresh = () => {
-      loadDistributorStatus()
-      if (!hasDistributor.value) {
-        loadApplicationStatus()
-      }
-    }
+		// 跳转到奖励明细
+		const goToRewards = () => {
+			router.push(`/distributor/rewards?brandId=${selectedBrandId.value}`);
+		};
 
-    // 获取状态类型
-    const getStatusType = (status) => {
-      const types = {
-        pending: 'warning',
-        approved: 'success',
-        rejected: 'danger'
-      }
-      return types[status] || 'default'
-    }
+		// 跳转到下级列表
+		const goToSubordinates = () => {
+			router.push(`/distributor/subordinates?brandId=${selectedBrandId.value}`);
+		};
 
-    // 获取状态文本
-    const getStatusText = (status) => {
-      const texts = {
-        pending: '待审核',
-        approved: '已通过',
-        rejected: '已拒绝'
-      }
-      return texts[status] || status
-    }
+		// 跳转到统计数据
+		const goToStatistics = () => {
+			router.push(`/distributor/statistics?brandId=${selectedBrandId.value}`);
+		};
 
-    onMounted(() => {
-      loadDistributorStatus()
-      loadApplicationStatus()
-    })
+		// 跳转到提现管理
+		// biome-ignore lint/correctness/noUnusedVariables: used in template
+		const goToWithdrawals = () => {
+			router.push(`/distributor/withdrawals?brandId=${selectedBrandId.value}`);
+		};
 
-    return {
-      hasDistributor,
-      brands,
-      selectedBrandId,
-      statistics,
-      applicationStatus,
-      activeTab,
-      switchBrand,
-      goToApply,
-      goToPromotion,
-      goToRewards,
-      goToSubordinates,
-      goToPosterGenerator,
-      goToOrderVerify,
-      goToStatistics,
-      refresh,
-      getStatusType,
-      getStatusText
-    }
-  }
-}
+		const goToPosterGenerator = () => {
+			const campaignId = localStorage.getItem("currentCampaignId") || "1";
+			router.push(`/poster-generator/${campaignId}`);
+		};
+
+		const goToOrderVerify = () => {
+			router.push("/verify");
+		};
+
+		// 刷新
+		const refresh = () => {
+			loadDistributorStatus();
+			if (!hasDistributor.value) {
+				loadApplicationStatus();
+			}
+		};
+
+		// 获取状态类型
+		const getStatusType = (status) => {
+			const types = {
+				pending: "warning",
+				approved: "success",
+				rejected: "danger",
+			};
+			return types[status] || "default";
+		};
+
+		// 获取状态文本
+		const getStatusText = (status) => {
+			const texts = {
+				pending: "待审核",
+				approved: "已通过",
+				rejected: "已拒绝",
+			};
+			return texts[status] || status;
+		};
+
+		onMounted(() => {
+			loadDistributorStatus();
+			loadApplicationStatus();
+		});
+
+		return {
+			hasDistributor,
+			brands,
+			selectedBrandId,
+			statistics,
+			applicationStatus,
+			activeTab,
+			switchBrand,
+			goToApply,
+			goToPromotion,
+			goToRewards,
+			goToSubordinates,
+			goToPosterGenerator,
+			goToOrderVerify,
+			goToStatistics,
+			handleLogout,
+			refresh,
+			getStatusType,
+			getStatusText,
+		};
+	},
+};
 </script>
 
 <style scoped>
@@ -322,9 +343,30 @@ export default {
   padding: 20px;
 }
 
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .header h1 {
   margin: 0 0 10px 0;
   font-size: 24px;
+}
+
+.logout-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .brand-selector select {

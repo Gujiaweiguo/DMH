@@ -78,8 +78,9 @@ export const orderApi = {
     return api.put(`/order/status/${id}`, { status })
   },
 
+  // 扫码获取订单信息
   scanOrderCode: (code) => {
-    return api.get('/orders/scan', { code })
+    return api.get('/orders/scan', { params: { code } })
   },
 
   verifyOrder: (code, data) => {
@@ -88,6 +89,16 @@ export const orderApi = {
 
   unverifyOrder: (code, data) => {
     return api.post('/orders/unverify', { code, ...data })
+  },
+
+  // 核销订单
+  verifyOrder: (orderId, code) => {
+    return api.post(`/orders/${orderId}/verify`, { code })
+  },
+
+  // 取消核销
+  unverifyOrder: (orderId, code) => {
+    return api.post(`/orders/${orderId}/unverify`, { code })
   },
 
   getVerificationRecords: () => {
