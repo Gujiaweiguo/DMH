@@ -89,6 +89,7 @@ jobs:
 
       - name: Apply required campaign feature migrations
         run: |
+          mysql -h 127.0.0.1 -uroot -proot dmh < backend/scripts/create_member_system_tables.sql
           mysql -h 127.0.0.1 -uroot -proot dmh < backend/migrations/20250120_create_distributor_tables_final.sql
           mysql -h 127.0.0.1 -uroot -proot dmh < backend/migrations/20250124_add_advanced_features.sql
 
