@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -58,17 +59,17 @@ func TestOrderVerifyRoutesAuthGuard(t *testing.T) {
 		require.NoError(t, err)
 
 		code := generateVerificationCode(orderID, phone, time.Now().Unix())
-		payload := map[string]string{"code": code}
+		verifyURL := fmt.Sprintf("%s/api/v1/orders/verify?code=%s", baseURL, url.QueryEscape(code))
 
-		status, body, err := doJSONRequest(client, http.MethodPost, baseURL+"/api/v1/orders/verify", "", payload)
+		status, body, err := doJSONRequest(client, http.MethodPost, verifyURL, "", nil)
 		require.NoError(t, err)
 		require.Equalf(t, http.StatusUnauthorized, status, "no-token verify response: %s", string(body))
 
-		status, body, err = doJSONRequest(client, http.MethodPost, baseURL+"/api/v1/orders/verify", participantToken, payload)
+		status, body, err = doJSONRequest(client, http.MethodPost, verifyURL, participantToken, nil)
 		require.NoError(t, err)
 		require.Equalf(t, http.StatusForbidden, status, "participant verify response: %s", string(body))
 
-		status, body, err = doJSONRequest(client, http.MethodPost, baseURL+"/api/v1/orders/verify", adminToken, payload)
+		status, body, err = doJSONRequest(client, http.MethodPost, verifyURL, adminToken, nil)
 		require.NoError(t, err)
 		require.Equalf(t, http.StatusOK, status, "admin verify response: %s", string(body))
 	})
@@ -78,23 +79,22 @@ func TestOrderVerifyRoutesAuthGuard(t *testing.T) {
 		require.NoError(t, err)
 
 		code := generateVerificationCode(orderID, phone, time.Now().Unix())
+		verifyURL := fmt.Sprintf("%s/api/v1/orders/verify?code=%s", baseURL, url.QueryEscape(code))
+		unverifyURL := fmt.Sprintf("%s/api/v1/orders/unverify?code=%s", baseURL, url.QueryEscape(code))
 
-		verifyPayload := map[string]string{"code": code, "remark": "setup verified for unverify auth test"}
-		status, body, err := doJSONRequest(client, http.MethodPost, baseURL+"/api/v1/orders/verify", adminToken, verifyPayload)
+		status, body, err := doJSONRequest(client, http.MethodPost, verifyURL, adminToken, nil)
 		require.NoError(t, err)
 		require.Equalf(t, http.StatusOK, status, "verify setup response: %s", string(body))
 
-		unverifyPayload := map[string]string{"code": code, "reason": "auth regression check"}
-
-		status, body, err = doJSONRequest(client, http.MethodPost, baseURL+"/api/v1/orders/unverify", "", unverifyPayload)
+		status, body, err = doJSONRequest(client, http.MethodPost, unverifyURL, "", nil)
 		require.NoError(t, err)
 		require.Equalf(t, http.StatusUnauthorized, status, "no-token unverify response: %s", string(body))
 
-		status, body, err = doJSONRequest(client, http.MethodPost, baseURL+"/api/v1/orders/unverify", participantToken, unverifyPayload)
+		status, body, err = doJSONRequest(client, http.MethodPost, unverifyURL, participantToken, nil)
 		require.NoError(t, err)
 		require.Equalf(t, http.StatusForbidden, status, "participant unverify response: %s", string(body))
 
-		status, body, err = doJSONRequest(client, http.MethodPost, baseURL+"/api/v1/orders/unverify", adminToken, unverifyPayload)
+		status, body, err = doJSONRequest(client, http.MethodPost, unverifyURL, adminToken, nil)
 		require.NoError(t, err)
 		require.Equalf(t, http.StatusOK, status, "admin unverify response: %s", string(body))
 	})
