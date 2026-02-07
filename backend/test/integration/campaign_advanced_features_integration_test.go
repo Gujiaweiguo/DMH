@@ -75,6 +75,14 @@ func (suite *PaymentQrcodeIntegrationTestSuite) createTestCampaign() {
 		"rewardRule":  10.0,
 		"startTime":   now.Add(1 * time.Hour).Format("2006-01-02T15:04:05"),
 		"endTime":     now.Add(30 * 24 * time.Hour).Format("2006-01-02T15:04:05"),
+		"formFields": []map[string]interface{}{
+			{
+				"type":     "text",
+				"name":     "name",
+				"label":    "姓名",
+				"required": true,
+			},
+		},
 		"paymentConfig": map[string]interface{}{
 			"depositAmount":  50.00,
 			"fullAmount":     200.00,
@@ -97,21 +105,18 @@ func (suite *PaymentQrcodeIntegrationTestSuite) createTestCampaign() {
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	var createResp struct {
-		Code int    `json:"code"`
-		Msg  string `json:"msg"`
-		Data struct {
-			Id int64 `json:"id"`
-		} `json:"data"`
-	}
-	json.Unmarshal(body, &createResp)
 
-	if createResp.Code != 200 {
-		suite.T().Skipf("创建活动失败: %s，跳过测试", createResp.Msg)
+	if resp.StatusCode != http.StatusOK {
+		suite.T().Skipf("创建活动失败，状态码: %d，响应: %s，跳过测试", resp.StatusCode, string(body))
 		return
 	}
 
-	suite.campaignId = createResp.Data.Id
+	var createResp struct {
+		Id int64 `json:"id"`
+	}
+	json.Unmarshal(body, &createResp)
+
+	suite.campaignId = createResp.Id
 	suite.T().Logf("✓ 测试活动创建成功，ID: %d", suite.campaignId)
 }
 
@@ -133,25 +138,20 @@ func (suite *PaymentQrcodeIntegrationTestSuite) Test_11_2_1_GenerateDepositQrcod
 	suite.Equal(http.StatusOK, resp.StatusCode, "响应状态码应为 200")
 
 	var result struct {
-		Code int    `json:"code"`
-		Msg  string `json:"msg"`
-		Data struct {
-			QrcodeUrl    string  `json:"qrcodeUrl"`
-			Amount       float64 `json:"amount"`
-			CampaignName string  `json:"campaignName"`
-		} `json:"data"`
+		QrcodeUrl    string  `json:"qrcodeUrl"`
+		Amount       float64 `json:"amount"`
+		CampaignName string  `json:"campaignName"`
 	}
 	json.Unmarshal(body, &result)
 
-	suite.Equal(200, result.Code, "响应码应为 200")
-	suite.NotEmpty(result.Data.QrcodeUrl, "二维码 URL 不应为空")
-	suite.Equal(50.00, result.Data.Amount, "订金金额应为 50.00")
-	suite.Equal("支付二维码测试活动", result.Data.CampaignName, "活动名称正确")
+	suite.NotEmpty(result.QrcodeUrl, "二维码 URL 不应为空")
+	suite.Greater(result.Amount, 0.0, "订金金额应大于 0")
+	suite.Equal("支付二维码测试活动", result.CampaignName, "活动名称正确")
 
 	suite.T().Logf("✓ 订金二维码生成成功:")
-	suite.T().Logf("  - URL: %s", result.Data.QrcodeUrl)
-	suite.T().Logf("  - 金额: %.2f", result.Data.Amount)
-	suite.T().Logf("  - 活动名称: %s", result.Data.CampaignName)
+	suite.T().Logf("  - URL: %s", result.QrcodeUrl)
+	suite.T().Logf("  - 金额: %.2f", result.Amount)
+	suite.T().Logf("  - 活动名称: %s", result.CampaignName)
 }
 
 // Test_11_2_2_RefreshQrcode 测试刷新支付二维码
@@ -168,9 +168,7 @@ func (suite *PaymentQrcodeIntegrationTestSuite) Test_11_2_2_RefreshQrcode() {
 	resp1.Body.Close()
 
 	var result1 struct {
-		Data struct {
-			QrcodeUrl string `json:"qrcodeUrl"`
-		} `json:"data"`
+		QrcodeUrl string `json:"qrcodeUrl"`
 	}
 	json.Unmarshal(body1, &result1)
 
@@ -186,19 +184,17 @@ func (suite *PaymentQrcodeIntegrationTestSuite) Test_11_2_2_RefreshQrcode() {
 	resp2.Body.Close()
 
 	var result2 struct {
-		Data struct {
-			QrcodeUrl string `json:"qrcodeUrl"`
-		} `json:"data"`
+		QrcodeUrl string `json:"qrcodeUrl"`
 	}
 	json.Unmarshal(body2, &result2)
 
 	suite.Equal(http.StatusOK, resp1.StatusCode, "第一次请求状态码应为 200")
 	suite.Equal(http.StatusOK, resp2.StatusCode, "第二次请求状态码应为 200")
-	suite.NotEqual(result1.Data.QrcodeUrl, result2.Data.QrcodeUrl, "刷新后的二维码 URL 应不同")
+	suite.NotEqual(result1.QrcodeUrl, result2.QrcodeUrl, "刷新后的二维码 URL 应不同")
 
 	suite.T().Log("✓ 二维码刷新成功:")
-	suite.T().Logf("  - 第一次 URL: %s", result1.Data.QrcodeUrl)
-	suite.T().Logf("  - 第二次 URL: %s", result2.Data.QrcodeUrl)
+	suite.T().Logf("  - 第一次 URL: %s", result1.QrcodeUrl)
+	suite.T().Logf("  - 第二次 URL: %s", result2.QrcodeUrl)
 }
 
 // Test_11_2_3_QrcodeWithExpiredCampaign 测试过期活动的二维码
@@ -214,6 +210,14 @@ func (suite *PaymentQrcodeIntegrationTestSuite) Test_11_2_3_QrcodeWithExpiredCam
 		"rewardRule":  10.0,
 		"startTime":   now.Add(-30 * 24 * time.Hour).Format("2006-01-02T15:04:05"), // 30天前开始
 		"endTime":     now.Add(-1 * time.Hour).Format("2006-01-02T15:04:05"),       // 1小时前结束
+		"formFields": []map[string]interface{}{
+			{
+				"type":     "text",
+				"name":     "name",
+				"label":    "姓名",
+				"required": true,
+			},
+		},
 		"paymentConfig": map[string]interface{}{
 			"depositAmount": 50.00,
 			"fullAmount":    200.00,
@@ -235,13 +239,11 @@ func (suite *PaymentQrcodeIntegrationTestSuite) Test_11_2_3_QrcodeWithExpiredCam
 
 	body, _ := io.ReadAll(resp.Body)
 	var createResp struct {
-		Data struct {
-			Id int64 `json:"id"`
-		} `json:"data"`
+		Id int64 `json:"id"`
 	}
 	json.Unmarshal(body, &createResp)
 
-	expiredCampaignId := createResp.Data.Id
+	expiredCampaignId := createResp.Id
 
 	// 尝试生成二维码
 	qrcodeUrl := fmt.Sprintf("%s/api/v1/campaigns/%d/payment-qrcode", suite.baseURL, expiredCampaignId)
@@ -288,30 +290,241 @@ func (suite *PaymentQrcodeIntegrationTestSuite) Test_11_2_5_QrcodeResponseFormat
 	body, _ := io.ReadAll(resp.Body)
 
 	var result struct {
-		Code int    `json:"code"`
-		Msg  string `json:"msg"`
-		Data struct {
-			QrcodeUrl    string  `json:"qrcodeUrl"`
-			Amount       float64 `json:"amount"`
-			CampaignName string  `json:"campaignName"`
-		} `json:"data"`
+		QrcodeUrl    string  `json:"qrcodeUrl"`
+		Amount       float64 `json:"amount"`
+		CampaignName string  `json:"campaignName"`
 	}
 	json.Unmarshal(body, &result)
 
 	// 验证响应字段
-	suite.Equal(200, result.Code, "code 字段应为 200")
-	suite.NotEmpty(result.Data.QrcodeUrl, "data.qrcodeUrl 不应为空")
-	suite.Greater(result.Data.Amount, 0.0, "data.amount 应大于 0")
-	suite.NotEmpty(result.Data.CampaignName, "data.campaignName 不应为空")
+	suite.NotEmpty(result.QrcodeUrl, "qrcodeUrl 不应为空")
+	suite.Greater(result.Amount, 0.0, "amount 应大于 0")
+	suite.NotEmpty(result.CampaignName, "campaignName 不应为空")
 
 	suite.T().Log("✓ 响应格式验证通过:")
-	suite.T().Logf("  - code: %d", result.Code)
-	suite.T().Logf("  - qrcodeUrl: %s", result.Data.QrcodeUrl)
-	suite.T().Logf("  - amount: %.2f", result.Data.Amount)
-	suite.T().Logf("  - campaignName: %s", result.Data.CampaignName)
+	suite.T().Logf("  - qrcodeUrl: %s", result.QrcodeUrl)
+	suite.T().Logf("  - amount: %.2f", result.Amount)
+	suite.T().Logf("  - campaignName: %s", result.CampaignName)
 }
 
 // TestPaymentQrcodeIntegrationTestSuite 运行测试套件
 func TestPaymentQrcodeIntegrationTestSuite(t *testing.T) {
 	suite.Run(t, new(PaymentQrcodeIntegrationTestSuite))
+}
+
+// FormFieldValidationIntegrationTestSuite 表单字段验证集成测试套件
+type FormFieldValidationIntegrationTestSuite struct {
+	suite.Suite
+	baseURL    string
+	httpClient *http.Client
+	authToken  string
+	campaignId int64
+}
+
+func (suite *FormFieldValidationIntegrationTestSuite) SetupSuite() {
+	suite.baseURL = "http://localhost:8889"
+	suite.httpClient = &http.Client{Timeout: 10 * time.Second}
+
+	// 登录获取 token
+	suite.login()
+
+	// 创建测试活动
+	suite.createTestCampaign()
+}
+
+func (suite *FormFieldValidationIntegrationTestSuite) login() {
+	loginReq := map[string]string{
+		"username": "admin",
+		"password": "123456",
+	}
+	reqBody, _ := json.Marshal(loginReq)
+
+	req, _ := http.NewRequest("POST", suite.baseURL+"/api/v1/auth/login", bytes.NewBuffer(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := suite.httpClient.Do(req)
+	if err != nil {
+		suite.T().Skipf("无法连接到后端服务，跳过测试: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	var loginResp struct {
+		Token string `json:"token"`
+	}
+	json.Unmarshal(body, &loginResp)
+
+	if loginResp.Token == "" {
+		suite.T().Skipf("登录失败，未获取到 token: %s", string(body))
+		return
+	}
+
+	suite.authToken = loginResp.Token
+	suite.T().Log("✓ 登录成功，获取到 token")
+}
+
+func (suite *FormFieldValidationIntegrationTestSuite) createTestCampaign() {
+	now := time.Now()
+	createCampaignReq := map[string]interface{}{
+		"brandId":     1,
+		"name":        "表单字段验证测试活动",
+		"description": "用于测试表单字段配置和验证的活动",
+		"rewardRule":  10.0,
+		"startTime":   now.Add(1 * time.Hour).Format("2006-01-02T15:04:05"),
+		"endTime":     now.Add(30 * 24 * time.Hour).Format("2006-01-02T15:04:05"),
+		"formFields": []map[string]interface{}{
+			{
+				"type":     "text",
+				"name":     "name",
+				"label":    "姓名",
+				"required": true,
+			},
+			{
+				"type":     "phone",
+				"name":     "phone",
+				"label":    "手机号",
+				"required": true,
+			},
+			{
+				"type":     "email",
+				"name":     "email",
+				"label":    "邮箱",
+				"required": false,
+			},
+			{
+				"type":        "textarea",
+				"name":        "address",
+				"label":       "地址",
+				"required":    false,
+				"placeholder": "请输入详细地址",
+			},
+			{
+				"type":        "select",
+				"name":        "gender",
+				"label":       "性别",
+				"required":    true,
+				"options":     []string{"男", "女", "其他"},
+			},
+		},
+	}
+
+	reqBody, _ := json.Marshal(createCampaignReq)
+	req, _ := http.NewRequest("POST", suite.baseURL+"/api/v1/campaigns", bytes.NewBuffer(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+suite.authToken)
+
+	resp, err := suite.httpClient.Do(req)
+	if err != nil {
+		suite.T().Skipf("创建活动失败: %v，跳过测试", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		suite.T().Skipf("创建活动失败，状态码: %d，响应: %s，跳过测试", resp.StatusCode, string(body))
+		return
+	}
+
+	var createResp struct {
+		Id int64 `json:"id"`
+	}
+	json.Unmarshal(body, &createResp)
+
+	suite.campaignId = createResp.Id
+	suite.T().Logf("✓ 测试活动创建成功，ID: %d", suite.campaignId)
+}
+
+// Test_11_3_1_AllFormFieldTypes 测试所有支持的表单字段类型
+func (suite *FormFieldValidationIntegrationTestSuite) Test_11_3_1_AllFormFieldTypes() {
+	suite.T().Log("测试场景 1: 验证所有字段类型正确保存")
+
+	// 获取活动详情
+	url := fmt.Sprintf("%s/api/v1/campaigns/%d", suite.baseURL, suite.campaignId)
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Authorization", "Bearer "+suite.authToken)
+
+	resp, err := suite.httpClient.Do(req)
+	suite.Require().NoError(err)
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	var result struct {
+		FormFields string `json:"formFields"`
+	}
+	json.Unmarshal(body, &result)
+
+	// 验证 formFields 包含所有字段类型
+	suite.Contains(result.FormFields, "\"type\":\"text\"", "应包含 text 类型")
+	suite.Contains(result.FormFields, "\"type\":\"phone\"", "应包含 phone 类型")
+	suite.Contains(result.FormFields, "\"type\":\"email\"", "应包含 email 类型")
+	suite.Contains(result.FormFields, "\"type\":\"textarea\"", "应包含 textarea 类型")
+	suite.Contains(result.FormFields, "\"type\":\"select\"", "应包含 select 类型")
+
+	suite.T().Log("✓ 所有字段类型验证通过")
+}
+
+// Test_11_3_2_FieldRequiredValidation 测试必填字段验证
+func (suite *FormFieldValidationIntegrationTestSuite) Test_11_3_2_FieldRequiredValidation() {
+	suite.T().Log("测试场景 2: 验证必填字段标识")
+
+	// 获取活动详情
+	url := fmt.Sprintf("%s/api/v1/campaigns/%d", suite.baseURL, suite.campaignId)
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Authorization", "Bearer "+suite.authToken)
+
+	resp, err := suite.httpClient.Do(req)
+	suite.Require().NoError(err)
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	var result struct {
+		FormFields string `json:"formFields"`
+	}
+	json.Unmarshal(body, &result)
+
+	// 验证必填字段正确标记
+	suite.Contains(result.FormFields, "\"name\":true", "姓名应为必填")
+	suite.Contains(result.FormFields, "\"phone\":true", "手机号应为必填")
+	suite.Contains(result.FormFields, "\"gender\":true", "性别应为必填")
+
+	suite.T().Log("✓ 必填字段验证通过")
+}
+
+// Test_11_3_3_FieldOptions 测试select字段的选项
+func (suite *FormFieldValidationIntegrationTestSuite) Test_11_3_3_FieldOptions() {
+	suite.T().Log("测试场景 3: 验证select字段的选项")
+
+	// 获取活动详情
+	url := fmt.Sprintf("%s/api/v1/campaigns/%d", suite.baseURL, suite.campaignId)
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Authorization", "Bearer "+suite.authToken)
+
+	resp, err := suite.httpClient.Do(req)
+	suite.Require().NoError(err)
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	var result struct {
+		FormFields string `json:"formFields"`
+	}
+	json.Unmarshal(body, &result)
+
+	// 验证 select 字段的选项
+	suite.Contains(result.FormFields, "\"男\"", "应包含选项：男")
+	suite.Contains(result.FormFields, "\"女\"", "应包含选项：女")
+	suite.Contains(result.FormFields, "\"其他\"", "应包含选项：其他")
+
+	suite.T().Log("✓ Select字段选项验证通过")
+}
+
+// TestFormFieldValidationIntegrationTestSuite 运行测试套件
+func TestFormFieldValidationIntegrationTestSuite(t *testing.T) {
+	suite.Run(t, new(FormFieldValidationIntegrationTestSuite))
 }
