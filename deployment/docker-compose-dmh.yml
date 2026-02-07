@@ -3,10 +3,8 @@ version: "3.8"
 networks:
   my-net:
     external: true
-    name: my-net
 
 services:
-  # DMH 专用 Redis
   redis-dmh:
     image: redis:7
     container_name: redis-dmh
@@ -27,7 +25,6 @@ services:
       timeout: 3s
       retries: 3
 
-  # Nginx container
   dmh-nginx:
     image: nginx:1.25-alpine
     container_name: dmh-nginx
@@ -35,7 +32,6 @@ services:
       sh -c "nginx -g 'daemon off;'"
     networks:
       - my-net
-      ipv4_address: 172.19.0.5
     ports:
       - "3000:3000"
       - "3100:3100"
@@ -48,15 +44,13 @@ services:
       - dmh-api
     restart: on-failure
 
-  # Backend API container
   dmh-api:
     image: debian:bookworm-slim
     container_name: dmh-api
     command: >
-      sh -c "mkdir -p /var/log/dmh-api && /app/dmh-api && /app/dmh-api.yaml"
+      sh -c "mkdir -p /var/log/dmh-api && /app/dmh-api -f /app/etc/dmh-api.yaml"
     networks:
       - my-net
-      ipv4_address: 172.19.0.6
     ports:
       - "8889:8889"
     environment:
@@ -71,12 +65,13 @@ services:
       - JWT_SECRET=dmh-access-secret-key
       - APP_ENV=production
     volumes:
+      - ../backend/bin/dmh-api:/app/dmh-api:ro
+      - ../backend/api/etc/dmh-api.yaml:/app/etc/dmh-api.yaml:ro
       - dmh_api_logs:/var/log/dmh-api
       - dmh_api_data:/app/data
     restart: on-failure
     depends_on:
       - redis-dmh
-      - mysql8
 
 volumes:
   dmh_redis_data:

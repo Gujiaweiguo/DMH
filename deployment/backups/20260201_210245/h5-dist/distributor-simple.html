@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMH 分销中心</title>
+</head>
+<body>
+    <div id="app"></div>
+    <script>
+        console.log('Distributor page loaded');
+        document.getElementById('app').innerHTML = '<h1 style="color: #667eea;">DMH 分销中心</h1><p style="color: #666;">推广活动，轻松赚取佣金</p><div style="max-width: 400px; margin: 50px auto; padding: 30px; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"><div style="margin-bottom: 15px;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">用户名</label><input type="text" id="username" value="distributor001" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="请输入用户名"></div><div style="margin-bottom: 15px;"><label style="display: block; margin-bottom: 5px; font-weight: bold;">密码</label><input type="password" id="password" value="123456" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="请输入密码"></div><button onclick="handleLogin()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;">登录</button></div><div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 5px;"><p style="margin: 0 0 5px 0; color: #856404;"><strong>测试账号</strong></p><p style="margin: 0; color: #856404;">用户名: distributor001 | 密码: 123456</p></div>';
+        
+        function handleLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            console.log('Login attempt:', username);
+            
+            fetch('/api/v1/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => {
+                console.log('Login response:', response);
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('登录失败');
+            })
+            .then(data => {
+                console.log('Login data:', data);
+                alert('登录成功！Token: ' + data.token.substring(0, 20) + '...');
+                localStorage.setItem('distributor_token', data.token);
+            })
+            .catch(error => {
+                console.error('Login error:', error);
+                alert('登录失败: ' + error.message);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+groups:
+  - name: api_alerts
+    interval: 30s
+    rules:
+      # API 可用性告警
+      - alert: APIServiceDown
+        expr: up{job="dmh-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API 服务不可用"
+          description: "dmh-api 服务已停止超过 1 分钟"
+
+      # 响应时间告警 - Warning
+      - alert: HighAPILatency
+        expr: |
+          histogram_quantile(0.95, 
+            sum(http_request_duration_seconds_bucket) by (le)
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "API 响应时间过高"
+          description: "API P95 响应时间 > 500ms (当前: {{ $value }}s)"
+
+      # 响应时间告警 - Critical
+      - alert: CriticalAPILatency
+        expr: |
+          histogram_quantile(0.95, 
+            sum(http_request_duration_seconds_bucket) by (le)
+          ) > 1.0
+        for: 2m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API 响应时间严重"
+          description: "API P95 响应时间 > 1s (当前: {{ $value }}s)"
+
+      # 错误率告警
+      - alert: HighErrorRate
+        expr: |
+          (sum(rate(http_requests_total{status=~"5.."}[5m])) 
+          / sum(rate(http_requests_total[5m]))) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "API 错误率过高"
+          description: "5 分钟内错误率 > 5% (当前: {{ $value | humanizePercentage }})"
+
+      - alert: CriticalErrorRate
+        expr: |
+          (sum(rate(http_requests_total{status=~"5.."}[5m])) 
+          / sum(rate(http_requests_total[5m]))) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API 错误率严重"
+          description: "5 分钟内错误率 > 10% (当前: {{ $value | humanizePercentage }})"
+
+      # 请求量告警 - 异常低流量
+      - alert: UnusualLowTraffic
+        expr: |
+          sum(rate(http_requests_total[10m])) < 0.1
+        for: 15m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "请求量异常低"
+          description: "10 分钟内请求量 < 0.1 req/s (当前: {{ $value }} req/s)"
+
+      # 请求量告警 - 异常高流量
+      - alert: UnusualHighTraffic
+        expr: |
+          sum(rate(http_requests_total[5m])) > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "请求量异常高"
+          description: "5 分钟内请求量 > 100 req/s (当前: {{ $value }} req/s)"
+
+  - name: advanced_features_alerts
+    interval: 30s
+    rules:
+      # 海报生成性能告警
+      - alert: PosterGenerationSlow
+        expr: |
+          histogram_quantile(0.95, 
+            sum(poster_generation_duration_seconds_bucket) by (le)
+          ) > 3
+        for: 5m
+        labels:
+          severity: warning
+          component: poster
+        annotations:
+          summary: "海报生成速度慢"
+          description: "海报生成 P95 时间 > 3s (当前: {{ $value }}s)"
+
+      # 海报生成告警 - Critical
+      - alert: PosterGenerationCriticalSlow
+        expr: |
+          histogram_quantile(0.95, 
+            sum(poster_generation_duration_seconds_bucket) by (le)
+          ) > 5
+        for: 2m
+        labels:
+          severity: critical
+          component: poster
+        annotations:
+          summary: "海报生成速度极慢"
+          description: "海报生成 P95 时间 > 5s (当前: {{ $value }}s)"
+
+      # 二维码生成性能告警
+      - alert: QRCodeGenerationSlow
+        expr: |
+          histogram_quantile(0.95, 
+            sum(qrcode_generation_duration_seconds_bucket) by (le)
+          ) > 0.001
+        for: 5m
+        labels:
+          severity: warning
+          component: qrcode
+        annotations:
+          summary: "二维码生成速度慢"
+          description: "二维码生成 P95 时间 > 1ms (当前: {{ $value }}s)"
+
+      # 核销接口性能告警
+      - alert: OrderVerifySlow
+        expr: |
+          histogram_quantile(0.95, 
+            sum(order_verify_duration_seconds_bucket) by (le)
+          ) > 0.001
+        for: 5m
+        labels:
+          severity: warning
+          component: verify
+        annotations:
+          summary: "核销接口速度慢"
+          description: "核销接口 P95 时间 > 1ms (当前: {{ $value }}s)"
+
+  - name: infrastructure_alerts
+    interval: 30s
+    rules:
+      # MySQL 连接池告警
+      - alert: MySQLConnectionPoolExhausted
+        expr: |
+          mysql_global_status_threads_connected 
+          / mysql_global_variables_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "MySQL 连接池耗尽"
+          description: "MySQL 连接使用率 > 80%"
+
+      # Redis 连接池告警
+      - alert: RedisConnectionPoolExhausted
+        expr: |
+          redis_connected_clients 
+          / redis_maxclients > 0.8
+        for: 5m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "Redis 连接池耗尽"
+          description: "Redis 连接使用率 > 80%"
+
+      # 磁盘空间告警
+      - alert: DiskSpaceLow
+        expr: |
+          (node_filesystem_size_bytes{fstype!="tmpfs"} 
+          - node_filesystem_avail_bytes{fstype!="tmpfs"}) 
+          / node_filesystem_size_bytes{fstype!="tmpfs"} > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "磁盘空间不足"
+          description: "磁盘使用率 > 85% (挂载点: {{ $labels.mountpoint }})"
+
+      - alert: DiskSpaceCritical
+        expr: |
+          (node_filesystem_size_bytes{fstype!="tmpfs"} 
+          - node_filesystem_avail_bytes{fstype!="tmpfs"}) 
+          / node_filesystem_size_bytes{fstype!="tmpfs"} > 0.95
+        for: 5m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "磁盘空间严重不足"
+          description: "磁盘使用率 > 95% (挂载点: {{ $labels.mountpoint }})"
+
+      # CPU 使用率告警
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by(instance) 
+            (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "CPU 使用率过高"
+          description: "CPU 使用率 > 80% (实例: {{ $labels.instance }})"
+
+      - alert: CriticalCPUUsage
+        expr: |
+          100 - (avg by(instance) 
+            (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 90
+        for: 5m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "CPU 使用率严重"
+          description: "CPU 使用率 > 90% (实例: {{ $labels.instance }})"
+
+      # 内存使用率告警
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes 
+            / node_memory_MemTotal_bytes)) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "内存使用率过高"
+          description: "内存使用率 > 80% (实例: {{ $labels.instance }})"
+
+      - alert: CriticalMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes 
+            / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "内存使用率严重"
+          description: "内存使用率 > 90% (实例: {{ $labels.instance }})"

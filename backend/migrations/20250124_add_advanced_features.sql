@@ -8,40 +8,80 @@ USE dmh;
 -- 1. 为 campaigns 表添加支付配置和海报模板字段
 -- ============================================
 
--- 添加 payment_config 字段（支付配置）
-ALTER TABLE campaigns 
-ADD COLUMN payment_config JSON COMMENT '支付配置（订金、全款、商户号等）' AFTER reward_rule;
+-- 检查并添加 payment_config 字段（支付配置）
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'campaigns' AND column_name = 'payment_config');
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE campaigns ADD COLUMN payment_config JSON COMMENT ''支付配置（订金、全款、商户号等）'' AFTER reward_rule',
+  'SELECT ''Column payment_config already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
--- 添加 poster_template_id 字段（海报模板ID）
-ALTER TABLE campaigns 
-ADD COLUMN poster_template_id INT DEFAULT 1 COMMENT '海报模板ID' AFTER payment_config;
+-- 检查并添加 poster_template_id 字段（海报模板ID）
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'campaigns' AND column_name = 'poster_template_id');
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE campaigns ADD COLUMN poster_template_id INT DEFAULT 1 COMMENT ''海报模板ID'' AFTER payment_config',
+  'SELECT ''Column poster_template_id already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ============================================
 -- 2. 为 orders 表添加核销相关字段
 -- ============================================
 
--- 添加核销状态字段
-ALTER TABLE orders
-ADD COLUMN verification_status VARCHAR(20) DEFAULT 'unverified' COMMENT '核销状态: unverified/verified/cancelled' AFTER pay_status;
+-- 检查并添加核销状态字段
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'orders' AND column_name = 'verification_status');
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE orders ADD COLUMN verification_status VARCHAR(20) DEFAULT ''unverified'' COMMENT ''核销状态: unverified/verified/cancelled'' AFTER pay_status',
+  'SELECT ''Column verification_status already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
--- 添加核销时间字段
-ALTER TABLE orders
-ADD COLUMN verified_at DATETIME NULL COMMENT '核销时间' AFTER verification_status;
+-- 检查并添加核销时间字段
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'orders' AND column_name = 'verified_at');
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE orders ADD COLUMN verified_at DATETIME NULL COMMENT ''核销时间'' AFTER verification_status',
+  'SELECT ''Column verified_at already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
--- 添加核销人ID字段
-ALTER TABLE orders
-ADD COLUMN verified_by BIGINT NULL COMMENT '核销人用户ID' AFTER verified_at;
+-- 检查并添加核销人ID字段
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'orders' AND column_name = 'verified_by');
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE orders ADD COLUMN verified_by BIGINT NULL COMMENT ''核销人用户ID'' AFTER verified_at',
+  'SELECT ''Column verified_by already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
--- 添加核销码字段
-ALTER TABLE orders
-ADD COLUMN verification_code VARCHAR(50) NULL COMMENT '核销码（包含签名）' AFTER verified_by;
+-- 检查并添加核销码字段
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'orders' AND column_name = 'verification_code');
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE orders ADD COLUMN verification_code VARCHAR(50) NULL COMMENT ''核销码（包含签名）'' AFTER verified_by',
+  'SELECT ''Column verification_code already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
--- 添加索引
-ALTER TABLE orders
-ADD INDEX idx_verification_status (verification_status);
+-- 检查并添加索引
+SET @idx_exists = (SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = 'dmh' AND table_name = 'orders' AND index_name = 'idx_verification_status');
+SET @sql = IF(@idx_exists = 0,
+  'ALTER TABLE orders ADD INDEX idx_verification_status (verification_status)',
+  'SELECT ''Index idx_verification_status already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
-ALTER TABLE orders
-ADD INDEX idx_verified_at (verified_at);
+SET @idx_exists = (SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = 'dmh' AND table_name = 'orders' AND index_name = 'idx_verified_at');
+SET @sql = IF(@idx_exists = 0,
+  'ALTER TABLE orders ADD INDEX idx_verified_at (verified_at)',
+  'SELECT ''Index idx_verified_at already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ============================================
 -- 3. 创建海报模板配置表
@@ -64,7 +104,7 @@ CREATE TABLE IF NOT EXISTS poster_template_configs (
 -- 4. 插入默认海报模板数据
 -- ============================================
 
-INSERT INTO poster_template_configs (id, name, preview_image, config, status) VALUES
+INSERT IGNORE INTO poster_template_configs (id, name, preview_image, config, status) VALUES
 (1, '经典模板', '/templates/classic.jpg', '{
   "width": 750,
   "height": 1334,

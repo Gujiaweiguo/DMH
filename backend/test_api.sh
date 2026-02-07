@@ -2,7 +2,7 @@
 
 # 测试后端 API 接口
 
-BASE_URL="http://localhost:8888"
+BASE_URL="http://localhost:8889"
 
 echo "=== Day 2 Backend API 测试 ==="
 echo ""

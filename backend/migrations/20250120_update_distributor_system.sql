@@ -20,34 +20,132 @@ DROP TABLE IF EXISTS `distributor_links`;
 -- ============================================================
 
 -- 1. 修改 distributors 表（删除审批相关字段）
-ALTER TABLE `distributors`
-  DROP COLUMN `approved_by`,
-  DROP COLUMN `approved_at`,
-  MODIFY COLUMN `status` VARCHAR(20) NOT NULL DEFAULT 'active' COMMENT '状态(active/suspended)';
+-- 检查并删除 approved_by 列
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'distributors' AND column_name = 'approved_by');
+SET @sql = IF(@col_exists = 1,
+  'ALTER TABLE `distributors` DROP COLUMN `approved_by`',
+  'SELECT ''Column approved_by does not exist''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 检查并删除 approved_at 列
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'distributors' AND column_name = 'approved_at');
+SET @sql = IF(@col_exists = 1,
+  'ALTER TABLE `distributors` DROP COLUMN `approved_at`',
+  'SELECT ''Column approved_at does not exist''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 修改 status 列（不管是否已修改，直接执行 MODIFY）
+ALTER TABLE `distributors` MODIFY COLUMN `status` VARCHAR(20) NOT NULL DEFAULT 'active' COMMENT '状态(active/suspended)';
 
 -- 2. 修改 distributor_rewards 表（简化字段）
-ALTER TABLE `distributor_rewards`
-  DROP COLUMN `user_id`,
-  DROP COLUMN `reward_rate`,
-  DROP COLUMN `from_user_id`,
-  ADD COLUMN `distributor_level` INT NOT NULL DEFAULT 1 COMMENT '分销商级别(1/2/3)',
-  ADD COLUMN `reward_percentage` DECIMAL(5,2) NOT NULL COMMENT '奖励比例';
+-- 检查并删除 user_id 列
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'distributor_rewards' AND column_name = 'user_id');
+SET @sql = IF(@col_exists = 1,
+  'ALTER TABLE `distributor_rewards` DROP COLUMN `user_id`',
+  'SELECT ''Column user_id does not exist''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 检查并删除 reward_rate 列
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'distributor_rewards' AND column_name = 'reward_rate');
+SET @sql = IF(@col_exists = 1,
+  'ALTER TABLE `distributor_rewards` DROP COLUMN `reward_rate`',
+  'SELECT ''Column reward_rate does not exist''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 检查并删除 from_user_id 列
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'distributor_rewards' AND column_name = 'from_user_id');
+SET @sql = IF(@col_exists = 1,
+  'ALTER TABLE `distributor_rewards` DROP COLUMN `from_user_id`',
+  'SELECT ''Column from_user_id does not exist''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 检查并添加 distributor_level 列
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'distributor_rewards' AND column_name = 'distributor_level');
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `distributor_rewards` ADD COLUMN `distributor_level` INT NOT NULL DEFAULT 1 COMMENT ''分销商级别(1/2/3)''',
+  'SELECT ''Column distributor_level already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 检查并添加 reward_percentage 列
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'distributor_rewards' AND column_name = 'reward_percentage');
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `distributor_rewards` ADD COLUMN `reward_percentage` DECIMAL(5,2) NOT NULL COMMENT ''奖励比例''',
+  'SELECT ''Column reward_percentage already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ============================================================
 -- 第三部分：扩展现有表
 -- ============================================================
 
 -- 3. 扩展 campaigns 表（增加分销相关字段）
-ALTER TABLE `campaigns`
-  ADD COLUMN `enable_distribution` BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否启用分销',
-  ADD COLUMN `distribution_level` INT NOT NULL DEFAULT 1 COMMENT '分销层级(1/2/3)',
-  ADD COLUMN `distribution_rewards` JSON COMMENT '各级奖励比例 {"level1": 10, "level2": 8, "level3": 5}',
-  ADD INDEX `idx_enable_distribution` (`enable_distribution`);
+-- 检查并添加 enable_distribution 字段
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'campaigns' AND column_name = 'enable_distribution');
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `campaigns` ADD COLUMN `enable_distribution` BOOLEAN NOT NULL DEFAULT FALSE COMMENT ''是否启用分销''',
+  'SELECT ''Column enable_distribution already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 检查并添加 distribution_level 字段
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'campaigns' AND column_name = 'distribution_level');
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `campaigns` ADD COLUMN `distribution_level` INT NOT NULL DEFAULT 1 COMMENT ''分销层级(1/2/3)''',
+  'SELECT ''Column distribution_level already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 检查并添加 distribution_rewards 字段
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'campaigns' AND column_name = 'distribution_rewards');
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `campaigns` ADD COLUMN `distribution_rewards` JSON COMMENT ''各级奖励比例 {"level1": 10, "level2": 8, "level3": 5}''',
+  'SELECT ''Column distribution_rewards already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 检查并添加索引
+SET @idx_exists = (SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = 'dmh' AND table_name = 'campaigns' AND index_name = 'idx_enable_distribution');
+SET @sql = IF(@idx_exists = 0,
+  'ALTER TABLE `campaigns` ADD INDEX `idx_enable_distribution` (`enable_distribution`)',
+  'SELECT ''Index idx_enable_distribution already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 4. 扩展 orders 表（增加分销链路径）
-ALTER TABLE `orders`
-  ADD COLUMN `distributor_path` VARCHAR(100) DEFAULT '' COMMENT '分销链路径 "一级ID,二级ID,三级ID"',
-  ADD INDEX `idx_distributor_path` (`distributor_path`(50));
+-- 检查并添加 distributor_path 字段
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'dmh' AND table_name = 'orders' AND column_name = 'distributor_path');
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `orders` ADD COLUMN `distributor_path` VARCHAR(100) DEFAULT '''' COMMENT ''分销链路径 "一级ID,二级ID,三级ID"''',
+  'SELECT ''Column distributor_path already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 检查并添加索引
+SET @idx_exists = (SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = 'dmh' AND table_name = 'orders' AND index_name = 'idx_distributor_path');
+SET @sql = IF(@idx_exists = 0,
+  'ALTER TABLE `orders` ADD INDEX `idx_distributor_path` (`distributor_path`(50))',
+  'SELECT ''Index idx_distributor_path already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ============================================================
 -- 第四部分：创建新表
