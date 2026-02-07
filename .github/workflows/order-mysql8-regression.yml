@@ -1,0 +1,124 @@
+name: Order MySQL8 Regression
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Optional API base URL override
+        required: false
+        default: http://127.0.0.1:8889
+  pull_request:
+    paths:
+      - backend/api/internal/logic/order/**
+      - backend/api/internal/handler/routes.go
+      - backend/test/integration/order_verify_auth_guard_integration_test.go
+      - backend/scripts/run_order_mysql8_regression.sh
+      - .github/workflows/order-mysql8-regression.yml
+  push:
+    branches:
+      - main
+    paths:
+      - backend/api/internal/logic/order/**
+      - backend/api/internal/handler/routes.go
+      - backend/test/integration/order_verify_auth_guard_integration_test.go
+      - backend/scripts/run_order_mysql8_regression.sh
+      - .github/workflows/order-mysql8-regression.yml
+
+jobs:
+  order-mysql8-regression:
+    name: Order regression on MySQL8
+    runs-on: ubuntu-latest
+
+    services:
+      mysql8:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: dmh
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      APP_HOST: 127.0.0.1
+      APP_PORT: "8889"
+      DB_HOST: 127.0.0.1
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: dmh
+      JWT_SECRET: dmh-access-secret-key
+      DMH_INTEGRATION_BASE_URL: ${{ github.event.inputs.base_url || 'http://127.0.0.1:8889' }}
+      DMH_TEST_ADMIN_USERNAME: ${{ vars.DMH_TEST_ADMIN_USERNAME || 'admin' }}
+      DMH_TEST_ADMIN_PASSWORD: ${{ secrets.DMH_TEST_ADMIN_PASSWORD || '123456' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Install MySQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
+
+      - name: Wait for MySQL service
+        run: |
+          for i in {1..60}; do
+            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then
+              echo "MySQL is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MySQL did not become ready in time"
+          exit 1
+
+      - name: Initialize schema and seed test users
+        run: mysql -h 127.0.0.1 -uroot -proot dmh < backend/scripts/init.sql
+
+      - name: Start API server
+        run: |
+          nohup go run ./backend/api/dmh.go -f ./backend/api/etc/dmh-api.yaml > /tmp/dmh-api.log 2>&1 &
+          echo $! > /tmp/dmh-api.pid
+
+      - name: Wait for API readiness
+        run: |
+          for i in {1..60}; do
+            code=$(curl -s -o /tmp/dmh-api-ready.out -w "%{http_code}" http://127.0.0.1:8889/api/v1/auth/login || true)
+            if [ "$code" != "000" ]; then
+              echo "API is reachable (status: $code)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become reachable in time"
+          cat /tmp/dmh-api.log || true
+          exit 1
+
+      - name: Run order MySQL8 regression suite
+        run: backend/scripts/run_order_mysql8_regression.sh "$DMH_INTEGRATION_BASE_URL"
+
+      - name: Upload API log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dmh-api-log
+          path: /tmp/dmh-api.log
+
+      - name: Stop API server
+        if: always()
+        run: |
+          if [ -f /tmp/dmh-api.pid ]; then
+            kill "$(cat /tmp/dmh-api.pid)" || true
+          fi
