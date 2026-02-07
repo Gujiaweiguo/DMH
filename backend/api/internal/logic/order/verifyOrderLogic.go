@@ -60,11 +60,7 @@ func (l *VerifyOrderLogic) VerifyOrder(req *types.VerifyOrderReq) (resp *types.V
 		return nil, fmt.Errorf("订单已核销")
 	}
 
-	// 解析备注字段
-	remark := req.Remark
-	if remark == "" {
-		remark = "品牌管理员核销"
-	}
+	remark := "品牌管理员核销"
 
 	tx := l.svcCtx.DB.Begin()
 	defer func() {
@@ -111,7 +107,6 @@ func (l *VerifyOrderLogic) VerifyOrder(req *types.VerifyOrderReq) (resp *types.V
 		OrderId:    order.Id,
 		Status:     "verified",
 		VerifiedAt: now.Format("2006-01-02T15:04:05"),
-		VerifiedBy: &verifiedBy,
 	}, nil
 }
 

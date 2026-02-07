@@ -77,7 +77,7 @@ func TestVerifyOrderLogic_CreatesVerificationRecord(t *testing.T) {
 
 	logic := NewVerifyOrderLogic(verificationAdminCtx(777), svcCtx)
 
-	resp, err := logic.VerifyOrder(&types.VerifyOrderReq{Code: order.VerificationCode, Remark: "测试核销"})
+	resp, err := logic.VerifyOrder(&types.VerifyOrderReq{Code: order.VerificationCode})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	assert.Equal(t, "verified", resp.Status)
@@ -92,7 +92,7 @@ func TestVerifyOrderLogic_CreatesVerificationRecord(t *testing.T) {
 	require.NoError(t, db.Where("order_id = ?", order.Id).Find(&records).Error)
 	require.Len(t, records, 1)
 	assert.Equal(t, "verified", records[0].VerificationStatus)
-	assert.Equal(t, "测试核销", records[0].Remark)
+	assert.Equal(t, "品牌管理员核销", records[0].Remark)
 }
 
 func TestVerifyOrderLogic_PermissionDenied(t *testing.T) {
@@ -119,7 +119,7 @@ func TestUnverifyOrderLogic_Success(t *testing.T) {
 	order := insertOrderForVerification(t, svcCtx, "paid", "verified")
 
 	logic := NewUnverifyOrderLogic(verificationAdminCtx(0), svcCtx)
-	resp, err := logic.UnverifyOrder(&types.UnverifyOrderReq{Code: order.VerificationCode, Reason: "人工回滚"})
+	resp, err := logic.UnverifyOrder(&types.UnverifyOrderReq{Code: order.VerificationCode})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	assert.Equal(t, "unverified", resp.Status)
@@ -133,7 +133,7 @@ func TestUnverifyOrderLogic_Success(t *testing.T) {
 	require.NoError(t, db.Where("order_id = ?", order.Id).Find(&records).Error)
 	require.Len(t, records, 1)
 	assert.Equal(t, "cancelled", records[0].VerificationStatus)
-	assert.Equal(t, "人工回滚", records[0].Remark)
+	assert.Equal(t, "品牌管理员取消核销", records[0].Remark)
 }
 
 func TestUnverifyOrderLogic_OrderNotVerified(t *testing.T) {

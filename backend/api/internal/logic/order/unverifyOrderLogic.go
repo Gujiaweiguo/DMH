@@ -55,11 +55,7 @@ func (l *UnverifyOrderLogic) UnverifyOrder(req *types.UnverifyOrderReq) (resp *t
 		return nil, fmt.Errorf("订单不存在")
 	}
 
-	// 解析取消原因字段
-	reason := req.Reason
-	if reason == "" {
-		reason = "品牌管理员取消核销"
-	}
+	reason := "品牌管理员取消核销"
 
 	if order.VerificationStatus != "verified" {
 		return nil, fmt.Errorf("订单尚未核销，无法取消核销")
