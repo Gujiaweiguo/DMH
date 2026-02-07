@@ -87,6 +87,11 @@ jobs:
       - name: Initialize schema and seed test users
         run: mysql -h 127.0.0.1 -uroot -proot dmh < backend/scripts/init.sql
 
+      - name: Apply required campaign feature migrations
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot dmh < backend/migrations/20250120_update_distributor_system.sql
+          mysql -h 127.0.0.1 -uroot -proot dmh < backend/migrations/20250124_add_advanced_features.sql
+
       - name: Start API server
         run: |
           cd backend
