@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"dmh/api/internal/svc"
@@ -31,25 +32,79 @@ func NewUpdateCampaignLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Up
 }
 
 func (l *UpdateCampaignLogic) UpdateCampaign(req *types.UpdateCampaignReq) (resp *types.CampaignResp, err error) {
-	startTime, err1 := time.Parse("2006-01-02T15:04:05", req.StartTime)
-	endTime, err2 := time.Parse("2006-01-02T15:04:05", req.EndTime)
-	if err1 != nil || err2 != nil {
-		l.Errorf("Time format error: startTime=%v, endTime=%v", err1, err2)
-		return nil, fmt.Errorf("Time format error")
-	}
-
 	var campaign model.Campaign
-	if err := l.svcCtx.DB.Where("id = ?", req.BrandId).First(&campaign).Error; err != nil {
+	if err := l.svcCtx.DB.Where("id = ?", req.Id).First(&campaign).Error; err != nil {
 		l.Errorf("Failed to query campaign: %v", err)
 		return nil, fmt.Errorf("Campaign not found")
 	}
 
-	campaign.Name = req.Name
-	campaign.Description = req.Description
-	campaign.StartTime = startTime
-	campaign.EndTime = endTime
+	if req.BrandId != nil && *req.BrandId > 0 {
+		campaign.BrandId = *req.BrandId
+	}
+	if req.Name != nil {
+		campaign.Name = *req.Name
+	}
+	if req.Description != nil {
+		campaign.Description = *req.Description
+	}
+	if req.StartTime != nil {
+		startTime, err := time.Parse("2006-01-02T15:04:05", *req.StartTime)
+		if err != nil {
+			l.Errorf("Time format error: startTime=%v", err)
+			return nil, fmt.Errorf("Time format error")
+		}
+		campaign.StartTime = startTime
+	}
+	if req.EndTime != nil {
+		endTime, err := time.Parse("2006-01-02T15:04:05", *req.EndTime)
+		if err != nil {
+			l.Errorf("Time format error: endTime=%v", err)
+			return nil, fmt.Errorf("Time format error")
+		}
+		campaign.EndTime = endTime
+	}
+	if req.RewardRule != nil {
+		campaign.RewardRule = *req.RewardRule
+	}
+	if req.Status != nil && *req.Status != "" {
+		campaign.Status = *req.Status
+	}
 
-	if len(req.FormFields) > 0 {
+	if req.DistributionLevel != nil {
+		if *req.DistributionLevel < 1 || *req.DistributionLevel > 3 {
+			return nil, fmt.Errorf("Distribution level must be between 1 and 3")
+		}
+		campaign.DistributionLevel = *req.DistributionLevel
+	}
+	if req.DistributionRewards != nil {
+		if strings.TrimSpace(*req.DistributionRewards) == "" {
+			campaign.DistributionRewards = nil
+		} else {
+			campaign.DistributionRewards = req.DistributionRewards
+		}
+	}
+	if req.EnableDistribution != nil {
+		campaign.EnableDistribution = *req.EnableDistribution
+		if !campaign.EnableDistribution {
+			campaign.DistributionRewards = nil
+		} else if campaign.DistributionLevel == 0 {
+			campaign.DistributionLevel = 1
+		}
+	}
+
+	if req.PaymentConfig != nil {
+		if strings.TrimSpace(*req.PaymentConfig) == "" {
+			campaign.PaymentConfig = nil
+		} else {
+			campaign.PaymentConfig = req.PaymentConfig
+		}
+	}
+
+	if req.PosterTemplateId != nil && *req.PosterTemplateId > 0 {
+		campaign.PosterTemplateId = *req.PosterTemplateId
+	}
+
+	if req.FormFields != nil {
 		formFieldsJSON, _ := json.Marshal(req.FormFields)
 		json.Unmarshal(formFieldsJSON, &campaign.FormFields)
 	}
@@ -68,18 +123,32 @@ func (l *UpdateCampaignLogic) UpdateCampaign(req *types.UpdateCampaignReq) (resp
 		formFieldsStr = "[]"
 	}
 
+	distributionRewardsResp := ""
+	if campaign.DistributionRewards != nil {
+		distributionRewardsResp = *campaign.DistributionRewards
+	}
+	paymentConfigResp := ""
+	if campaign.PaymentConfig != nil {
+		paymentConfigResp = *campaign.PaymentConfig
+	}
+
 	resp = &types.CampaignResp{
-		Id:          campaign.Id,
-		BrandId:     campaign.BrandId,
-		Name:        campaign.Name,
-		Description: campaign.Description,
-		FormFields:  formFieldsStr,
-		RewardRule:  campaign.RewardRule,
-		StartTime:   campaign.StartTime.Format("2006-01-02T15:04:05"),
-		EndTime:     campaign.EndTime.Format("2006-01-02T15:04:05"),
-		Status:      campaign.Status,
-		CreatedAt:   campaign.CreatedAt.Format("2006-01-02T15:04:05"),
-		UpdatedAt:   campaign.UpdatedAt.Format("2006-01-02T15:04:05"),
+		Id:                  campaign.Id,
+		BrandId:             campaign.BrandId,
+		Name:                campaign.Name,
+		Description:         campaign.Description,
+		FormFields:          formFieldsStr,
+		RewardRule:          campaign.RewardRule,
+		StartTime:           campaign.StartTime.Format("2006-01-02T15:04:05"),
+		EndTime:             campaign.EndTime.Format("2006-01-02T15:04:05"),
+		Status:              campaign.Status,
+		EnableDistribution:  campaign.EnableDistribution,
+		DistributionLevel:   campaign.DistributionLevel,
+		DistributionRewards: distributionRewardsResp,
+		PaymentConfig:       paymentConfigResp,
+		PosterTemplateId:    campaign.PosterTemplateId,
+		CreatedAt:           campaign.CreatedAt.Format("2006-01-02T15:04:05"),
+		UpdatedAt:           campaign.UpdatedAt.Format("2006-01-02T15:04:05"),
 	}
 
 	return resp, nil

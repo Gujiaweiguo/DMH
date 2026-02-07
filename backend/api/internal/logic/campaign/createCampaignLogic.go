@@ -38,15 +38,42 @@ func (l *CreateCampaignLogic) CreateCampaign(req *types.CreateCampaignReq) (resp
 		return nil, fmt.Errorf("Time format error")
 	}
 
+	level := req.DistributionLevel
+	if level == 0 {
+		level = 1
+	}
+	if level < 1 || level > 3 {
+		return nil, fmt.Errorf("Distribution level must be between 1 and 3")
+	}
+
+	posterTemplateId := req.PosterTemplateId
+	if posterTemplateId == 0 {
+		posterTemplateId = 1
+	}
+
+	var distributionRewards *string
+	if req.DistributionRewards != "" {
+		distributionRewards = &req.DistributionRewards
+	}
+
+	var paymentConfig *string
+	if req.PaymentConfig != "" {
+		paymentConfig = &req.PaymentConfig
+	}
+
 	newCampaign := model.Campaign{
-		BrandId:          req.BrandId,
-		Name:             req.Name,
-		Description:      req.Description,
-		RewardRule:       req.RewardRule,
-		StartTime:        startTime,
-		EndTime:          endTime,
-		Status:           "active",
-		PosterTemplateId: 1,
+		BrandId:             req.BrandId,
+		Name:                req.Name,
+		Description:         req.Description,
+		RewardRule:          req.RewardRule,
+		StartTime:           startTime,
+		EndTime:             endTime,
+		Status:              "active",
+		EnableDistribution:  req.EnableDistribution,
+		DistributionLevel:   level,
+		DistributionRewards: distributionRewards,
+		PaymentConfig:       paymentConfig,
+		PosterTemplateId:    posterTemplateId,
 	}
 
 	if len(req.FormFields) > 0 {
@@ -70,18 +97,32 @@ func (l *CreateCampaignLogic) CreateCampaign(req *types.CreateCampaignReq) (resp
 		formFieldsStr = "[]"
 	}
 
+	distributionRewardsResp := ""
+	if newCampaign.DistributionRewards != nil {
+		distributionRewardsResp = *newCampaign.DistributionRewards
+	}
+	paymentConfigResp := ""
+	if newCampaign.PaymentConfig != nil {
+		paymentConfigResp = *newCampaign.PaymentConfig
+	}
+
 	resp = &types.CampaignResp{
-		Id:          newCampaign.Id,
-		BrandId:     newCampaign.BrandId,
-		Name:        newCampaign.Name,
-		Description: newCampaign.Description,
-		FormFields:  formFieldsStr,
-		RewardRule:  newCampaign.RewardRule,
-		StartTime:   newCampaign.StartTime.Format("2006-01-02T15:04:05"),
-		EndTime:     newCampaign.EndTime.Format("2006-01-02T15:04:05"),
-		Status:      newCampaign.Status,
-		CreatedAt:   newCampaign.CreatedAt.Format("2006-01-02T15:04:05"),
-		UpdatedAt:   newCampaign.UpdatedAt.Format("2006-01-02T15:04:05"),
+		Id:                  newCampaign.Id,
+		BrandId:             newCampaign.BrandId,
+		Name:                newCampaign.Name,
+		Description:         newCampaign.Description,
+		FormFields:          formFieldsStr,
+		RewardRule:          newCampaign.RewardRule,
+		StartTime:           newCampaign.StartTime.Format("2006-01-02T15:04:05"),
+		EndTime:             newCampaign.EndTime.Format("2006-01-02T15:04:05"),
+		Status:              newCampaign.Status,
+		EnableDistribution:  newCampaign.EnableDistribution,
+		DistributionLevel:   newCampaign.DistributionLevel,
+		DistributionRewards: distributionRewardsResp,
+		PaymentConfig:       paymentConfigResp,
+		PosterTemplateId:    newCampaign.PosterTemplateId,
+		CreatedAt:           newCampaign.CreatedAt.Format("2006-01-02T15:04:05"),
+		UpdatedAt:           newCampaign.UpdatedAt.Format("2006-01-02T15:04:05"),
 	}
 
 	return resp, nil

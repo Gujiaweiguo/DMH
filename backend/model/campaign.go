@@ -22,7 +22,7 @@ type Campaign struct {
 	BrandId             int64      `gorm:"column:brand_id;not null;index" json:"brandId"`
 	Name                string     `gorm:"column:name;type:varchar(200);not null" json:"name"`
 	Description         string     `gorm:"column:description;type:text" json:"description"`
-	FormFields          string     `gorm:"column:form_fields;type:json;serializer:json" json:"formFields"` // JSON格式存储动态表单字段
+	FormFields          string     `gorm:"column:form_fields" json:"formFields"` // JSON格式存储动态表单字段
 	RewardRule          float64    `gorm:"column:reward_rule;type:decimal(10,2);not null;default:0.00" json:"rewardRule"`
 	StartTime           time.Time  `gorm:"column:start_time;not null" json:"startTime"`
 	EndTime             time.Time  `gorm:"column:end_time;not null" json:"endTime"`

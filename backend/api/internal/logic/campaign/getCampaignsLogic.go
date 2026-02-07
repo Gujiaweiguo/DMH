@@ -51,18 +51,32 @@ func (l *GetCampaignsLogic) GetCampaigns(req *types.GetCampaignsReq) (resp *type
 
 	var campaignResps []types.CampaignResp
 	for _, campaign := range campaigns {
+		distributionRewards := ""
+		if campaign.DistributionRewards != nil {
+			distributionRewards = *campaign.DistributionRewards
+		}
+		paymentConfig := ""
+		if campaign.PaymentConfig != nil {
+			paymentConfig = *campaign.PaymentConfig
+		}
+
 		campaignResps = append(campaignResps, types.CampaignResp{
-			Id:          campaign.Id,
-			BrandId:     campaign.BrandId,
-			Name:        campaign.Name,
-			Description: campaign.Description,
-			FormFields:  string(campaign.FormFields),
-			RewardRule:  campaign.RewardRule,
-			StartTime:   campaign.StartTime.Format("2006-01-02T15:04:05"),
-			EndTime:     campaign.EndTime.Format("2006-01-02T15:04:05"),
-			Status:      campaign.Status,
-			CreatedAt:   campaign.CreatedAt.Format("2006-01-02T15:04:05"),
-			UpdatedAt:   campaign.UpdatedAt.Format("2006-01-02T15:04:05"),
+			Id:                  campaign.Id,
+			BrandId:             campaign.BrandId,
+			Name:                campaign.Name,
+			Description:         campaign.Description,
+			FormFields:          string(campaign.FormFields),
+			RewardRule:          campaign.RewardRule,
+			StartTime:           campaign.StartTime.Format("2006-01-02T15:04:05"),
+			EndTime:             campaign.EndTime.Format("2006-01-02T15:04:05"),
+			Status:              campaign.Status,
+			EnableDistribution:  campaign.EnableDistribution,
+			DistributionLevel:   campaign.DistributionLevel,
+			DistributionRewards: distributionRewards,
+			PaymentConfig:       paymentConfig,
+			PosterTemplateId:    campaign.PosterTemplateId,
+			CreatedAt:           campaign.CreatedAt.Format("2006-01-02T15:04:05"),
+			UpdatedAt:           campaign.UpdatedAt.Format("2006-01-02T15:04:05"),
 		})
 	}
 

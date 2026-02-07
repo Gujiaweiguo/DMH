@@ -28,35 +28,40 @@ func NewGetCampaignLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetCa
 	}
 }
 
-func (l *GetCampaignLogic) GetCampaign(req *types.GetCampaignsReq) (resp *types.CampaignResp, err error) {
+func (l *GetCampaignLogic) GetCampaign(req *types.GetCampaignReq) (resp *types.CampaignResp, err error) {
 	var campaign model.Campaign
 
-	query := l.svcCtx.DB.Model(&model.Campaign{})
-
-	if req.Page > 0 && req.PageSize > 0 {
-		offset := (req.Page - 1) * req.PageSize
-		query = query.Offset(int(offset)).Limit(int(req.PageSize))
-	}
-
-	if err := query.First(&campaign).Error; err != nil {
+	if err := l.svcCtx.DB.First(&campaign, req.Id).Error; err != nil {
 		l.Errorf("Failed to query campaign: %v", err)
 		return nil, fmt.Errorf("Failed to query campaign: %w", err)
 	}
 
-	l.Infof("Successfully queried campaign: id=%d, name=%s", campaign.Id, campaign.Name)
+	l.Infof("Successfully queried campaign: id=%d, name=%s, form_fields=%s", campaign.Id, campaign.Name, campaign.FormFields)
 
 	resp = &types.CampaignResp{
-		Id:          campaign.Id,
-		BrandId:     campaign.BrandId,
-		Name:        campaign.Name,
-		Description: campaign.Description,
-		FormFields:  string(campaign.FormFields),
-		RewardRule:  campaign.RewardRule,
-		StartTime:   campaign.StartTime.Format("2006-01-02T15:04:05"),
-		EndTime:     campaign.EndTime.Format("2006-01-02T15:04:05"),
-		Status:      campaign.Status,
-		CreatedAt:   campaign.CreatedAt.Format("2006-01-02T15:04:05"),
-		UpdatedAt:   campaign.UpdatedAt.Format("2006-01-02T15:04:05"),
+		Id:                  campaign.Id,
+		BrandId:             campaign.BrandId,
+		Name:                campaign.Name,
+		Description:         campaign.Description,
+		FormFields:          campaign.FormFields,
+		RewardRule:          campaign.RewardRule,
+		StartTime:           campaign.StartTime.Format("2006-01-02T15:04:05"),
+		EndTime:             campaign.EndTime.Format("2006-01-02T15:04:05"),
+		Status:              campaign.Status,
+		EnableDistribution:  campaign.EnableDistribution,
+		DistributionLevel:   campaign.DistributionLevel,
+		DistributionRewards: "",
+		PaymentConfig:       "",
+		PosterTemplateId:    campaign.PosterTemplateId,
+		CreatedAt:           campaign.CreatedAt.Format("2006-01-02T15:04:05"),
+		UpdatedAt:           campaign.UpdatedAt.Format("2006-01-02T15:04:05"),
+	}
+
+	if campaign.DistributionRewards != nil {
+		resp.DistributionRewards = *campaign.DistributionRewards
+	}
+	if campaign.PaymentConfig != nil {
+		resp.PaymentConfig = *campaign.PaymentConfig
 	}
 
 	return resp, nil

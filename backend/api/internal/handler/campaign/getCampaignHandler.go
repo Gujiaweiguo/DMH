@@ -4,29 +4,48 @@
 package campaign
 
 import (
+	"fmt"
 	"net/http"
 
-	"dmh/api/internal/logic/campaign"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
+	"dmh/model"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 func GetCampaignHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.GetCampaignsReq
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
+		idStr := r.URL.Query().Get("id")
+		if idStr == "" {
+			httpx.ErrorCtx(r.Context(), w, fmt.Errorf("campaign id is required"))
 			return
 		}
 
-		l := campaign.NewGetCampaignLogic(r.Context(), svcCtx)
-		resp, err := l.GetCampaign(&req)
-		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
+		id := int64(0)
+		fmt.Sscanf(idStr, "%d", &id)
+
+		var campaign model.Campaign
+
+		if err := svcCtx.DB.First(&campaign, id).Error; err != nil {
+			httpx.ErrorCtx(r.Context(), w, fmt.Errorf("campaign not found: %w", err))
+			return
 		}
+
+		resp := &types.CampaignResp{
+			Id:          campaign.Id,
+			BrandId:     campaign.BrandId,
+			Name:        campaign.Name,
+			Description: campaign.Description,
+			FormFields:  campaign.FormFields,
+			RewardRule:  campaign.RewardRule,
+			StartTime:   campaign.StartTime.Format("2006-01-02T15:04:05"),
+			EndTime:     campaign.EndTime.Format("2006-01-02T15:04:05"),
+			Status:      campaign.Status,
+			CreatedAt:   campaign.CreatedAt.Format("2006-01-02T15:04:05"),
+			UpdatedAt:   campaign.UpdatedAt.Format("2006-01-02T15:04:05"),
+		}
+
+		httpx.OkJsonCtx(r.Context(), w, resp)
 	}
 }
