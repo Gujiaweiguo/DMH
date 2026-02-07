@@ -13,6 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func verificationAdminCtx(userID int64) context.Context {
+	ctx := context.WithValue(context.Background(), "roles", []string{"brand_admin"})
+	if userID > 0 {
+		ctx = context.WithValue(ctx, "userId", userID)
+	}
+	return ctx
+}
+
 func createVerificationCode(orderID int64, phone string) string {
 	createLogic := &CreateOrderLogic{}
 	return createLogic.generateVerificationCode(orderID, phone, time.Now().Unix())
@@ -51,7 +59,7 @@ func TestVerifyOrderLogic_OrderNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	defer cleanupTestDB(t, db)
 
-	logic := NewVerifyOrderLogic(context.Background(), &svc.ServiceContext{DB: db})
+	logic := NewVerifyOrderLogic(verificationAdminCtx(0), &svc.ServiceContext{DB: db})
 	missingCode := createVerificationCode(9999, "13800138000")
 
 	resp, err := logic.VerifyOrder(&types.VerifyOrderReq{Code: missingCode})
@@ -67,8 +75,7 @@ func TestVerifyOrderLogic_CreatesVerificationRecord(t *testing.T) {
 	svcCtx := &svc.ServiceContext{DB: db}
 	order := insertOrderForVerification(t, svcCtx, "paid", "unverified")
 
-	ctx := context.WithValue(context.Background(), "userId", int64(777))
-	logic := NewVerifyOrderLogic(ctx, svcCtx)
+	logic := NewVerifyOrderLogic(verificationAdminCtx(777), svcCtx)
 
 	resp, err := logic.VerifyOrder(&types.VerifyOrderReq{Code: order.VerificationCode, Remark: "测试核销"})
 	require.NoError(t, err)
@@ -111,7 +118,7 @@ func TestUnverifyOrderLogic_Success(t *testing.T) {
 	svcCtx := &svc.ServiceContext{DB: db}
 	order := insertOrderForVerification(t, svcCtx, "paid", "verified")
 
-	logic := NewUnverifyOrderLogic(context.Background(), svcCtx)
+	logic := NewUnverifyOrderLogic(verificationAdminCtx(0), svcCtx)
 	resp, err := logic.UnverifyOrder(&types.UnverifyOrderReq{Code: order.VerificationCode, Reason: "人工回滚"})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -136,7 +143,7 @@ func TestUnverifyOrderLogic_OrderNotVerified(t *testing.T) {
 	svcCtx := &svc.ServiceContext{DB: db}
 	order := insertOrderForVerification(t, svcCtx, "paid", "unverified")
 
-	logic := NewUnverifyOrderLogic(context.Background(), svcCtx)
+	logic := NewUnverifyOrderLogic(verificationAdminCtx(0), svcCtx)
 	resp, err := logic.UnverifyOrder(&types.UnverifyOrderReq{Code: order.VerificationCode})
 	assert.Error(t, err)
 	assert.Nil(t, resp)
@@ -163,7 +170,7 @@ func TestUnverifyOrderLogic_OrderNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	defer cleanupTestDB(t, db)
 
-	logic := NewUnverifyOrderLogic(context.Background(), &svc.ServiceContext{DB: db})
+	logic := NewUnverifyOrderLogic(verificationAdminCtx(0), &svc.ServiceContext{DB: db})
 	missingCode := createVerificationCode(9999, "13800138000")
 
 	resp, err := logic.UnverifyOrder(&types.UnverifyOrderReq{Code: missingCode})

@@ -187,6 +187,7 @@ func TestVerifyOrderLogic_VerifyOrder_Success(t *testing.T) {
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "userId", int64(100))
+	ctx = context.WithValue(ctx, "roles", []string{"brand_admin"})
 	svcCtx := &svc.ServiceContext{DB: db}
 	logic := NewVerifyOrderLogic(ctx, svcCtx)
 
@@ -226,6 +227,7 @@ func TestVerifyOrderLogic_VerifyOrder_AlreadyVerified(t *testing.T) {
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "userId", int64(100))
+	ctx = context.WithValue(ctx, "roles", []string{"brand_admin"})
 	svcCtx := &svc.ServiceContext{DB: db}
 	logic := NewVerifyOrderLogic(ctx, svcCtx)
 

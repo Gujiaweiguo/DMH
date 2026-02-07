@@ -424,11 +424,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: order.ScanOrderHandler(serverCtx),
 			},
 			{
-				Method:  http.MethodPost,
-				Path:    "/orders/unverify",
-				Handler: order.UnverifyOrderHandler(serverCtx),
-			},
-			{
 				Method:  http.MethodGet,
 				Path:    "/orders/verification-records",
 				Handler: order.GetVerificationRecordsHandler(serverCtx),
@@ -438,12 +433,24 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/orders/list",
 				Handler: order.GetOrdersHandler(serverCtx),
 			},
+		},
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodPost,
+				Path:    "/orders/unverify",
+				Handler: order.UnverifyOrderHandler(serverCtx),
+			},
 			{
 				Method:  http.MethodPost,
 				Path:    "/orders/verify",
 				Handler: order.VerifyOrderHandler(serverCtx),
 			},
 		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/api/v1"),
 	)
 

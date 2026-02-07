@@ -7,13 +7,12 @@ import (
 
 func hasVerificationPermission(ctx context.Context) bool {
 	if ctx == nil {
-		return true
+		return false
 	}
 
 	rolesVal := ctx.Value("roles")
 	if rolesVal == nil {
-		// Keep backward compatibility for non-authenticated legacy flows.
-		return true
+		return false
 	}
 
 	roles := normalizeRoles(rolesVal)
