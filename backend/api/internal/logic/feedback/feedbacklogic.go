@@ -3,11 +3,14 @@ package feedback
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
+	"dmh/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"gorm.io/gorm"
 )
 
 type CreateFeedbackLogic struct {
@@ -45,35 +48,8 @@ func (l *CreateFeedbackLogic) CreateFeedback(req *types.CreateFeedbackReq, userI
 		priority = "medium"
 	}
 
-	// TODO: 实现数据库插入逻辑
-	// 示例代码（需要根据实际的数据库模型实现）:
-	/*
-		feedback := &model.UserFeedback{
-			UserId:         userId,
-			Category:       req.Category,
-			Subcategory:    req.Subcategory,
-			Rating:         req.Rating,
-			Title:          req.Title,
-			Content:        req.Content,
-			FeatureUseCase: req.FeatureUseCase,
-			DeviceInfo:     req.DeviceInfo,
-			BrowserInfo:    req.BrowserInfo,
-			Priority:       priority,
-			Status:         "pending",
-		}
-
-		err := l.svcCtx.DB.Create(feedback).Error
-		if err != nil {
-			return nil, err
-		}
-	*/
-
-	// 返回示例响应
-	return &types.FeedbackResp{
-		Id:             1,
-		UserId:         userId,
-		UserName:       "",
-		UserRole:       "",
+	feedback := &model.UserFeedback{
+		UserID:         userId,
 		Category:       req.Category,
 		Subcategory:    req.Subcategory,
 		Rating:         req.Rating,
@@ -84,9 +60,32 @@ func (l *CreateFeedbackLogic) CreateFeedback(req *types.CreateFeedbackReq, userI
 		BrowserInfo:    req.BrowserInfo,
 		Priority:       priority,
 		Status:         "pending",
-		AssigneeId:     nil,
-		Response:       "",
-		ResolvedAt:     nil,
+	}
+
+	err := l.svcCtx.DB.Create(feedback).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.FeedbackResp{
+		Id:             feedback.ID,
+		UserId:         feedback.UserID,
+		UserName:       "",
+		UserRole:       "",
+		Category:       feedback.Category,
+		Subcategory:    feedback.Subcategory,
+		Rating:         feedback.Rating,
+		Title:          feedback.Title,
+		Content:        feedback.Content,
+		FeatureUseCase: feedback.FeatureUseCase,
+		DeviceInfo:     feedback.DeviceInfo,
+		BrowserInfo:    feedback.BrowserInfo,
+		Priority:       feedback.Priority,
+		Status:         feedback.Status,
+		AssigneeId:     feedback.AssigneeID,
+		Response:       feedback.Response,
+		ResolvedAt:     feedback.ResolvedAt,
+		CreatedAt:      feedback.CreatedAt,
 		Tags:           []types.TagResp{},
 	}, nil
 }
@@ -114,42 +113,82 @@ func (l *ListFeedbackLogic) ListFeedback(req *types.ListFeedbackReq, userId int6
 		req.PageSize = 20
 	}
 
-	// TODO: 实现数据库查询逻辑
-	// 示例代码：
-	/*
-		var feedbacks []model.UserFeedback
-		var total int64
+	var feedbacks []model.UserFeedback
+	var total int64
 
-		query := l.svcCtx.DB.Model(&model.UserFeedback{})
+	query := l.svcCtx.DB.Model(&model.UserFeedback{})
 
-		// 权限控制：普通用户只能查看自己的反馈，管理员可以查看所有
-		if userRole != "platform_admin" && userRole != "brand_admin" {
-			query = query.Where("user_id = ?", userId)
+	// 权限控制：普通用户只能查看自己的反馈，管理员可以查看所有
+	if userRole != "platform_admin" && userRole != "brand_admin" {
+		query = query.Where("user_id = ?", userId)
+	}
+
+	// 筛选条件
+	if req.Category != "" {
+		query = query.Where("category = ?", req.Category)
+	}
+	if req.Status != "" {
+		query = query.Where("status = ?", req.Status)
+	}
+	if req.Priority != "" {
+		query = query.Where("priority = ?", req.Priority)
+	}
+
+	// 查询总数
+	err := query.Count(&total).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 分页查询
+	offset := (req.Page - 1) * req.PageSize
+	err = query.Preload("User").Preload("Assignee").Offset(offset).Limit(req.PageSize).Order("created_at DESC").Find(&feedbacks).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 转换为响应格式
+	feedbackResps := make([]types.FeedbackResp, len(feedbacks))
+	for i, f := range feedbacks {
+		userName := ""
+		userRoleStr := ""
+		if f.User != nil {
+			userName = f.User.Username
+			userRoleStr = getRoleName(f.User.Id)
 		}
 
-		// 筛选条件
-		if req.Category != "" {
-			query = query.Where("category = ?", req.Category)
+		feedbackResps[i] = types.FeedbackResp{
+			Id:             f.ID,
+			UserId:         f.UserID,
+			UserName:       userName,
+			UserRole:       userRoleStr,
+			Category:       f.Category,
+			Subcategory:    f.Subcategory,
+			Rating:         f.Rating,
+			Title:          f.Title,
+			Content:        f.Content,
+			FeatureUseCase: f.FeatureUseCase,
+			DeviceInfo:     f.DeviceInfo,
+			BrowserInfo:    f.BrowserInfo,
+			Priority:       f.Priority,
+			Status:         f.Status,
+			AssigneeId:     f.AssigneeID,
+			Response:       f.Response,
+			ResolvedAt:     f.ResolvedAt,
+			CreatedAt:      f.CreatedAt,
+			Tags:           []types.TagResp{},
 		}
-		if req.Status != "" {
-			query = query.Where("status = ?", req.Status)
-		}
-		if req.Priority != "" {
-			query = query.Where("priority = ?", req.Priority)
-		}
-
-		// 查询总数
-		query.Count(&total)
-
-		// 分页查询
-		offset := (req.Page - 1) * req.PageSize
-		query.Offset(offset).Limit(req.PageSize).Order("created_at DESC").Find(&feedbacks)
-	*/
+	}
 
 	return &types.FeedbackListResp{
-		Total:     0,
-		Feedbacks: []types.FeedbackResp{},
+		Total:     total,
+		Feedbacks: feedbackResps,
 	}, nil
+}
+
+// 辅助函数：根据用户ID获取角色名称
+func getRoleName(userId int64) string {
+	return "" // 暂时返回空，后续可以查询数据库获取角色
 }
 
 type GetFeedbackLogic struct {
@@ -167,46 +206,64 @@ func NewGetFeedbackLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetFe
 }
 
 func (l *GetFeedbackLogic) GetFeedback(id int64, userId int64, userRole string) (*types.FeedbackResp, error) {
-	// TODO: 实现数据库查询逻辑
-	/*
-		var feedback model.UserFeedback
-		err := l.svcCtx.DB.Where("id = ?", id).First(&feedback).Error
-		if err != nil {
-			return nil, err
-		}
+	var feedback model.UserFeedback
+	err := l.svcCtx.DB.Preload("User").Preload("Assignee").First(&feedback, id).Error
+	if err != nil {
+		return nil, err
+	}
 
-		// 权限控制
-		if userRole != "platform_admin" && userRole != "brand_admin" && feedback.UserId != userId {
-			return nil, fmt.Errorf("无权访问此反馈")
-		}
+	// 权限控制
+	if userRole != "platform_admin" && userRole != "brand_admin" && feedback.UserID != userId {
+		return nil, fmt.Errorf("无权访问此反馈")
+	}
 
-		// 加载标签
-		var tags []model.FeedbackTag
-		l.svcCtx.DB.Table("feedback_tags").
-			Joins("INNER JOIN feedback_tag_relations ON feedback_tag_relations.tag_id = feedback_tags.id").
-			Where("feedback_tag_relations.feedback_id = ?", id).
-			Find(&tags)
-	*/
+	// 加载标签
+	var tags []model.FeedbackTag
+	err = l.svcCtx.DB.Raw(`
+		SELECT ft.* FROM feedback_tags ft
+		INNER JOIN feedback_tag_relations ftr ON ft.id = ftr.tag_id
+		WHERE ftr.feedback_id = ?
+	`, id).Find(&tags).Error
+	if err != nil {
+		return nil, err
+	}
+
+	tagResps := make([]types.TagResp, len(tags))
+	for i, t := range tags {
+		tagResps[i] = types.TagResp{
+			Id:    t.ID,
+			Name:  t.Name,
+			Color: t.Color,
+		}
+	}
+
+	userName := ""
+	userRoleStr := ""
+	if feedback.User != nil {
+		userName = feedback.User.Username
+		userRoleStr = getRoleName(feedback.User.Id)
+	}
 
 	return &types.FeedbackResp{
-		Id:             id,
-		UserId:         userId,
-		UserName:       "",
-		UserRole:       userRole,
-		Category:       "",
-		Subcategory:    "",
-		Rating:         nil,
-		Title:          "",
-		Content:        "",
-		FeatureUseCase: "",
-		DeviceInfo:     "",
-		BrowserInfo:    "",
-		Priority:       "",
-		Status:         "",
-		AssigneeId:     nil,
-		Response:       "",
-		ResolvedAt:     nil,
-		Tags:           []types.TagResp{},
+		Id:             feedback.ID,
+		UserId:         feedback.UserID,
+		UserName:       userName,
+		UserRole:       userRoleStr,
+		Category:       feedback.Category,
+		Subcategory:    feedback.Subcategory,
+		Rating:         feedback.Rating,
+		Title:          feedback.Title,
+		Content:        feedback.Content,
+		FeatureUseCase: feedback.FeatureUseCase,
+		DeviceInfo:     feedback.DeviceInfo,
+		BrowserInfo:    feedback.BrowserInfo,
+		Priority:       feedback.Priority,
+		Status:         feedback.Status,
+		AssigneeId:     feedback.AssigneeID,
+		Response:       feedback.Response,
+		ResolvedAt:     feedback.ResolvedAt,
+		CreatedAt:      feedback.CreatedAt,
+		Tags:           tagResps,
 	}, nil
 }
 
@@ -230,44 +287,62 @@ func (l *UpdateFeedbackStatusLogic) UpdateFeedbackStatus(req *types.UpdateFeedba
 		return nil, fmt.Errorf("无权更新反馈状态")
 	}
 
-	// TODO: 实现数据库更新逻辑
-	/*
-		var feedback model.UserFeedback
-		err := l.svcCtx.DB.Where("id = ?", req.Id).First(&feedback).Error
-		if err != nil {
-			return nil, err
-		}
+	var feedback model.UserFeedback
+	err := l.svcCtx.DB.First(&feedback, req.Id).Error
+	if err != nil {
+		return nil, err
+	}
 
-		// 更新字段
-		updates := map[string]interface{}{
-			"status": req.Status,
-		}
+	// 更新字段
+	updates := map[string]interface{}{
+		"status": req.Status,
+	}
 
-		if req.AssigneeId != nil {
-			updates["assignee_id"] = *req.AssigneeId
-		}
+	if req.AssigneeId != nil {
+		updates["assignee_id"] = *req.AssigneeId
+	}
 
-		if req.Response != "" {
-			updates["response"] = req.Response
-		}
+	if req.Response != "" {
+		updates["response"] = req.Response
+	}
 
-		// 如果状态为已解决，设置解决时间
-		if req.Status == "resolved" {
-			now := time.Now()
-			updates["resolved_at"] = &now
-		}
+	// 如果状态为已解决，设置解决时间
+	if req.Status == "resolved" {
+		now := time.Now()
+		updates["resolved_at"] = &now
+	}
 
-		err = l.svcCtx.DB.Model(&feedback).Updates(updates).Error
-		if err != nil {
-			return nil, err
-		}
-	*/
+	err = l.svcCtx.DB.Model(&feedback).Updates(updates).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 刷新数据
+	err = l.svcCtx.DB.Preload("User").Preload("Assignee").First(&feedback, req.Id).Error
+	if err != nil {
+		return nil, err
+	}
 
 	return &types.FeedbackResp{
-		Id:         req.Id,
-		Status:     req.Status,
-		AssigneeId: req.AssigneeId,
-		Response:   req.Response,
+		Id:             feedback.ID,
+		UserId:         feedback.UserID,
+		UserName:       "",
+		UserRole:       "",
+		Category:       feedback.Category,
+		Subcategory:    feedback.Subcategory,
+		Rating:         feedback.Rating,
+		Title:          feedback.Title,
+		Content:        feedback.Content,
+		FeatureUseCase: feedback.FeatureUseCase,
+		DeviceInfo:     feedback.DeviceInfo,
+		BrowserInfo:    feedback.BrowserInfo,
+		Priority:       feedback.Priority,
+		Status:         feedback.Status,
+		AssigneeId:     feedback.AssigneeID,
+		Response:       feedback.Response,
+		ResolvedAt:     feedback.ResolvedAt,
+		CreatedAt:      feedback.CreatedAt,
+		Tags:           []types.TagResp{},
 	}, nil
 }
 
@@ -308,32 +383,8 @@ func (l *SubmitSatisfactionSurveyLogic) SubmitSatisfactionSurvey(req *types.Subm
 		return nil, fmt.Errorf("推荐意愿必须在1-5之间")
 	}
 
-	// TODO: 实现数据库插入逻辑
-	/*
-		survey := &model.FeatureSatisfactionSurvey{
-			UserId:                  userId,
-			UserRole:                userRole,
-			Feature:                 req.Feature,
-			EaseOfUse:               req.EaseOfUse,
-			Performance:             req.Performance,
-			Reliability:             req.Reliability,
-			OverallSatisfaction:     req.OverallSatisfaction,
-			WouldRecommend:          req.WouldRecommend,
-			MostLiked:               req.MostLiked,
-			LeastLiked:              req.LeastLiked,
-			ImprovementSuggestions:  req.ImprovementSuggestions,
-			WouldLikeMoreFeatures:   req.WouldLikeMoreFeatures,
-		}
-
-		err := l.svcCtx.DB.Create(survey).Error
-		if err != nil {
-			return nil, err
-		}
-	*/
-
-	return &types.SatisfactionSurveyResp{
-		Id:                     1,
-		UserId:                 userId,
+	survey := &model.FeatureSatisfactionSurvey{
+		UserID:                 userId,
 		UserRole:               userRole,
 		Feature:                req.Feature,
 		EaseOfUse:              req.EaseOfUse,
@@ -345,6 +396,28 @@ func (l *SubmitSatisfactionSurveyLogic) SubmitSatisfactionSurvey(req *types.Subm
 		LeastLiked:             req.LeastLiked,
 		ImprovementSuggestions: req.ImprovementSuggestions,
 		WouldLikeMoreFeatures:  req.WouldLikeMoreFeatures,
+	}
+
+	err := l.svcCtx.DB.Create(survey).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.SatisfactionSurveyResp{
+		Id:                     survey.ID,
+		UserId:                 survey.UserID,
+		UserRole:               survey.UserRole,
+		Feature:                survey.Feature,
+		EaseOfUse:              survey.EaseOfUse,
+		Performance:            survey.Performance,
+		Reliability:            survey.Reliability,
+		OverallSatisfaction:    survey.OverallSatisfaction,
+		WouldRecommend:         survey.WouldRecommend,
+		MostLiked:              survey.MostLiked,
+		LeastLiked:             survey.LeastLiked,
+		ImprovementSuggestions: survey.ImprovementSuggestions,
+		WouldLikeMoreFeatures:  survey.WouldLikeMoreFeatures,
+		CreatedAt:              survey.CreatedAt,
 	}, nil
 }
 
@@ -363,31 +436,48 @@ func NewListFAQLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListFAQLo
 }
 
 func (l *ListFAQLogic) ListFAQ(req *types.ListFAQReq) (*types.FAQListResp, error) {
-	// TODO: 实现数据库查询逻辑
-	/*
-		var faqs []model.FAQItem
-		var total int64
+	var faqs []model.FAQItem
+	var total int64
 
-		query := l.svcCtx.DB.Model(&model.FAQItem{}).Where("is_published = ?", true)
+	query := l.svcCtx.DB.Model(&model.FAQItem{}).Where("is_published = ?", true)
 
-		// 筛选条件
-		if req.Category != "" {
-			query = query.Where("category = ?", req.Category)
+	// 筛选条件
+	if req.Category != "" {
+		query = query.Where("category = ?", req.Category)
+	}
+	if req.Keyword != "" {
+		query = query.Where("question LIKE ? OR answer LIKE ?", "%"+req.Keyword+"%", "%"+req.Keyword+"%")
+	}
+
+	// 查询总数
+	err := query.Count(&total).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 查询并按排序字段排序
+	err = query.Order("sort_order ASC, created_at DESC").Find(&faqs).Error
+	if err != nil {
+		return nil, err
+	}
+
+	faqResps := make([]types.FAQResp, len(faqs))
+	for i, f := range faqs {
+		faqResps[i] = types.FAQResp{
+			Id:              f.ID,
+			Category:        f.Category,
+			Question:        f.Question,
+			Answer:          f.Answer,
+			SortOrder:       f.SortOrder,
+			ViewCount:       f.ViewCount,
+			HelpfulCount:    f.HelpfulCount,
+			NotHelpfulCount: f.NotHelpfulCount,
 		}
-		if req.Keyword != "" {
-			query = query.Where("question LIKE ? OR answer LIKE ?", "%"+req.Keyword+"%", "%"+req.Keyword+"%")
-		}
-
-		// 查询总数
-		query.Count(&total)
-
-		// 查询并按排序字段排序
-		query.Order("sort_order ASC").Find(&faqs)
-	*/
+	}
 
 	return &types.FAQListResp{
-		Total: 0,
-		FAQs:  []types.FAQResp{},
+		Total: total,
+		FAQs:  faqResps,
 	}, nil
 }
 
@@ -406,34 +496,40 @@ func NewMarkFAQHelpfulLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ma
 }
 
 func (l *MarkFAQHelpfulLogic) MarkFAQHelpful(req *types.MarkFAQHelpfulReq) (*types.FAQResp, error) {
-	// TODO: 实现数据库更新逻辑
-	/*
-		var faq model.FAQItem
-		err := l.svcCtx.DB.Where("id = ?", req.Id).First(&faq).Error
-		if err != nil {
-			return nil, err
-		}
+	var faq model.FAQItem
+	err := l.svcCtx.DB.First(&faq, req.Id).Error
+	if err != nil {
+		return nil, err
+	}
 
-		// 增加有帮助或无帮助计数
-		if req.Type == "helpful" {
-			l.svcCtx.DB.Model(&faq).UpdateColumn("helpful_count", gorm.Expr("helpful_count + ?", 1))
-		} else if req.Type == "not_helpful" {
-			l.svcCtx.DB.Model(&faq).UpdateColumn("not_helpful_count", gorm.Expr("not_helpful_count + ?", 1))
-		}
+	// 增加有帮助或无帮助计数
+	if req.Type == "helpful" {
+		err = l.svcCtx.DB.Model(&faq).UpdateColumn("helpful_count", gorm.Expr("helpful_count + ?", 1)).Error
+	} else if req.Type == "not_helpful" {
+		err = l.svcCtx.DB.Model(&faq).UpdateColumn("not_helpful_count", gorm.Expr("not_helpful_count + ?", 1)).Error
+	} else {
+		return nil, fmt.Errorf("无效的类型: %s", req.Type)
+	}
 
-		// 刷新数据
-		l.svcCtx.DB.Where("id = ?", req.Id).First(&faq)
-	*/
+	if err != nil {
+		return nil, err
+	}
+
+	// 刷新数据
+	err = l.svcCtx.DB.First(&faq, req.Id).Error
+	if err != nil {
+		return nil, err
+	}
 
 	return &types.FAQResp{
-		Id:              req.Id,
-		Category:        "",
-		Question:        "",
-		Answer:          "",
-		SortOrder:       0,
-		ViewCount:       0,
-		HelpfulCount:    0,
-		NotHelpfulCount: 0,
+		Id:              faq.ID,
+		Category:        faq.Category,
+		Question:        faq.Question,
+		Answer:          faq.Answer,
+		SortOrder:       faq.SortOrder,
+		ViewCount:       faq.ViewCount,
+		HelpfulCount:    faq.HelpfulCount,
+		NotHelpfulCount: faq.NotHelpfulCount,
 	}, nil
 }
 
@@ -452,24 +548,21 @@ func NewRecordFeatureUsageLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *RecordFeatureUsageLogic) RecordFeatureUsage(req *types.RecordFeatureUsageReq, userId int64, userRole string) (*types.BaseResp, error) {
-	// TODO: 实现数据库插入逻辑
-	/*
-		usage := &model.FeatureUsageStat{
-			UserId:          userId,
-			UserRole:        userRole,
-			Feature:         req.Feature,
-			Action:          req.Action,
-			CampaignId:      req.CampaignId,
-			Success:         req.Success,
-			DurationMs:      req.DurationMs,
-			ErrorMessage:    req.ErrorMessage,
-		}
+	usage := &model.FeatureUsageStat{
+		UserID:       userId,
+		UserRole:     userRole,
+		Feature:      req.Feature,
+		Action:       req.Action,
+		CampaignID:   req.CampaignId,
+		Success:      req.Success,
+		DurationMs:   req.DurationMs,
+		ErrorMessage: req.ErrorMessage,
+	}
 
-		err := l.svcCtx.DB.Create(usage).Error
-		if err != nil {
-			return nil, err
-		}
-	*/
+	err := l.svcCtx.DB.Create(usage).Error
+	if err != nil {
+		return nil, err
+	}
 
 	return &types.BaseResp{
 		Code:    200,
@@ -497,66 +590,136 @@ func (l *GetFeedbackStatisticsLogic) GetFeedbackStatistics(req *types.GetFeedbac
 		return nil, fmt.Errorf("无权查看统计数据")
 	}
 
-	// TODO: 实现统计逻辑
-	/*
-		var totalFeedbacks int64
-		var byCategory map[string]int64
-		var byStatus map[string]int64
-		var byPriority map[string]int64
-		var averageRating float64
-		var resolutionRate float64
-		var avgResolutionTime float64
-		var byRating map[int]int64
+	query := l.svcCtx.DB.Model(&model.UserFeedback{})
 
-		// 获取总数
-		l.svcCtx.DB.Model(&model.UserFeedback{}).Count(&totalFeedbacks)
+	// 时间范围筛选
+	if req.StartDate != "" {
+		query = query.Where("created_at >= ?", req.StartDate)
+	}
+	if req.EndDate != "" {
+		query = query.Where("created_at <= ?", req.EndDate)
+	}
+	if req.Category != "" {
+		query = query.Where("category = ?", req.Category)
+	}
 
-		// 按类别统计
-		l.svcCtx.DB.Model(&model.UserFeedback{}).
-			Select("category, COUNT(*) as count").
-			Group("category").
-			Scan(&byCategory)
+	var totalFeedbacks int64
+	err := query.Count(&totalFeedbacks).Error
+	if err != nil {
+		return nil, err
+	}
 
-		// 按状态统计
-		l.svcCtx.DB.Model(&model.UserFeedback{}).
-			Select("status, COUNT(*) as count").
-			Group("status").
-			Scan(&byStatus)
+	// 按类别统计
+	type CategoryStat struct {
+		Category string
+		Count    int64
+	}
+	var categoryStats []CategoryStat
+	err = query.Select("category, COUNT(*) as count").Group("category").Scan(&categoryStats).Error
+	if err != nil {
+		return nil, err
+	}
+	byCategory := make(map[string]int64)
+	for _, stat := range categoryStats {
+		byCategory[stat.Category] = stat.Count
+	}
 
-		// 按优先级统计
-		l.svcCtx.DB.Model(&model.UserFeedback{}).
-			Select("priority, COUNT(*) as count").
-			Group("priority").
-			Scan(&byPriority)
+	// 按状态统计
+	type StatusStat struct {
+		Status string
+		Count  int64
+	}
+	var statusStats []StatusStat
+	err = query.Select("status, COUNT(*) as count").Group("status").Scan(&statusStats).Error
+	if err != nil {
+		return nil, err
+	}
+	byStatus := make(map[string]int64)
+	for _, stat := range statusStats {
+		byStatus[stat.Status] = stat.Count
+	}
 
-		// 计算平均评分
-		l.svcCtx.DB.Model(&model.UserFeedback{}).
-			Select("AVG(rating) as avg_rating").
-			Where("rating IS NOT NULL").
-			Scan(&averageRating)
+	// 按优先级统计
+	type PriorityStat struct {
+		Priority string
+		Count    int64
+	}
+	var priorityStats []PriorityStat
+	err = query.Select("priority, COUNT(*) as count").Group("priority").Scan(&priorityStats).Error
+	if err != nil {
+		return nil, err
+	}
+	byPriority := make(map[string]int64)
+	for _, stat := range priorityStats {
+		byPriority[stat.Priority] = stat.Count
+	}
 
-		// 计算解决率
-		resolvedCount := l.svcCtx.DB.Model(&model.UserFeedback{}).
-			Where("status = ?", "resolved").
-			Count(&resolvedCount)
+	// 计算平均评分
+	type RatingStat struct {
+		AvgRating float64
+	}
+	var ratingStat RatingStat
+	err = query.Select("AVG(rating) as avg_rating").Where("rating IS NOT NULL").Scan(&ratingStat).Error
+	if err != nil {
+		return nil, err
+	}
+	averageRating := ratingStat.AvgRating
+
+	// 计算解决率
+	var resolvedCount int64
+	baseQuery := l.svcCtx.DB.Model(&model.UserFeedback{})
+	if req.StartDate != "" {
+		baseQuery = baseQuery.Where("created_at >= ?", req.StartDate)
+	}
+	if req.EndDate != "" {
+		baseQuery = baseQuery.Where("created_at <= ?", req.EndDate)
+	}
+	if req.Category != "" {
+		baseQuery = baseQuery.Where("category = ?", req.Category)
+	}
+	baseQuery.Where("status = ?", "resolved").Count(&resolvedCount)
+	resolutionRate := 0.0
+	if totalFeedbacks > 0 {
 		resolutionRate = float64(resolvedCount) / float64(totalFeedbacks)
+	}
 
-		// 按评分分布统计
-		l.svcCtx.DB.Model(&model.UserFeedback{}).
-			Select("rating, COUNT(*) as count").
-			Where("rating IS NOT NULL").
-			Group("rating").
-			Scan(&byRating)
-	*/
+	// 计算平均解决时间（小时）
+	type ResolutionTime struct {
+		ResolutionHours float64
+	}
+	var resolutionTime ResolutionTime
+	err = baseQuery.Model(&model.UserFeedback{}).
+		Select("AVG(ROUND((julianday(resolved_at) - julianday(created_at)) * 24, 2)) as resolution_hours").
+		Where("status = ? AND resolved_at IS NOT NULL", "resolved").
+		Scan(&resolutionTime).Error
+	avgResolutionTime := 0.0
+	if err == nil {
+		avgResolutionTime = resolutionTime.ResolutionHours
+	}
+
+	// 按评分分布统计
+	type RatingDist struct {
+		Rating int
+		Count  int64
+	}
+	var ratingDists []RatingDist
+	err = query.Select("rating, COUNT(*) as count").Where("rating IS NOT NULL").Group("rating").Scan(&ratingDists).Error
+	if err != nil {
+		return nil, err
+	}
+	byRating := make(map[int]int64)
+	for _, dist := range ratingDists {
+		byRating[dist.Rating] = dist.Count
+	}
 
 	return &types.FeedbackStatisticsResp{
-		TotalFeedbacks:    0,
-		ByCategory:        map[string]int64{},
-		ByStatus:          map[string]int64{},
-		ByPriority:        map[string]int64{},
-		AverageRating:     0,
-		ResolutionRate:    0,
-		AvgResolutionTime: 0,
-		ByRating:          map[int]int64{},
+		TotalFeedbacks:    totalFeedbacks,
+		ByCategory:        byCategory,
+		ByStatus:          byStatus,
+		ByPriority:        byPriority,
+		AverageRating:     averageRating,
+		ResolutionRate:    resolutionRate,
+		AvgResolutionTime: avgResolutionTime,
+		ByRating:          byRating,
 	}, nil
 }

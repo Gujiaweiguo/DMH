@@ -1180,10 +1180,9 @@ type (
 
 	// 标签响应
 	TagResp struct {
-		Id          int64  `json:"id"`
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		Color       string `json:"color"`
+		Id    int64  `json:"id"`
+		Name  string `json:"name"`
+		Color string `json:"color"`
 	}
 
 	// 基础响应
