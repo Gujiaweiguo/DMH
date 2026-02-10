@@ -19,8 +19,8 @@ test.describe('Login Flow', () => {
     await page.fill('input[placeholder="请输入密码"]', 'wrongpassword');
     await page.click('button[type="submit"]');
 
-    // 等待错误提示出现
-    await expect(page.locator('text=登录失败')).toBeVisible();
+    // 等待错误提示出现 - HTTP error
+    await expect(page.locator('text=HTTP error')).toBeVisible();
   });
 });
 

@@ -73,11 +73,11 @@ func TestCreateCampaignLogic_InvalidTimeFormat(t *testing.T) {
 	campaignLogic := NewCreateCampaignLogic(ctx, svcCtx)
 
 	req := &types.CreateCampaignReq{
-		BrandId:     1,
-		Name:        "Test Campaign",
-		StartTime:   "invalid-time",
-		EndTime:     "invalid-time",
-		RewardRule:  10.0,
+		BrandId:    1,
+		Name:       "Test Campaign",
+		StartTime:  "invalid-time",
+		EndTime:    "invalid-time",
+		RewardRule: 10.0,
 	}
 
 	resp, err := campaignLogic.CreateCampaign(req)
@@ -120,11 +120,11 @@ func TestCreateCampaignLogic_DefaultValues(t *testing.T) {
 
 	now := time.Now()
 	req := &types.CreateCampaignReq{
-		BrandId:     1,
-		Name:        "Test Campaign",
-		StartTime:   now.Add(1 * time.Hour).Format("2006-01-02T15:04:05"),
-		EndTime:     now.Add(24 * time.Hour).Format("2006-01-02T15:04:05"),
-		RewardRule:  10.0,
+		BrandId:    1,
+		Name:       "Test Campaign",
+		StartTime:  now.Add(1 * time.Hour).Format("2006-01-02T15:04:05"),
+		EndTime:    now.Add(24 * time.Hour).Format("2006-01-02T15:04:05"),
+		RewardRule: 10.0,
 	}
 
 	resp, err := campaignLogic.CreateCampaign(req)
