@@ -8,7 +8,8 @@ test.describe('Login Flow', () => {
     await page.fill('input[placeholder="请输入密码"]', '123456');
     await page.click('button[type="submit"]');
 
-    await expect(page).toHaveURL('#/dashboard');
+    // 等待登录成功 - 侧边栏出现
+    await expect(page.locator('text=反馈管理')).toBeVisible();
   });
 
   test('shows error on invalid credentials', async ({ page }) => {
@@ -18,6 +19,7 @@ test.describe('Login Flow', () => {
     await page.fill('input[placeholder="请输入密码"]', 'wrongpassword');
     await page.click('button[type="submit"]');
 
+    // 等待错误提示出现
     await expect(page.locator('text=登录失败')).toBeVisible();
   });
 });
@@ -28,7 +30,8 @@ test.describe('Campaign Management Flow', () => {
     await page.fill('input[placeholder="请输入用户名"]', 'admin');
     await page.fill('input[placeholder="请输入密码"]', '123456');
     await page.click('button[type="submit"]');
-    await expect(page).toHaveURL('#/dashboard');
+    // 等待登录成功 - 侧边栏出现
+    await expect(page.locator('text=反馈管理')).toBeVisible();
   });
 
   test('can create new campaign', async ({ page }) => {
@@ -73,6 +76,8 @@ test.describe('User Management Flow', () => {
     await page.fill('input[placeholder="请输入用户名"]', 'admin');
     await page.fill('input[placeholder="请输入密码"]', '123456');
     await page.click('button[type="submit"]');
+    // 等待登录成功 - 侧边栏出现
+    await expect(page.locator('text=反馈管理')).toBeVisible();
   });
 
   test('can view user list', async ({ page }) => {
@@ -104,6 +109,8 @@ test.describe('Distributor Management Flow', () => {
     await page.fill('input[placeholder="请输入用户名"]', 'admin');
     await page.fill('input[placeholder="请输入密码"]', '123456');
     await page.click('button[type="submit"]');
+    // 等待登录成功 - 侧边栏出现
+    await expect(page.locator('text=反馈管理')).toBeVisible();
   });
 
   test('can view distributor list', async ({ page }) => {
