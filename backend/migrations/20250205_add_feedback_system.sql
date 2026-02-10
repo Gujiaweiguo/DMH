@@ -2,8 +2,6 @@
 CREATE TABLE IF NOT EXISTS user_feedback (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '反馈ID',
     user_id BIGINT NOT NULL COMMENT '用户ID',
-    user_name VARCHAR(100) DEFAULT '' COMMENT '用户姓名（可选）',
-    user_role VARCHAR(50) DEFAULT 'participant' COMMENT '用户角色：platform_admin, brand_admin, distributor, participant',
     category VARCHAR(50) NOT NULL COMMENT '反馈类别：poster, payment, verification, other',
     subcategory VARCHAR(50) DEFAULT '' COMMENT '子类别',
     rating TINYINT DEFAULT NULL COMMENT '评分（1-5星）',
@@ -12,16 +10,22 @@ CREATE TABLE IF NOT EXISTS user_feedback (
     feature_use_case VARCHAR(500) DEFAULT '' COMMENT '使用场景描述',
     device_info VARCHAR(200) DEFAULT '' COMMENT '设备信息',
     browser_info VARCHAR(200) DEFAULT '' COMMENT '浏览器信息',
-    error_message VARCHAR(500) COMMENT '错误信息',
+    priority VARCHAR(20) NOT NULL DEFAULT 'medium' COMMENT '优先级：low, medium, high',
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' COMMENT '状态：pending, reviewing, resolved, closed',
+    assignee_id BIGINT DEFAULT NULL COMMENT '处理人ID',
+    response TEXT COMMENT '处理回复',
+    resolved_at DATETIME DEFAULT NULL COMMENT '解决时间',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_user_id (user_id),
-    INDEX idx_feature (feature),
-    INDEX idx_action (action),
+    INDEX idx_category (category),
+    INDEX idx_priority (priority),
+    INDEX idx_status (status),
     INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='功能使用统计表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户反馈表';
 
 -- 创建功能满意度调查表
-CREATE TABLE IF NOT EXISTS feature_satisfaction_survey (
+CREATE TABLE IF NOT EXISTS feature_satisfaction_surveys (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '调查ID',
     user_id BIGINT NOT NULL COMMENT '用户ID',
     user_role VARCHAR(50) DEFAULT 'participant' COMMENT '用户角色',
@@ -40,6 +44,26 @@ CREATE TABLE IF NOT EXISTS feature_satisfaction_survey (
     INDEX idx_feature (feature),
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='功能满意度调查表';
+
+-- 创建功能使用统计表
+CREATE TABLE IF NOT EXISTS feature_usage_stats (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '统计ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    user_role VARCHAR(50) NOT NULL COMMENT '用户角色',
+    feature VARCHAR(100) NOT NULL COMMENT '功能名称',
+    action VARCHAR(100) NOT NULL COMMENT '操作名称',
+    campaign_id BIGINT DEFAULT NULL COMMENT '活动ID',
+    success BOOLEAN NOT NULL DEFAULT TRUE COMMENT '是否成功',
+    duration_ms INT DEFAULT NULL COMMENT '耗时（毫秒）',
+    error_message TEXT COMMENT '错误信息',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    INDEX idx_user_id (user_id),
+    INDEX idx_feature (feature),
+    INDEX idx_action (action),
+    INDEX idx_campaign_id (campaign_id),
+    INDEX idx_success (success),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='功能使用统计表';
 
 -- 创建常见问题表
 CREATE TABLE IF NOT EXISTS faq_items (
