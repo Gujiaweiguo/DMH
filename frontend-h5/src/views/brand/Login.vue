@@ -101,9 +101,9 @@ const handleLogin = async () => {
       throw new Error('登录响应为空')
     }
     
-    // 检查用户角色 - 修复：检查是否包含brand_admin角色
-    if (!data.roles || !data.roles.includes('brand_admin')) {
-      throw new Error('您没有品牌管理权限')
+    // 检查用户是否有品牌访问权限
+    if (!data.brandIds || !Array.isArray(data.brandIds) || data.brandIds.length === 0) {
+      throw new Error('未绑定品牌，请联系管理员为该账号分配品牌权限')
     }
 
     // 保存当前品牌ID（默认取第一个）
@@ -114,7 +114,7 @@ const handleLogin = async () => {
 
     // 保存登录信息
     localStorage.setItem('dmh_token', data.token)
-    localStorage.setItem('dmh_user_role', 'brand_admin')
+    localStorage.setItem('dmh_user_role', 'participant')  // 从后端返回的 roles 字段获取
     localStorage.setItem('dmh_user_info', JSON.stringify(data))
     localStorage.setItem('dmh_current_brand_id', String(firstBrandId))
 

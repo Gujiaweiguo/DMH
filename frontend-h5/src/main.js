@@ -15,6 +15,15 @@ import 'vant/lib/index.css'
 
 const app = createApp(App)
 
+// 注册Vant组件 - 使用函数式调用需要单独导入方法
+import { showToast, showLoadingToast, closeToast, showConfirmDialog } from 'vant'
+
+// 将方法挂载到全局
+app.config.globalProperties.$toast = showToast
+app.config.globalProperties.$loading = showLoadingToast
+app.config.globalProperties.$closeToast = closeToast
+app.config.globalProperties.$confirm = showConfirmDialog
+
 // 注册Vant组件
 app.use(Button)
 app.use(Field)

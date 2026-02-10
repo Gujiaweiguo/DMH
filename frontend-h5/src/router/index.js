@@ -57,7 +57,6 @@ const routes = [
 		path: "/feedback",
 		name: "FeedbackCenter",
 		component: FeedbackCenter,
-		meta: { requiresAuth: true },
 	},
 	{
 		path: "/success",
@@ -68,7 +67,7 @@ const routes = [
 		path: "/verify",
 		name: "OrderVerify",
 		component: OrderVerificationView,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/campaign/:id/payment",
@@ -88,103 +87,103 @@ const routes = [
 		path: "/brand/dashboard",
 		name: "BrandDashboard",
 		component: BrandDashboard,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/campaigns",
 		name: "BrandCampaigns",
 		component: BrandCampaigns,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/campaigns/create",
 		name: "BrandCampaignCreate",
 		component: BrandCampaignEditor,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/campaigns/edit/:id",
 		name: "BrandCampaignEdit",
 		component: BrandCampaignEditor,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/campaigns/:id/page-design",
 		name: "BrandCampaignPageDesigner",
 		component: BrandCampaignPageDesigner,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/materials",
 		name: "BrandMaterials",
 		component: BrandMaterials,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/orders",
 		name: "BrandOrders",
 		component: BrandOrders,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/verification-records",
 		name: "VerificationRecords",
 		component: VerificationRecords,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/poster-records",
 		name: "PosterRecords",
 		component: PosterRecords,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/promoters",
 		name: "BrandPromoters",
 		component: BrandPromoters,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/analytics",
 		name: "BrandAnalytics",
 		component: BrandAnalytics,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/settings",
 		name: "BrandSettings",
 		component: BrandSettings,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/members",
 		name: "BrandMembers",
 		component: BrandMembers,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/members/:id",
 		name: "BrandMemberDetail",
 		component: BrandMemberDetail,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/distributor-approval",
 		name: "BrandDistributorApproval",
 		component: BrandDistributorApproval,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/distributors",
 		name: "BrandDistributors",
 		component: BrandDistributors,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/brand/distributor-level-rewards",
 		name: "BrandDistributorLevelRewards",
 		component: BrandDistributorLevelRewards,
-		meta: { requiresAuth: true, role: "brand_admin" },
+		meta: { requiresAuth: true, hasBrand: true },
 	},
 	{
 		path: "/distributor/login",
@@ -257,6 +256,16 @@ router.beforeEach((to, _from, next) => {
 				next("/");
 			}
 			return;
+		}
+		
+		// 检查品牌访问权限
+		if (to.meta.hasBrand) {
+			const userInfo = JSON.parse(localStorage.getItem('dmh_user_info') || '{}');
+			const brandIds = userInfo.brandIds || [];
+			if (!brandIds || !Array.isArray(brandIds) || brandIds.length === 0) {
+				next("/brand/login");
+				return;
+			}
 		}
 	}
 

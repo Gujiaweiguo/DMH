@@ -274,7 +274,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Toast } from 'vant'
+import { showToast, showLoadingToast, closeToast } from 'vant'
 import { campaignApi } from '../../services/brandApi.js'
 
 const router = useRouter()
@@ -398,7 +398,7 @@ const editField = (index) => {
 
 const removeField = (index) => {
   form.formFields.splice(index, 1)
-  Toast.success('字段已删除')
+  showToast({ type: 'success', message: '字段已删除' })
 }
 
 const resetFieldForm = () => {
@@ -420,51 +420,51 @@ const closeFieldModal = () => {
 
 const saveField = () => {
   if (!fieldForm.label.trim()) {
-    Toast.fail('请输入字段标签')
+    showToast({ type: 'fail', message: '请输入字段标签' })
     return
   }
-  
+
   if (!fieldForm.name.trim()) {
-    Toast.fail('请输入字段名称')
+    showToast({ type: 'fail', message: '请输入字段名称' })
     return
   }
-  
+
   if (fieldForm.type === 'select' && fieldForm.options.length === 0) {
-    Toast.fail('下拉选择字段至少需要一个选项')
+    showToast({ type: 'fail', message: '下拉选择字段至少需要一个选项' })
     return
   }
-  
-  const existingIndex = form.formFields.findIndex((field, index) => 
+
+  const existingIndex = form.formFields.findIndex((field, index) =>
     field.name === fieldForm.name && index !== editingFieldIndex.value
   )
   if (existingIndex >= 0) {
-    Toast.fail('字段名称已存在，请使用其他名称')
+    showToast({ type: 'fail', message: '字段名称已存在，请使用其他名称' })
     return
   }
-  
+
   const fieldData = {
     type: fieldForm.type,
     name: fieldForm.name,
     label: fieldForm.label,
     required: fieldForm.required
   }
-  
+
   if (fieldForm.placeholder) {
     fieldData.placeholder = fieldForm.placeholder
   }
-  
+
   if (fieldForm.type === 'select') {
     fieldData.options = fieldForm.options.filter(option => option.trim())
   }
-  
+
   if (editingFieldIndex.value >= 0) {
     form.formFields[editingFieldIndex.value] = fieldData
-    Toast.success('字段已更新')
+    showToast({ type: 'success', message: '字段已更新' })
   } else {
     form.formFields.push(fieldData)
-    Toast.success('字段已添加')
+    showToast({ type: 'success', message: '字段已添加' })
   }
-  
+
   closeFieldModal()
 }
 
@@ -478,57 +478,60 @@ const removeOption = (index) => {
 
 const saveCampaign = async () => {
   if (!form.name.trim()) {
-    Toast.fail('请输入活动名称')
+    showToast({ type: 'fail', message: '请输入活动名称' })
     return
   }
-  
+
   if (form.name.length < 2 || form.name.length > 100) {
-    Toast.fail('活动名称长度必须在2-100个字符之间')
+    showToast({ type: 'fail', message: '活动名称长度必须在2-100个字符之间' })
     return
   }
-  
+
   if (form.rewardRule < 0.01 || form.rewardRule > 999.99) {
-    Toast.fail('奖励金额必须在0.01-999.99元之间')
+    showToast({ type: 'fail', message: '奖励金额必须在0.01-999.99元之间' })
     return
   }
-  
+
   if (!form.startTime || !form.endTime) {
-    Toast.fail('请设置活动时间')
+    showToast({ type: 'fail', message: '请设置活动时间' })
     return
   }
-  
+
   if (new Date(form.startTime) >= new Date(form.endTime)) {
-    Toast.fail('结束时间必须晚于开始时间')
+    showToast({ type: 'fail', message: '结束时间必须晚于开始时间' })
     return
   }
-  
+
   if (form.formFields.length === 0) {
-    Toast.fail('请至少添加一个表单字段')
+    showToast({ type: 'fail', message: '请至少添加一个表单字段' })
     return
   }
 
   saving.value = true
-  Toast.loading('保存中...')
-  
+  showLoadingToast({ message: '保存中...', forbidClick: true })
+
   try {
     const campaignData = {
       ...form,
       startTime: formatDateTime(form.startTime),
       endTime: formatDateTime(form.endTime)
     }
-    
+
     if (isEditMode.value) {
       await campaignApi.updateCampaign(route.params.id, campaignData)
-      Toast.success('更新成功')
+      closeToast()
+      showToast({ type: 'success', message: '更新成功' })
     } else {
       await campaignApi.createCampaign(campaignData)
-      Toast.success('创建成功')
+      closeToast()
+      showToast({ type: 'success', message: '创建成功' })
     }
-    
+
     router.push('/brand/campaigns')
   } catch (error) {
     console.error('保存活动失败:', error)
-    Toast.fail(`保存失败: ${error.message || '未知错误'}`)
+    closeToast()
+    showToast({ type: 'fail', message: `保存失败: ${error.message || '未知错误'}` })
   } finally {
     saving.value = false
   }
@@ -538,11 +541,11 @@ const loadCampaign = async () => {
   if (!isEditMode.value) return
 
   loading.value = true
-  Toast.loading('加载中...')
-  
+  showLoadingToast({ message: '加载中...', forbidClick: true })
+
   try {
     const campaign = await campaignApi.getCampaign(route.params.id)
-    
+
     Object.assign(form, {
       brandId: campaign.brandId,
       name: campaign.name,
@@ -553,11 +556,12 @@ const loadCampaign = async () => {
       endTime: formatDateTimeLocal(campaign.endTime),
       status: campaign.status
     })
-    
-    Toast.clear()
+
+    closeToast()
   } catch (error) {
     console.error('加载活动失败:', error)
-    Toast.fail('加载活动信息失败')
+    closeToast()
+    showToast({ type: 'fail', message: '加载活动信息失败' })
     goBack()
   } finally {
     loading.value = false

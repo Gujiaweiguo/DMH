@@ -151,9 +151,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, getCurrentInstance } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Toast, Dialog } from 'vant'
+import { showToast, showLoadingToast, closeToast, showConfirmDialog } from 'vant'
 import { campaignApi } from '../../services/brandApi.js'
 
 // 导入组件（稍后创建）
@@ -259,7 +259,7 @@ const onSelectComponent = (action) => {
     style: {}
   }
   components.value.push(component)
-  Toast.success(`已添加${action.name}`)
+  showToast({ type: 'success', message: `已添加${action.name}` })
   showComponentLibrary.value = false
 }
 
@@ -274,7 +274,7 @@ const saveComponentData = () => {
   const index = components.value.findIndex(c => c.id === editingComponent.value.id)
   if (index > -1) {
     components.value[index] = { ...editingComponent.value }
-    Toast.success('保存成功')
+    showToast({ type: 'success', message: '保存成功' })
   }
   closeEditor()
 }
@@ -295,29 +295,30 @@ const moveComponent = (index, direction) => {
       [components.value[index + 1], components.value[index]]
   }
   // 更新order
-  components.value.forEach((c, i) => c.order = i)
+  components.value.forEach((c, i) => { c.order = i })
 }
 
 // 删除组件
-const removeComponent = (id) => {
-  Dialog.confirm({
-    title: '确认删除',
-    message: '确定要删除这个组件吗？'
-  }).then(() => {
+const removeComponent = async (id) => {
+  try {
+    await showConfirmDialog({
+      title: '确认删除',
+      message: '确定要删除这个组件吗？'
+    })
     const index = components.value.findIndex(c => c.id === id)
     if (index > -1) {
       components.value.splice(index, 1)
-      Toast.success('删除成功')
+      showToast({ type: 'success', message: '删除成功' })
     }
-  }).catch(() => {
+  } catch {
     // 取消删除
-  })
+  }
 }
 
 // 预览页面
 const previewPage = () => {
   if (components.value.length === 0) {
-    Toast('请先添加组件')
+    showToast('请先添加组件')
     return
   }
   showPreview.value = true
@@ -326,11 +327,11 @@ const previewPage = () => {
 // 保存页面
 const savePage = async () => {
   if (components.value.length === 0) {
-    Toast('请先添加组件')
+    showToast('请先添加组件')
     return
   }
 
-  Toast.loading({ message: '保存中...', forbidClick: true, duration: 0 })
+  showLoadingToast({ message: '保存中...', forbidClick: true, duration: 0 })
   
   try {
     const pageConfig = {
@@ -344,37 +345,41 @@ const savePage = async () => {
     
     await campaignApi.savePageConfig(route.params.id, pageConfig)
     
-    Toast.success('保存成功')
+    closeToast()
+    showToast({ type: 'success', message: '保存成功' })
     setTimeout(() => {
       router.push('/brand/campaigns')
     }, 1000)
   } catch (error) {
     console.error('保存失败:', error)
-    Toast.fail(error.message || '保存失败')
+    closeToast()
+    showToast({ type: 'fail', message: error.message || '保存失败' })
   }
 }
 
 // 加载页面配置
 const loadPageConfig = async () => {
   loading.value = true
-  Toast.loading({ message: '加载中...', forbidClick: true, duration: 0 })
-  
+  showLoadingToast({ message: '加载中...', forbidClick: true, duration: 0 })
+
   try {
     const config = await campaignApi.getPageConfig(route.params.id)
-    
+
     if (config && config.components) {
       components.value = config.components
-      Toast.success('加载成功')
+      closeToast()
+      showToast({ type: 'success', message: '加载成功' })
     } else {
-      Toast.clear()
+      closeToast()
     }
   } catch (error) {
     console.error('加载页面配置失败:', error)
     // 如果是404错误，说明还没有配置，不显示错误
     if (error.status !== 404) {
-      Toast.fail('加载失败')
+      closeToast()
+      showToast({ type: 'fail', message: '加载失败' })
     } else {
-      Toast.clear()
+      closeToast()
     }
   } finally {
     loading.value = false
@@ -382,16 +387,17 @@ const loadPageConfig = async () => {
 }
 
 // 返回
-const goBack = () => {
+const goBack = async () => {
   if (components.value.length > 0) {
-    Dialog.confirm({
-      title: '确认返回',
-      message: '有未保存的更改，确定要返回吗？'
-    }).then(() => {
+    try {
+      await showConfirmDialog({
+        title: '确认返回',
+        message: '有未保存的更改，确定要返回吗？'
+      })
       router.back()
-    }).catch(() => {
+    } catch {
       // 取消返回
-    })
+    }
   } else {
     router.back()
   }
