@@ -29,7 +29,7 @@ type UserFeedback struct {
 }
 
 func (UserFeedback) TableName() string {
-	return "user_feedbacks"
+	return "user_feedback"
 }
 
 // FeatureSatisfactionSurvey 功能满意度调查
