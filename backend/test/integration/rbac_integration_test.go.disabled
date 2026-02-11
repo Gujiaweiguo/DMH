@@ -1,6 +1,0 @@
-// package integration
-//
-// This test file is temporarily disabled due to Go internal package visibility restrictions.
-// Integration tests should test public HTTP APIs instead of internal packages.
-// To properly test RBAC functionality, create a new test file that tests through HTTP API.
-// Rename this file to remove .go extension to disable it, or delete it entirely.
