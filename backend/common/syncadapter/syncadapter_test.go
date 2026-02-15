@@ -1,11 +1,15 @@
 package syncadapter
 
 import (
+	"context"
+	"database/sql"
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type SyncAdapterTestSuite struct {
@@ -302,4 +306,219 @@ func TestSyncMetrics_EmptyStats(t *testing.T) {
 	stats := metrics.GetStats()
 
 	assert.Equal(t, int64(0), stats["total_syncs"])
+}
+
+func TestSyncOrder_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	mock.ExpectExec("INSERT INTO external_orders").
+		WithArgs(
+			int64(123),
+			int64(456),
+			int64(789),
+			"wx_unionid",
+			"13800138000",
+			sqlmock.AnyArg(),
+			100.00,
+			"paid",
+			sqlmock.AnyArg(),
+		).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	adapter := &SyncAdapter{
+		db:      db,
+		mapper:  NewFieldMapper(),
+		metrics: NewSyncMetrics(),
+		logger:  logx.WithContext(context.Background()),
+	}
+
+	data := &SyncOrderData{
+		OrderId:    123,
+		CampaignId: 456,
+		MemberId:   789,
+		UnionID:    "wx_unionid",
+		Phone:      "13800138000",
+		FormData:   map[string]interface{}{"name": "test"},
+		Amount:     100.00,
+		PayStatus:  "paid",
+		CreatedAt:  time.Now(),
+	}
+
+	err = adapter.SyncOrder(context.Background(), data)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	stats := adapter.metrics.GetStats()
+	assert.Equal(t, int64(1), stats["success_syncs"])
+}
+
+func TestSyncOrder_DBError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	mock.ExpectExec("INSERT INTO external_orders").
+		WillReturnError(sql.ErrConnDone)
+
+	adapter := &SyncAdapter{
+		db:      db,
+		mapper:  NewFieldMapper(),
+		metrics: NewSyncMetrics(),
+		logger:  logx.WithContext(context.Background()),
+	}
+
+	data := &SyncOrderData{
+		OrderId:    123,
+		CampaignId: 456,
+		MemberId:   789,
+		Phone:      "13800138000",
+		Amount:     100.00,
+		PayStatus:  "paid",
+		CreatedAt:  time.Now(),
+	}
+
+	err = adapter.SyncOrder(context.Background(), data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to sync order")
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	stats := adapter.metrics.GetStats()
+	assert.Equal(t, int64(1), stats["failed_syncs"])
+}
+
+func TestSyncReward_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	mock.ExpectExec("INSERT INTO external_rewards").
+		WithArgs(
+			int64(123),
+			int64(456),
+			int64(789),
+			int64(101112),
+			50.00,
+			"settled",
+			sqlmock.AnyArg(),
+		).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	adapter := &SyncAdapter{
+		db:      db,
+		mapper:  NewFieldMapper(),
+		metrics: NewSyncMetrics(),
+		logger:  logx.WithContext(context.Background()),
+	}
+
+	data := &SyncRewardData{
+		RewardId:  123,
+		UserId:    456,
+		MemberId:  789,
+		OrderId:   101112,
+		Amount:    50.00,
+		Status:    "settled",
+		SettledAt: time.Now(),
+	}
+
+	err = adapter.SyncReward(context.Background(), data)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	stats := adapter.metrics.GetStats()
+	assert.Equal(t, int64(1), stats["success_syncs"])
+}
+
+func TestSyncReward_DBError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	mock.ExpectExec("INSERT INTO external_rewards").
+		WillReturnError(sql.ErrTxDone)
+
+	adapter := &SyncAdapter{
+		db:      db,
+		mapper:  NewFieldMapper(),
+		metrics: NewSyncMetrics(),
+		logger:  logx.WithContext(context.Background()),
+	}
+
+	data := &SyncRewardData{
+		RewardId:  123,
+		UserId:    456,
+		Amount:    50.00,
+		Status:    "settled",
+		SettledAt: time.Now(),
+	}
+
+	err = adapter.SyncReward(context.Background(), data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to sync reward")
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	stats := adapter.metrics.GetStats()
+	assert.Equal(t, int64(1), stats["failed_syncs"])
+}
+
+func TestHealthCheck_Success(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	mock.ExpectPing().WillReturnError(nil)
+
+	adapter := &SyncAdapter{
+		db: db,
+	}
+
+	err = adapter.HealthCheck()
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestHealthCheck_Failure(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	mock.ExpectPing().WillReturnError(sql.ErrConnDone)
+
+	adapter := &SyncAdapter{
+		db: db,
+	}
+
+	err = adapter.HealthCheck()
+	assert.Error(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestClose_WithDB(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+
+	mock.ExpectClose()
+
+	adapter := &SyncAdapter{
+		db: db,
+	}
+
+	err = adapter.Close()
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
