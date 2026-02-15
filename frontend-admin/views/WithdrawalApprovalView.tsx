@@ -271,8 +271,8 @@ export const renderWithdrawalApprovalView = (viewModel: ReturnType<typeof Withdr
                   onClick: () => openDetailModal(withdrawal)
                 }, '审批'),
               ]),
-            ]),
-          ])),
+            ])),
+          ]),
           viewModel.withdrawals.value.length === 0 && h('tr', [
             h('td', { colSpan: 8, class: 'px-4 py-8 text-center text-slate-400' }, '暂无提现记录'),
           ]),
@@ -364,7 +364,7 @@ export const renderWithdrawalApprovalView = (viewModel: ReturnType<typeof Withdr
         // 已审批的信息
         currentWithdrawal.value?.status !== 'pending' && currentWithdrawal.value?.status !== 'processing' && h('div', { class: 'mt-4 pt-4 border-t text-center' }, [
           currentWithdrawal.value?.status === 'approved' && h('div', { class: 'text-green-600' }, '已批准，等待系统处理打款'),
-          currentWithdrawal.value?.status === 'completed' && h('div', { class: 'text-green-600' }, `打款完成'),
+          currentWithdrawal.value?.status === 'completed' && h('div', { class: 'text-green-600' }, '打款完成'),
           currentWithdrawal.value?.status === 'rejected' && h('div', { class: 'text-red-600' }, '已拒绝'),
         ]),
         
@@ -390,3 +390,4 @@ export const renderWithdrawalApprovalView = (viewModel: ReturnType<typeof Withdr
     }),
   ]);
 };
+
