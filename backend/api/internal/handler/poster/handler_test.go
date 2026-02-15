@@ -153,3 +153,64 @@ func TestGetPosterRecordsHandler_WithFilters(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 }
+
+func TestGenerateCampaignPosterHandler_InvalidBody(t *testing.T) {
+	db := setupPosterHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GenerateCampaignPosterHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/posters/campaign", strings.NewReader(`{"id": "invalid"}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestGenerateDistributorPosterHandler_InvalidPath(t *testing.T) {
+	db := setupPosterHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GenerateDistributorPosterHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/distributors/invalid/poster", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestGenerateDistributorPosterHandler_ShortPath(t *testing.T) {
+	db := setupPosterHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GenerateDistributorPosterHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/distributors/1/poster", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestGetPosterTemplatesHandler_WithType(t *testing.T) {
+	db := setupPosterHandlerTestDB(t)
+
+	template1 := &model.PosterTemplate{Type: "campaign", TemplateUrl: "https://example.com/template1.png"}
+	template2 := &model.PosterTemplate{Type: "distributor", TemplateUrl: "https://example.com/template2.png"}
+	db.Create(template1)
+	db.Create(template2)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetPosterTemplatesHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/posters/templates?type=campaign", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+}
