@@ -91,6 +91,13 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { showToast, showSuccessToast, showFailToast } from 'vant';
+import {
+  buildExportRequestBody,
+  buildMembersQueryParams,
+  formatMemberDate,
+  getBrandIdFromStorage,
+  mergeMembersPage,
+} from './members.logic.js';
 
 const router = useRouter();
 
@@ -124,21 +131,7 @@ const exportDialogVisible = ref(false);
 const exportReason = ref('');
 
 const getBrandId = () => {
-  const storedBrandId = localStorage.getItem('brandId');
-  if (storedBrandId) {
-    return parseInt(storedBrandId, 10);
-  }
-  const userInfoRaw = localStorage.getItem('dmh_user_info');
-  if (!userInfoRaw) return null;
-  try {
-    const userInfo = JSON.parse(userInfoRaw);
-    if (Array.isArray(userInfo.brandIds) && userInfo.brandIds.length > 0) {
-      return userInfo.brandIds[0];
-    }
-  } catch (error) {
-    console.error('解析用户信息失败', error);
-  }
-  return null;
+  return getBrandIdFromStorage(localStorage.getItem('brandId'), localStorage.getItem('dmh_user_info'));
 };
 
 // 加载会员列表
@@ -150,21 +143,14 @@ const loadMembers = async () => {
     const token = localStorage.getItem('dmh_token');
     const brandId = getBrandId();
     
-    const params = new URLSearchParams();
-    params.append('page', currentPage.value.toString());
-    params.append('pageSize', pageSize.toString());
-    if (brandId) {
-      params.append('brandId', brandId.toString());
-    }
-    if (searchKeyword.value) {
-      params.append('keyword', searchKeyword.value);
-    }
-    if (filters.source) {
-      params.append('source', filters.source);
-    }
-    if (filters.status) {
-      params.append('status', filters.status);
-    }
+    const params = buildMembersQueryParams({
+      page: currentPage.value,
+      pageSize,
+      brandId,
+      keyword: searchKeyword.value,
+      source: filters.source,
+      status: filters.status,
+    });
 
     const response = await fetch(`/api/v1/members?${params}`, {
       headers: {
@@ -176,17 +162,15 @@ const loadMembers = async () => {
     
     const data = await response.json();
     
-    if (currentPage.value === 1) {
-      members.value = data.members || [];
-    } else {
-      members.value.push(...(data.members || []));
-    }
-    
-    if (!data.members || data.members.length < pageSize) {
-      finished.value = true;
-    } else {
-      currentPage.value++;
-    }
+    const merged = mergeMembersPage({
+      currentMembers: members.value,
+      incomingMembers: data.members,
+      page: currentPage.value,
+      pageSize,
+    });
+    members.value = merged.members;
+    finished.value = merged.finished;
+    currentPage.value = merged.nextPage;
   } catch (error) {
     showFailToast(error.message || '加载失败');
   } finally {
@@ -240,15 +224,13 @@ const submitExportRequest = async () => {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
+      body: JSON.stringify(buildExportRequestBody({
         brandId,
         reason: exportReason.value,
-        filters: JSON.stringify({
-          keyword: searchKeyword.value,
-          source: filters.source,
-          status: filters.status,
-        }),
-      }),
+        keyword: searchKeyword.value,
+        source: filters.source,
+        status: filters.status,
+      })),
     });
 
     if (!response.ok) throw new Error('申请失败');
@@ -262,9 +244,7 @@ const submitExportRequest = async () => {
 
 // 格式化日期
 const formatDate = (dateStr) => {
-  if (!dateStr) return '-';
-  const date = new Date(dateStr);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return formatMemberDate(dateStr);
 };
 
 onMounted(() => {

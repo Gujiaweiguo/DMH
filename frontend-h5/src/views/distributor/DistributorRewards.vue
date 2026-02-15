@@ -53,6 +53,15 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { Toast } from 'vant'
 import axios from '@/utils/axios'
+import {
+  PAGE_SIZE,
+  getLevelOptions,
+  getTimeOptions,
+  calculateDateRange,
+  getDefaultFilters,
+  shouldFinishLoading,
+  mergeRewardsList
+} from './distributorRewards.logic.js'
 
 export default {
   name: 'DistributorRewards',
@@ -64,23 +73,11 @@ export default {
     const finished = ref(false)
     const refreshing = ref(false)
     const page = ref(1)
-    const pageSize = 20
-    const filterLevel = ref(0)
-    const filterTime = ref('all')
+    const filterLevel = ref(getDefaultFilters().level)
+    const filterTime = ref(getDefaultFilters().time)
 
-    const levelOptions = [
-      { text: '全部级别', value: 0 },
-      { text: '一级奖励', value: 1 },
-      { text: '二级奖励', value: 2 },
-      { text: '三级奖励', value: 3 }
-    ]
-
-    const timeOptions = [
-      { text: '全部时间', value: 'all' },
-      { text: '本月', value: 'month' },
-      { text: '本周', value: 'week' },
-      { text: '今日', value: 'today' }
-    ]
+    const levelOptions = getLevelOptions()
+    const timeOptions = getTimeOptions()
 
     // 加载奖励列表
     const loadRewards = async () => {
@@ -94,41 +91,26 @@ export default {
       try {
         const params = {
           page: page.value,
-          pageSize: pageSize
+          pageSize: PAGE_SIZE
         }
 
         if (filterLevel.value > 0) {
           params.level = filterLevel.value
         }
 
-        if (filterTime.value !== 'all') {
-          // 处理时间筛选
-          const now = new Date()
-          if (filterTime.value === 'today') {
-            params.startDate = now.toISOString().split('T')[0]
-            params.endDate = now.toISOString().split('T')[0]
-          } else if (filterTime.value === 'week') {
-            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-            params.startDate = weekAgo.toISOString().split('T')[0]
-            params.endDate = now.toISOString().split('T')[0]
-          } else if (filterTime.value === 'month') {
-            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-            params.startDate = monthStart.toISOString().split('T')[0]
-            params.endDate = now.toISOString().split('T')[0]
-          }
+        const dateRange = calculateDateRange(filterTime.value)
+        if (dateRange) {
+          params.startDate = dateRange.startDate
+          params.endDate = dateRange.endDate
         }
 
 		const data = await axios.get(`/distributor/rewards/${brandId.value}`, { params })
 
         if (data.code === 200) {
           const newRewards = data.data.rewards || []
-          if (refreshing.value) {
-            rewards.value = newRewards
-          } else {
-            rewards.value.push(...newRewards)
-          }
+          rewards.value = mergeRewardsList(rewards.value, newRewards, refreshing.value)
 
-          if (newRewards.length < pageSize) {
+          if (shouldFinishLoading(newRewards.length, PAGE_SIZE)) {
             finished.value = true
           } else {
             page.value++

@@ -17,7 +17,7 @@
         class="phone-input"
         maxlength="11"
       />
-      <button @click="searchOrders" class="search-btn" :disabled="!isValidPhone">
+      <button @click="searchOrders" class="search-btn" :disabled="!isValidPhoneInput">
         查询
       </button>
     </div>
@@ -58,7 +58,7 @@
         </div>
 
         <!-- 表单数据 -->
-        <div v-if="order.formData && Object.keys(order.formData).length > 0" class="form-data">
+        <div v-if="checkHasFormData(order)" class="form-data">
           <div class="form-title">报名信息</div>
           <div class="form-content">
             <div v-for="(value, key) in order.formData" :key="key" class="form-item">
@@ -82,6 +82,17 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  isValidPhone,
+  statusText,
+  formatDate,
+  formatAmount,
+  buildCampaignMap,
+  getCampaignName as getCampaignNameFromMap,
+  filterOrdersByPhone,
+  savePhoneToStorage,
+  hasFormData
+} from './myOrders.logic.js'
 
 const router = useRouter()
 const phone = ref('')
@@ -91,9 +102,7 @@ const loading = ref(false)
 const searched = ref(false)
 
 // 验证手机号
-const isValidPhone = computed(() => {
-  return /^1[3-9]\d{9}$/.test(phone.value)
-})
+const isValidPhoneInput = computed(() => isValidPhone(phone.value))
 
 // 返回
 const goBack = () => {
@@ -102,7 +111,7 @@ const goBack = () => {
 
 // 查询订单
 const searchOrders = async () => {
-  if (!isValidPhone.value) {
+  if (!isValidPhoneInput.value) {
     alert('请输入正确的手机号')
     return
   }
@@ -112,7 +121,7 @@ const searchOrders = async () => {
 
   try {
     // 保存手机号到本地存储
-    localStorage.setItem('dmh_my_phone', phone.value)
+    savePhoneToStorage(phone.value)
     
     // 先加载活动列表
     await loadCampaigns()
@@ -122,7 +131,7 @@ const searchOrders = async () => {
     if (response.ok) {
       const data = await response.json()
       // 过滤出当前手机号的订单
-      orders.value = (data.orders || []).filter(order => order.phone === phone.value)
+      orders.value = filterOrdersByPhone(data.orders || [], phone.value)
     } else {
       alert('查询失败，请稍后重试')
     }
@@ -140,11 +149,7 @@ const loadCampaigns = async () => {
     const response = await fetch('/api/v1/campaigns')
     if (response.ok) {
       const data = await response.json()
-      const map = {}
-      ;(data.campaigns || []).forEach(c => {
-        map[c.id] = c
-      })
-      campaigns.value = map
+      campaigns.value = buildCampaignMap(data.campaigns || [])
     }
   } catch (error) {
     console.error('加载活动列表失败', error)
@@ -153,31 +158,11 @@ const loadCampaigns = async () => {
 
 // 获取活动名称
 const getCampaignName = (campaignId) => {
-  return campaigns.value[campaignId]?.name || '未知活动'
+  return getCampaignNameFromMap(campaignId, campaigns.value)
 }
 
-// 格式化日期
-const formatDate = (time) => {
-  if (!time) return ''
-  const date = new Date(time)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-// 状态文本
-const statusText = (status) => {
-  const map = {
-    paid: '已支付',
-    pending: '待支付',
-    cancelled: '已取消'
-  }
-  return map[status] || status
-}
+// 检查表单数据
+const checkHasFormData = (order) => hasFormData(order)
 </script>
 
 <style scoped>

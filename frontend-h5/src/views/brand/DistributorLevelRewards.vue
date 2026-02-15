@@ -42,6 +42,11 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  getDefaultRewards,
+  buildSavePayload,
+  mergeRewardsFromServer
+} from './distributorLevelRewards.logic.js'
 
 const router = useRouter()
 
@@ -49,11 +54,7 @@ const loading = ref(false)
 const saving = ref(false)
 
 const form = reactive({
-  rewards: [
-    { level: 1, rewardPercentage: 0 },
-    { level: 2, rewardPercentage: 0 },
-    { level: 3, rewardPercentage: 0 }
-  ]
+  rewards: getDefaultRewards()
 })
 
 const getCurrentBrandId = () => {
@@ -91,12 +92,8 @@ const load = async () => {
 
     if (!response.ok) return
     const data = await response.json()
-    const rewards = Array.isArray(data.rewards) ? data.rewards : []
-
-    for (const row of form.rewards) {
-      const hit = rewards.find(r => Number(r.level) === Number(row.level))
-      row.rewardPercentage = hit ? Number(hit.rewardPercentage) || 0 : 0
-    }
+    const merged = mergeRewardsFromServer(form.rewards, data.rewards)
+    form.rewards.splice(0, form.rewards.length, ...merged)
   } catch (error) {
     console.error('加载奖励配置失败:', error)
   } finally {
@@ -115,12 +112,7 @@ const save = async () => {
       return
     }
 
-    const payload = {
-      rewards: form.rewards.map(r => ({
-        level: Number(r.level),
-        rewardPercentage: Number(r.rewardPercentage) || 0
-      }))
-    }
+    const payload = buildSavePayload(form.rewards)
 
     const response = await fetch(`/api/v1/brands/${brandId}/distributor/level-rewards`, {
       method: 'PUT',

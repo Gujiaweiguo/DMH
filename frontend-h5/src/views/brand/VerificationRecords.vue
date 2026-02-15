@@ -147,6 +147,15 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Toast } from 'vant'
 import { orderApi } from '../../services/brandApi.js'
+import {
+  loadVerificationRecordsData,
+  unverifyAndReloadVerificationRecords,
+} from './verificationRecords.actions.js'
+import {
+  filterVerificationRecords,
+  formatDateTime,
+  getVerificationStatusText,
+} from './verificationRecords.logic.js'
 
 const router = useRouter()
 
@@ -173,106 +182,20 @@ const recordStats = ref({
 })
 
 const filteredRecords = computed(() => {
-  let result = records.value
-
-  if (currentStatus.value !== 'all') {
-    result = result.filter(r => r.verificationStatus === currentStatus.value)
-  }
-
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase()
-    result = result.filter(r =>
-      r.orderId.toString().includes(keyword) ||
-      r.userPhone?.includes(keyword)
-    )
-  }
-
-  return result
+  return filterVerificationRecords(records.value, currentStatus.value, searchKeyword.value)
 })
-
-const getVerificationStatusText = (status) => {
-  const statusMap = {
-    verified: '已核销',
-    unverified: '未核销',
-    cancelled: '已取消'
-  }
-  return statusMap[status] || status
-}
-
-const formatDateTime = (dateString) => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
 
 const loadRecords = async () => {
   loading.value = true
   try {
-    // 调用真实API获取核销记录
-    const resp = await orderApi.getVerificationRecords()
-    if (resp && resp.records) {
-      // 合并订单信息到核销记录
-      records.value = await enrichRecordsWithOrderInfo(resp.records)
-      calculateStats()
-    }
+    const data = await loadVerificationRecordsData(orderApi)
+    records.value = data.records
+    recordStats.value = data.stats
   } catch (error) {
     console.error('加载核销记录失败:', error)
     Toast.fail('加载失败，请重试')
   } finally {
     loading.value = false
-  }
-}
-
-const enrichRecordsWithOrderInfo = async (verificationRecords) => {
-  // 获取所有订单ID
-  const orderIds = verificationRecords.map(r => r.orderId)
-  if (orderIds.length === 0) return verificationRecords
-
-  try {
-    // 批量获取订单信息
-    const ordersResp = await orderApi.getOrders()
-    const ordersMap = {}
-    if (ordersResp && ordersResp.orders) {
-      ordersResp.orders.forEach(order => {
-        ordersMap[order.id] = order
-      })
-    }
-
-    // 合并信息
-    return verificationRecords.map(record => {
-      const order = ordersMap[record.orderId]
-      return {
-        ...record,
-        orderStatus: order?.status || '',
-        orderAmount: order?.amount || 0,
-        userPhone: order?.phone || '',
-        verifiedByName: `用户${record.verifiedBy || '-'}`
-      }
-    })
-  } catch (error) {
-    console.error('获取订单信息失败:', error)
-    // 即使失败，也返回基本的核销记录
-    return verificationRecords
-  }
-}
-
-const calculateStats = () => {
-  const verifiedRecords = records.value.filter(r => r.verificationStatus === 'verified')
-  const today = new Date().toLocaleDateString('zh-CN')
-  
-  recordStats.value = {
-    total: verifiedRecords.length,
-    today: verifiedRecords.filter(r => {
-      const recordDate = new Date(r.verifiedAt).toLocaleDateString('zh-CN')
-      return recordDate === today
-    }).length,
-    totalAmount: verifiedRecords.reduce((sum, r) => sum + (r.orderAmount || 0), 0)
   }
 }
 
@@ -282,9 +205,10 @@ const viewOrderDetail = (orderId) => {
 
 const unverifyOrder = async (orderId) => {
   try {
-    await orderApi.unverifyOrder('', { orderId })
+    const data = await unverifyAndReloadVerificationRecords(orderApi, orderId)
+    records.value = data.records
+    recordStats.value = data.stats
     Toast.success('取消核销成功')
-    await loadRecords()
   } catch (error) {
     console.error('取消核销失败:', error)
     Toast.fail('取消核销失败，请重试')

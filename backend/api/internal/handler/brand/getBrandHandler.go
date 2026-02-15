@@ -8,13 +8,20 @@ import (
 
 	"dmh/api/internal/logic/brand"
 	"dmh/api/internal/svc"
+	"dmh/api/internal/types"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 func GetBrandHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var req types.GetBrandReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
 		l := brand.NewGetBrandLogic(r.Context(), svcCtx)
-		resp, err := l.GetBrand()
+		resp, err := l.GetBrand(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

@@ -169,6 +169,16 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Toast } from 'vant'
 import { campaignApi } from '../../services/brandApi.js'
+import {
+  filterCampaignsByStatus,
+  findCampaignStatusLabel,
+  formatCampaignDate,
+  getCampaignStatusActionText,
+  getCampaignStatusTagType,
+  getCampaignStatusText,
+  getFallbackCampaigns,
+  getNextCampaignStatus,
+} from './campaigns.logic.js'
 
 const router = useRouter()
 
@@ -185,41 +195,23 @@ const statusTabs = [
 ]
 
 const filteredCampaigns = computed(() => {
-  if (currentStatus.value === 'all') {
-    return campaigns.value
-  }
-  return campaigns.value.filter(campaign => campaign.status === currentStatus.value)
+  return filterCampaignsByStatus(campaigns.value, currentStatus.value)
 })
 
 const getCurrentStatusText = () => {
-  const status = statusTabs.find(s => s.value === currentStatus.value)
-  return status ? status.label : ''
+  return findCampaignStatusLabel(statusTabs, currentStatus.value)
 }
 
 const getStatusText = (status) => {
-  const statusMap = {
-    active: '进行中',
-    paused: '已暂停',
-    ended: '已结束'
-  }
-  return statusMap[status] || status
+  return getCampaignStatusText(status)
 }
 
 const getStatusTagType = (status) => {
-  const typeMap = {
-    active: 'success',
-    paused: 'warning',
-    ended: 'danger'
-  }
-  return typeMap[status] || 'default'
+  return getCampaignStatusTagType(status)
 }
 
 const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('zh-CN', {
-    month: 'short',
-    day: 'numeric'
-  })
+  return formatCampaignDate(dateString)
 }
 
 const loadCampaigns = async () => {
@@ -240,38 +232,7 @@ const loadCampaigns = async () => {
     // 无论API成功还是失败，如果没有数据就显示示例数据
     if (campaigns.value.length === 0) {
       console.log('没有活动数据，使用示例数据')
-      campaigns.value = [
-        {
-          id: 1,
-          name: '春节特惠活动',
-          description: '新春佳节，推荐好友享双重奖励',
-          status: 'active',
-          rewardRule: 88,
-          startTime: '2026-02-01 00:00:00',
-          endTime: '2026-02-15 23:59:59',
-          participantCount: 156
-        },
-        {
-          id: 2,
-          name: '会员招募计划',
-          description: '招募品牌会员，享受专属优惠',
-          status: 'active',
-          rewardRule: 66,
-          startTime: '2026-01-01 00:00:00',
-          endTime: '2026-12-31 23:59:59',
-          participantCount: 89
-        },
-        {
-          id: 3,
-          name: '元宵节活动',
-          description: '元宵佳节，猜灯谜赢大奖',
-          status: 'paused',
-          rewardRule: 50,
-          startTime: '2026-02-28 00:00:00',
-          endTime: '2026-03-01 23:59:59',
-          participantCount: 23
-        }
-      ]
+      campaigns.value = getFallbackCampaigns()
       console.log('示例数据已加载:', campaigns.value.length, '个活动')
     }
     
@@ -306,8 +267,8 @@ const editCampaign = (id) => {
 }
 
 const toggleCampaignStatus = async (campaign) => {
-  const newStatus = campaign.status === 'active' ? 'paused' : 'active'
-  const actionText = newStatus === 'active' ? '启用' : '暂停'
+  const newStatus = getNextCampaignStatus(campaign.status)
+  const actionText = getCampaignStatusActionText(newStatus)
   
   try {
     // 注意：后端暂未实现更新活动API，这里只是模拟状态切换

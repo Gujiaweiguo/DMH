@@ -34,14 +34,32 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Toast } from 'vant'
 import { authApi } from '../services/brandApi.js'
+import {
+  DEFAULT_H5_URL,
+  DEFAULT_API_URL,
+  STATUS_CHECKING,
+  STATUS_OK,
+  STATUS_FAIL,
+  STATUS_RUNNING,
+  LOGIN_TEST_NOT_TESTED,
+  LOGIN_TEST_TESTING,
+  LOGIN_TEST_SUCCESS,
+  LOGIN_TEST_FAIL,
+  getConnectionStatusText,
+  getLoginTestResultText,
+  buildLoginTestPayload,
+  isConnectionOk,
+  getDefaultState,
+  LOGIN_ROUTE
+} from './apiTest.logic.js'
 
 const router = useRouter()
 
-const h5Status = ref('检测中...')
-const h5Url = ref('http://localhost:3100')
-const apiStatus = ref('检测中...')
-const apiUrl = ref('/api/v1')
-const loginTestStatus = ref('未测试')
+const h5Status = ref(STATUS_CHECKING)
+const h5Url = ref(DEFAULT_H5_URL)
+const apiStatus = ref(STATUS_CHECKING)
+const apiUrl = ref(DEFAULT_API_URL)
+const loginTestStatus = ref(LOGIN_TEST_NOT_TESTED)
 const loginTestResult = ref('')
 const errorMessage = ref('')
 
@@ -55,21 +73,18 @@ const testApiConnection = async () => {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        username: 'test',
-        password: 'test'
-      })
+      body: JSON.stringify(buildLoginTestPayload())
     })
     
-    if (response.ok || response.status === 401) {
-      apiStatus.value = '✅ 连接正常'
+    if (isConnectionOk(response)) {
+      apiStatus.value = STATUS_OK
       Toast.success('API连接正常')
     } else {
-      apiStatus.value = `❌ 连接异常 (${response.status})`
+      apiStatus.value = getConnectionStatusText(false, response.status)
       Toast.fail(`连接异常: ${response.status}`)
     }
   } catch (error) {
-    apiStatus.value = '❌ 连接失败'
+    apiStatus.value = STATUS_FAIL
     errorMessage.value = error.message
     Toast.fail('连接失败')
   }
@@ -77,28 +92,28 @@ const testApiConnection = async () => {
 
 const testLogin = async () => {
   Toast.loading('测试登录...')
-  loginTestStatus.value = '测试中...'
+  loginTestStatus.value = LOGIN_TEST_TESTING
   errorMessage.value = ''
   loginTestResult.value = ''
   
   try {
     const result = await authApi.login('brand_admin', 'password')
-    loginTestStatus.value = '✅ 登录成功'
-    loginTestResult.value = `用户: ${result.username}, 角色: ${result.roles?.join(', ')}`
+    loginTestStatus.value = LOGIN_TEST_SUCCESS
+    loginTestResult.value = getLoginTestResultText(result)
     Toast.success('登录测试成功')
   } catch (error) {
-    loginTestStatus.value = '❌ 登录失败'
+    loginTestStatus.value = LOGIN_TEST_FAIL
     errorMessage.value = error.message
     Toast.fail('登录测试失败')
   }
 }
 
 const goToLogin = () => {
-  router.push('/brand/login')
+  router.push(LOGIN_ROUTE)
 }
 
 onMounted(() => {
-  h5Status.value = '✅ 运行正常'
+  h5Status.value = STATUS_RUNNING
   
   // 自动测试API连接
   setTimeout(() => {

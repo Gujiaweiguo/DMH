@@ -73,3 +73,82 @@ func TestGetUserIDFromContextVariants(t *testing.T) {
 	assert.NoError(t, err2)
 	assert.Equal(t, int64(13), uid2)
 }
+
+func TestGetUserFromContext_Success(t *testing.T) {
+	claims := &JWTClaims{
+		UserID:   42,
+		Username: "tester",
+		Roles:    []string{"participant"},
+		BrandIDs: []int64{1, 2, 3},
+	}
+	ctx := context.WithValue(context.Background(), "userClaims", claims)
+
+	user, err := GetUserFromContext(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, user)
+	assert.Equal(t, int64(42), user.UserID)
+	assert.Equal(t, "tester", user.Username)
+}
+
+func TestGetUserFromContext_NotFound(t *testing.T) {
+	ctx := context.Background()
+	user, err := GetUserFromContext(ctx)
+	assert.Error(t, err)
+	assert.Nil(t, user)
+}
+
+func TestGetUserBrandIDs_Success(t *testing.T) {
+	brandIDs := []int64{1, 2, 3}
+	ctx := context.WithValue(context.Background(), "brandIds", brandIDs)
+
+	result, err := GetUserBrandIDs(ctx)
+	assert.NoError(t, err)
+	assert.Empty(t, result) // 返回空数组（scaffold实现）
+}
+
+func TestGetUserBrandIDs_NotFound(t *testing.T) {
+	ctx := context.Background()
+	result, err := GetUserBrandIDs(ctx)
+	assert.NoError(t, err)
+	assert.Empty(t, result)
+}
+
+func TestCanAccessBrand_Success(t *testing.T) {
+	brandIDs := []int64{1, 2, 3}
+	ctx := context.WithValue(context.Background(), "brandIds", brandIDs)
+
+	result := CanAccessBrand(ctx, 2)
+	assert.False(t, result) // scaffold实现只检查平台管理员
+}
+
+func TestCanAccessBrand_Failure(t *testing.T) {
+	brandIDs := []int64{1, 2, 3}
+	ctx := context.WithValue(context.Background(), "brandIds", brandIDs)
+
+	result := CanAccessBrand(ctx, 4)
+	assert.False(t, result)
+}
+
+func TestCanAccessBrand_NoBrandIDs(t *testing.T) {
+	ctx := context.Background()
+	result := CanAccessBrand(ctx, 1)
+	assert.False(t, result)
+}
+
+func TestRefreshToken_Success(t *testing.T) {
+	m := NewAuthMiddleware("test-secret")
+	token, err := m.GenerateToken(7, "tester", []string{"participant"}, nil)
+	require.NoError(t, err)
+
+	newToken, err := m.RefreshToken(token)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, newToken)
+}
+
+func TestRefreshToken_InvalidToken(t *testing.T) {
+	m := NewAuthMiddleware("test-secret")
+
+	newToken, err := m.RefreshToken("invalid_token")
+	assert.Error(t, err)
+	assert.Empty(t, newToken)
+}

@@ -12,19 +12,19 @@
             round
             width="80"
             height="80"
-            :src="member.avatar || '/default-avatar.png'"
+            :src="getAvatarUrl(member.avatar)"
           />
           <div class="member-basic">
-            <div class="member-name">{{ member.nickname || '未设置昵称' }}</div>
+            <div class="member-name">{{ getNickname(member.nickname) }}</div>
             <div class="member-id">ID: {{ member.id }}</div>
-            <van-tag :type="member.status === 'active' ? 'success' : 'danger'">
-              {{ member.status === 'active' ? '正常' : '禁用' }}
+            <van-tag :type="isActiveStatus(member.status) ? 'success' : 'danger'">
+              {{ getStatusText(member.status) }}
             </van-tag>
           </div>
         </div>
         
         <van-cell-group>
-          <van-cell title="手机号" :value="member.phone || '未绑定'" />
+          <van-cell title="手机号" :value="getPhone(member.phone)" />
           <van-cell title="性别" :value="getGenderText(member.gender)" />
           <van-cell title="来源" :value="member.source || '未知'" />
           <van-cell title="注册时间" :value="formatDateTime(member.createdAt)" />
@@ -40,11 +40,11 @@
             <div class="stat-label">订单数</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value">¥{{ member.totalPayment.toFixed(2) }}</div>
+            <div class="stat-value">¥{{ formatAmount(member.totalPayment) }}</div>
             <div class="stat-label">消费金额</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value">¥{{ member.totalReward.toFixed(2) }}</div>
+            <div class="stat-value">¥{{ formatAmount(member.totalReward) }}</div>
             <div class="stat-label">奖励金额</div>
           </div>
           <div class="stat-card">
@@ -60,7 +60,7 @@
       </div>
 
       <!-- 标签 -->
-      <div class="section" v-if="member.tags && member.tags.length > 0">
+      <div class="section" v-if="hasTags(member)">
         <div class="section-title">会员标签</div>
         <div class="tags-container">
           <van-tag
@@ -76,7 +76,7 @@
       </div>
 
       <!-- 关联品牌 -->
-      <div class="section" v-if="member.brands && member.brands.length > 0">
+      <div class="section" v-if="hasBrands(member)">
         <div class="section-title">关联品牌</div>
         <van-cell-group>
           <van-cell
@@ -95,6 +95,18 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { showFailToast } from 'vant';
+import {
+  getGenderText,
+  formatDateTime,
+  formatAmount,
+  getStatusText,
+  isActiveStatus,
+  getAvatarUrl,
+  getNickname,
+  getPhone,
+  hasTags,
+  hasBrands
+} from './memberDetail.logic.js';
 
 const route = useRoute();
 const member = ref(null);
@@ -121,23 +133,6 @@ const loadMemberDetail = async () => {
   } finally {
     loading.value = false;
   }
-};
-
-// 格式化日期时间
-const formatDateTime = (dateStr) => {
-  if (!dateStr) return '-';
-  const date = new Date(dateStr);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-};
-
-// 获取性别文本
-const getGenderText = (gender) => {
-  const genderMap = {
-    0: '未知',
-    1: '男',
-    2: '女',
-  };
-  return genderMap[gender] || '未知';
 };
 
 onMounted(() => {

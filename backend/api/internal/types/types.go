@@ -93,13 +93,18 @@ type BrandAssetListResp struct {
 }
 
 type BrandAssetReq struct {
+	BrandId     string `json:"-"`
 	Name        string `json:"name"`
-	Type        string `json:"type"` // image/video/document
+	Type        string `json:"type"`
 	Category    string `json:"category,optional"`
 	Tags        string `json:"tags,optional"`
 	FileUrl     string `json:"fileUrl"`
 	FileSize    int64  `json:"fileSize"`
 	Description string `json:"description,optional"`
+}
+
+type GetBrandAssetsReq struct {
+	Id int64 `path:"id"`
 }
 
 type BrandAssetResp struct {
@@ -114,6 +119,28 @@ type BrandAssetResp struct {
 	Description string `json:"description"`
 	CreatedAt   string `json:"createdAt"`
 	UpdatedAt   string `json:"updatedAt"`
+}
+
+type GetBrandAssetReq struct {
+	BrandId int64 `path:"brandId"`
+	Id      int64 `path:"id"`
+}
+
+type DeleteBrandAssetReq struct {
+	BrandId int64 `path:"brandId"`
+	Id      int64 `path:"id"`
+}
+
+type UpdateBrandAssetReq struct {
+	BrandId     int64  `path:"brandId"`
+	Id          int64  `path:"id"`
+	Name        string `json:"name,optional"`
+	Type        string `json:"type,optional"`
+	Category    string `json:"category,optional"`
+	Tags        string `json:"tags,optional"`
+	FileUrl     string `json:"fileUrl,optional"`
+	FileSize    int64  `json:"fileSize,optional"`
+	Description string `json:"description,optional"`
 }
 
 type BrandListResp struct {
@@ -157,22 +184,22 @@ type GetCampaignReq struct {
 }
 
 type CampaignResp struct {
-	Id                  int64   `json:"id"`
-	BrandId             int64   `json:"brandId"`
-	Name                string  `json:"name"`
-	Description         string  `json:"description"`
-	FormFields          string  `json:"formFields"`
-	RewardRule          float64 `json:"rewardRule"`
-	StartTime           string  `json:"startTime"`
-	EndTime             string  `json:"endTime"`
-	Status              string  `json:"status"`
-	EnableDistribution  bool    `json:"enableDistribution"`
-	DistributionLevel   int     `json:"distributionLevel"`
-	DistributionRewards string  `json:"distributionRewards"`
-	PaymentConfig       string  `json:"paymentConfig"`
-	PosterTemplateId    int64   `json:"posterTemplateId"`
-	CreatedAt           string  `json:"createdAt"`
-	UpdatedAt           string  `json:"updatedAt"`
+	Id                  int64       `json:"id"`
+	BrandId             int64       `json:"brandId"`
+	Name                string      `json:"name"`
+	Description         string      `json:"description"`
+	FormFields          []FormField `json:"formFields"`
+	RewardRule          float64     `json:"rewardRule"`
+	StartTime           string      `json:"startTime"`
+	EndTime             string      `json:"endTime"`
+	Status              string      `json:"status"`
+	EnableDistribution  bool        `json:"enableDistribution"`
+	DistributionLevel   int         `json:"distributionLevel"`
+	DistributionRewards string      `json:"distributionRewards"`
+	PaymentConfig       string      `json:"paymentConfig"`
+	PosterTemplateId    int64       `json:"posterTemplateId"`
+	CreatedAt           string      `json:"createdAt"`
+	UpdatedAt           string      `json:"updatedAt"`
 }
 
 type ChangePasswordReq struct {
@@ -248,6 +275,10 @@ type DistributorApplyReq struct {
 	Reason  string `json:"reason"`
 }
 
+type GetDistributorApplicationReq struct {
+	Id int64 `path:"id"`
+}
+
 type DistributorBrandOption struct {
 	BrandId   int64  `json:"brandId"`
 	BrandName string `json:"brandName"`
@@ -300,6 +331,28 @@ type DistributorResp struct {
 	ApprovedBy        int64   `json:"approvedBy,optional"`
 	ApprovedAt        string  `json:"approvedAt,optional"`
 	CreatedAt         string  `json:"createdAt"`
+}
+
+type GetDistributorByCodeReq struct {
+	Code string `path:"code"`
+}
+
+type GetDistributorSubordinatesReq struct {
+	DistributorId int64 `path:"distributorId"`
+	Page          int64 `form:"page,optional"`
+	PageSize      int64 `form:"pageSize,optional"`
+}
+
+type GetMyDistributorStatusReq struct {
+	BrandId int64 `form:"brandId,optional"`
+}
+
+type TrackDistributorLinkReq struct {
+	Code string `path:"code"`
+}
+
+type GetBrandStatsReq struct {
+	Id int64 `path:"id"`
 }
 
 type DistributorRewardListResp struct {
@@ -749,10 +802,15 @@ type UnverifyOrderResp struct {
 }
 
 type UpdateBrandReq struct {
+	Id          int64  `path:"id"`
 	Name        string `json:"name,optional"`
 	Logo        string `json:"logo,optional"`
 	Description string `json:"description,optional"`
 	Status      string `json:"status,optional"` // active/disabled
+}
+
+type GetBrandReq struct {
+	Id int64 `path:"id"`
 }
 
 type UpdateCampaignReq struct {
@@ -891,11 +949,11 @@ type WithdrawalApplyReq struct {
 }
 
 type WithdrawalListReq struct {
-	Page     int64  `json:"page"`
-	PageSize int64  `json:"pageSize"`
-	Status   string `json:"status,optional"`
-	UserId   int64  `json:"userId,optional"`
-	BrandId  int64  `json:"brandId,optional"`
+	Page     int64  `json:"page,optional" form:"page,optional"`
+	PageSize int64  `json:"pageSize,optional" form:"pageSize,optional"`
+	Status   string `json:"status,optional" form:"status,optional"`
+	UserId   int64  `json:"userId,optional" form:"userId,optional"`
+	BrandId  int64  `json:"brandId,optional" form:"brandId,optional"`
 }
 
 type WithdrawalApproveReq struct {

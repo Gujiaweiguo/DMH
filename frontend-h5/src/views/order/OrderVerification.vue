@@ -180,10 +180,19 @@
 
 <script setup>
 import { Html5Qrcode } from 'html5-qrcode'
-import { onMounted, onUnmounted, reactive } from 'vue'
 import { Toast } from 'vant'
+import { onMounted, onUnmounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { orderApi } from '../../services/brandApi'
+import {
+  buildUnverifiedOrderState,
+  buildVerifiedOrderState,
+  extractCodeFromText,
+  getOrderStatusText as mapOrderStatusText,
+  getPaymentStatusText as mapPaymentStatusText,
+  getVerifyStatusText as mapVerifyStatusText,
+  isOperationSuccess,
+} from './orderVerification.logic'
 
 const router = useRouter()
 
@@ -232,27 +241,6 @@ const scanOrderCode = async () => {
   }
 }
 
-const extractCodeFromText = (text) => {
-  if (!text) {
-    return ''
-  }
-
-  try {
-    const url = new URL(text)
-    const possibleKeys = ['code', 'orderCode', 'verification_code', 'verificationCode']
-    for (const key of possibleKeys) {
-      const value = url.searchParams.get(key)
-      if (value) {
-        return value
-      }
-    }
-  } catch (_error) {
-    // 非URL，按原样处理
-  }
-
-  return text
-}
-
 // biome-ignore lint/correctness/noUnusedVariables: used in template
 const startScan = async () => {
   if (state.isScanning) {
@@ -292,7 +280,6 @@ const startScan = async () => {
   }
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: used in template
 const stopScan = async () => {
   if (!qrScanner || !state.isScanning) {
     state.isScanning = false
@@ -318,7 +305,6 @@ const scanAgain = () => {
 }
 
 // 验证订单码
-// biome-ignore lint/correctness/noUnusedVariables: used in template
 const verifyOrderCode = () => {
   if (!state.orderCode.trim()) {
     Toast('请输入核销码')
@@ -343,14 +329,12 @@ const confirmVerify = async () => {
       notes: state.verifyNotes
     })
     
-    if (response.code === 0 && response.data) {
-      state.scannedOrder = {
-        ...state.scannedOrder,
-        verifyStatus: 'verified',
-        verifiedBy: '品牌管理员',
-        verifiedAt: new Date().toISOString(),
-        notes: state.verifyNotes
-      }
+    if (isOperationSuccess(response)) {
+      state.scannedOrder = buildVerifiedOrderState(
+        state.scannedOrder,
+        state.verifyNotes,
+        new Date().toISOString(),
+      )
       Toast.success('订单核销成功')
       state.verifyNotes = ''
     } else {
@@ -385,14 +369,12 @@ const cancelVerify = async () => {
       reason: state.cancelReason
     })
     
-    if (response.code === 0 && response.data) {
-      state.scannedOrder = {
-        ...state.scannedOrder,
-        verifyStatus: 'unverified',
-        cancelledBy: '品牌管理员',
-        cancelledAt: new Date().toISOString(),
-        cancelReason: state.cancelReason
-      }
+    if (isOperationSuccess(response)) {
+      state.scannedOrder = buildUnverifiedOrderState(
+        state.scannedOrder,
+        state.cancelReason,
+        new Date().toISOString(),
+      )
       Toast.success('已取消核销')
       state.cancelReason = ''
       state.showCancelDialog = false
@@ -407,31 +389,14 @@ const cancelVerify = async () => {
   }
 }
 
-// 获取支付状态文本
 // biome-ignore lint/correctness/noUnusedVariables: used in template
-const getPaymentStatusText = (status) => {
-  const statusMap = {
-    'paid': '已支付',
-    'unpaid': '未支付',
-    'refunded': '已退款'
-  }
-  return statusMap[status] || status
-}
+const getOrderStatusText = (status) => mapOrderStatusText(status)
 
-// 获取核销状态文本
-const getVerifyStatusText = (status) => {
-  const statusMap = {
-    'unverified': '未核销',
-    'verified': '已核销'
-  }
-  return statusMap[status] || status
-}
-
-// 获取订单状态文本
 // biome-ignore lint/correctness/noUnusedVariables: used in template
-const getOrderStatusText = (status) => {
-  return getVerifyStatusText(status)
-}
+const getPaymentStatusText = (status) => mapPaymentStatusText(status)
+
+// biome-ignore lint/correctness/noUnusedVariables: used in template
+const getVerifyStatusText = (status) => mapVerifyStatusText(status)
 
 // 返回
 // biome-ignore lint/correctness/noUnusedVariables: used in template

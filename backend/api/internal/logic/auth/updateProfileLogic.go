@@ -5,9 +5,11 @@ package auth
 
 import (
 	"context"
+	"errors"
 
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
+	"dmh/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -27,7 +29,29 @@ func NewUpdateProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Upd
 }
 
 func (l *UpdateProfileLogic) UpdateProfile(req *types.UpdateProfileReq) (resp *types.UserInfoResp, err error) {
-	// todo: add your logic here and delete this line
+	userId, ok := l.ctx.Value("userId").(int64)
+	if !ok || userId == 0 {
+		return nil, errors.New("无法从context中获取用户ID")
+	}
 
-	return
+	var user model.User
+	if err := l.svcCtx.DB.Where("id = ?", userId).First(&user).Error; err != nil {
+		l.Errorf("查询用户失败: %v", err)
+		return nil, errors.New("用户不存在")
+	}
+
+	if req.RealName != "" {
+		user.RealName = req.RealName
+	}
+
+	if err := l.svcCtx.DB.Save(&user).Error; err != nil {
+		l.Errorf("更新用户信息失败: %v", err)
+		return nil, errors.New("更新失败")
+	}
+
+	return &types.UserInfoResp{
+		Id:       user.Id,
+		Username: user.Username,
+		RealName: user.RealName,
+	}, nil
 }

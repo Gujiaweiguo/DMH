@@ -1,4 +1,37 @@
 {
+  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
+  "agents": {
+    "sisyphus": {
+      "model": "zhipuai-coding-plan/glm-5"
+    },
+    "prometheus": {
+      "model": "zhipuai-coding-plan/glm-5"
+    },
+    "atlas": {
+      "model": "zhipuai-coding-plan/glm-5"
+    },
+    "hephaestus": {
+      "model": "zhipuai-coding-plan/glm-5"
+    },
+    "oracle": {
+      "model": "zhipuai-coding-plan/glm-5"
+    },
+    "frontend-ui-ux-engineer": {
+      "model": "zhipuai-coding-plan/glm-5"
+    },
+    "librarian": {
+      "model": "zhipuai-coding-plan/glm-5"
+    },
+    "explore": {
+      "model": "zhipuai-coding-plan/glm-5"
+    },
+    "document-writer": {
+      "model": "zhipuai-coding-plan/glm-5"
+    },
+    "multimodal-looker": {
+      "model": "zhipuai-coding-plan/glm-4.6v"
+    }
+  },
   "lsp": {
     "remark-md": {
       "command": [
@@ -6,7 +39,11 @@
         "-lc",
         "NODE_PATH=/opt/code/DMH/.opencode/node_modules /opt/code/DMH/.opencode/node_modules/.bin/remark-language-server --stdio"
       ],
-      "extensions": [".md", ".markdown", ".mdx"]
+      "extensions": [
+        ".md",
+        ".markdown",
+        ".mdx"
+      ]
     }
   }
 }

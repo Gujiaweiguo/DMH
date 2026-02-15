@@ -136,30 +136,23 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  getDashboardStatusText,
+  getDefaultBrandInfo,
+  getDefaultTodayStats,
+  getMockDashboardData,
+} from './dashboard.logic.js'
 
 const router = useRouter()
 
-const brandInfo = ref({
-  name: '示例品牌',
-  logo: 'https://api.dicebear.com/7.x/initials/svg?seed=Brand'
-})
+const brandInfo = ref(getDefaultBrandInfo())
 
-const todayStats = ref({
-  orders: 0,
-  rewards: 0,
-  promoters: 0,
-  campaigns: 0
-})
+const todayStats = ref(getDefaultTodayStats())
 
 const recentCampaigns = ref([])
 
 const getStatusText = (status) => {
-  const statusMap = {
-    active: '进行中',
-    paused: '已暂停',
-    ended: '已结束'
-  }
-  return statusMap[status] || status
+  return getDashboardStatusText(status)
 }
 
 const logout = () => {
@@ -170,32 +163,9 @@ const logout = () => {
 
 const loadDashboardData = async () => {
   try {
-    // TODO: 调用API获取仪表板数据
-    todayStats.value = {
-      orders: 23,
-      rewards: 1580,
-      promoters: 8,
-      campaigns: 3
-    }
-    
-    recentCampaigns.value = [
-      {
-        id: 1,
-        name: '春节特惠活动',
-        description: '新春佳节，推荐好友享双重奖励',
-        status: 'active',
-        orders: 156,
-        rewards: 3120
-      },
-      {
-        id: 2,
-        name: '会员招募计划',
-        description: '招募品牌会员，享受专属优惠',
-        status: 'active',
-        orders: 89,
-        rewards: 1780
-      }
-    ]
+    const data = getMockDashboardData()
+    todayStats.value = data.todayStats
+    recentCampaigns.value = data.recentCampaigns
   } catch (error) {
     console.error('加载仪表板数据失败:', error)
   }

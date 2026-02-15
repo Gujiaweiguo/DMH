@@ -68,13 +68,20 @@ func (suite *PaymentQrcodeIntegrationTestSuite) login() {
 func (suite *PaymentQrcodeIntegrationTestSuite) createTestCampaign() {
 	// 创建测试品牌和活动
 	now := time.Now()
+	paymentConfigRaw, _ := json.Marshal(map[string]interface{}{
+		"depositAmount":  50.00,
+		"fullAmount":     200.00,
+		"paymentType":    "deposit",
+		"wechatMerchant": "1234567890",
+		"callbackUrl":    "http://example.com/callback",
+	})
 	createCampaignReq := map[string]interface{}{
 		"brandId":     1, // 使用默认品牌ID
 		"name":        "支付二维码测试活动",
 		"description": "用于测试支付二维码生成的活动",
 		"rewardRule":  10.0,
-		"startTime":   now.Add(-1 * time.Hour).Format(time.RFC3339),
-		"endTime":     now.Add(24 * time.Hour).Format(time.RFC3339),
+		"startTime":   now.Add(-1 * time.Hour).Format("2006-01-02T15:04:05"),
+		"endTime":     now.Add(24 * time.Hour).Format("2006-01-02T15:04:05"),
 		"formFields": []map[string]interface{}{
 			{
 				"type":     "text",
@@ -83,13 +90,7 @@ func (suite *PaymentQrcodeIntegrationTestSuite) createTestCampaign() {
 				"required": true,
 			},
 		},
-		"paymentConfig": map[string]interface{}{
-			"depositAmount":  50.00,
-			"fullAmount":     200.00,
-			"paymentType":    "deposit",
-			"wechatMerchant": "1234567890",
-			"callbackUrl":    "http://example.com/callback",
-		},
+		"paymentConfig": string(paymentConfigRaw),
 	}
 
 	reqBody, _ := json.Marshal(createCampaignReq)
@@ -203,13 +204,18 @@ func (suite *PaymentQrcodeIntegrationTestSuite) Test_11_2_3_QrcodeWithExpiredCam
 
 	// 创建过期活动
 	now := time.Now()
+	paymentConfigRaw, _ := json.Marshal(map[string]interface{}{
+		"depositAmount": 50.00,
+		"fullAmount":    200.00,
+		"paymentType":   "deposit",
+	})
 	createCampaignReq := map[string]interface{}{
 		"brandId":     1,
 		"name":        "过期活动测试",
 		"description": "已过期的活动",
 		"rewardRule":  10.0,
-		"startTime":   now.Add(-30 * 24 * time.Hour).Format(time.RFC3339), // 30天前开始
-		"endTime":     now.Add(-1 * time.Hour).Format(time.RFC3339),       // 1小时前结束
+		"startTime":   now.Add(-30 * 24 * time.Hour).Format("2006-01-02T15:04:05"), // 30天前开始
+		"endTime":     now.Add(-1 * time.Hour).Format("2006-01-02T15:04:05"),       // 1小时前结束
 		"formFields": []map[string]interface{}{
 			{
 				"type":     "text",
@@ -218,11 +224,7 @@ func (suite *PaymentQrcodeIntegrationTestSuite) Test_11_2_3_QrcodeWithExpiredCam
 				"required": true,
 			},
 		},
-		"paymentConfig": map[string]interface{}{
-			"depositAmount": 50.00,
-			"fullAmount":    200.00,
-			"paymentType":   "deposit",
-		},
+		"paymentConfig": string(paymentConfigRaw),
 	}
 
 	reqBody, _ := json.Marshal(createCampaignReq)
@@ -372,8 +374,8 @@ func (suite *FormFieldValidationIntegrationTestSuite) createTestCampaign() {
 		"name":        "表单字段验证测试活动",
 		"description": "用于测试表单字段配置和验证的活动",
 		"rewardRule":  10.0,
-		"startTime":   now.Add(-1 * time.Hour).Format(time.RFC3339),
-		"endTime":     now.Add(24 * time.Hour).Format(time.RFC3339),
+		"startTime":   now.Add(-1 * time.Hour).Format("2006-01-02T15:04:05"),
+		"endTime":     now.Add(24 * time.Hour).Format("2006-01-02T15:04:05"),
 		"formFields": []map[string]interface{}{
 			{
 				"type":     "text",
@@ -454,16 +456,18 @@ func (suite *FormFieldValidationIntegrationTestSuite) Test_11_3_1_AllFormFieldTy
 	body, _ := io.ReadAll(resp.Body)
 
 	var result struct {
-		FormFields string `json:"formFields"`
+		FormFields []map[string]interface{} `json:"formFields"`
 	}
 	json.Unmarshal(body, &result)
 
+	formFieldsJSON, _ := json.Marshal(result.FormFields)
+
 	// 验证 formFields 包含所有字段类型
-	suite.Contains(result.FormFields, `"type": "text"`, "应包含 text 类型")
-	suite.Contains(result.FormFields, `"type": "phone"`, "应包含 phone 类型")
-	suite.Contains(result.FormFields, `"type": "email"`, "应包含 email 类型")
-	suite.Contains(result.FormFields, `"type": "textarea"`, "应包含 textarea 类型")
-	suite.Contains(result.FormFields, `"type": "select"`, "应包含 select 类型")
+	suite.Contains(string(formFieldsJSON), `"type":"text"`, "应包含 text 类型")
+	suite.Contains(string(formFieldsJSON), `"type":"phone"`, "应包含 phone 类型")
+	suite.Contains(string(formFieldsJSON), `"type":"email"`, "应包含 email 类型")
+	suite.Contains(string(formFieldsJSON), `"type":"textarea"`, "应包含 textarea 类型")
+	suite.Contains(string(formFieldsJSON), `"type":"select"`, "应包含 select 类型")
 
 	suite.T().Log("✓ 所有字段类型验证通过")
 }
@@ -484,12 +488,14 @@ func (suite *FormFieldValidationIntegrationTestSuite) Test_11_3_2_FieldRequiredV
 	body, _ := io.ReadAll(resp.Body)
 
 	var result struct {
-		FormFields string `json:"formFields"`
+		FormFields []map[string]interface{} `json:"formFields"`
 	}
 	json.Unmarshal(body, &result)
 
+	formFieldsJSON, _ := json.Marshal(result.FormFields)
+
 	// 验证必填字段正确标记
-	suite.Contains(result.FormFields, `"required": true`, "必填字段标记正确")
+	suite.Contains(string(formFieldsJSON), `"required":true`, "必填字段标记正确")
 
 	suite.T().Log("✓ 必填字段验证通过")
 }
@@ -510,17 +516,19 @@ func (suite *FormFieldValidationIntegrationTestSuite) Test_11_3_3_FieldOptions()
 	body, _ := io.ReadAll(resp.Body)
 
 	var result struct {
-		FormFields string `json:"formFields"`
+		FormFields []map[string]interface{} `json:"formFields"`
 	}
 	json.Unmarshal(body, &result)
 
+	formFieldsJSON, _ := json.Marshal(result.FormFields)
+
 	// 验证 select 字段的选项
-	suite.Contains(result.FormFields, `"男"`, "应包含选项：男")
-	suite.Contains(result.FormFields, `"女"`, "应包含选项：女")
-	suite.Contains(result.FormFields, `"其他"`, "应包含选项：其他")
+	suite.Contains(string(formFieldsJSON), `"男"`, "应包含选项：男")
+	suite.Contains(string(formFieldsJSON), `"女"`, "应包含选项：女")
+	suite.Contains(string(formFieldsJSON), `"其他"`, "应包含选项：其他")
 
 	// 验证options数组存在
-	suite.Contains(result.FormFields, `"options"`, "应包含options字段")
+	suite.Contains(string(formFieldsJSON), `"options"`, "应包含options字段")
 
 	suite.T().Log("✓ Select字段选项验证通过")
 }

@@ -5,8 +5,6 @@ package member
 
 import (
 	"net/http"
-	"strconv"
-	"strings"
 
 	"dmh/api/internal/logic/member"
 	"dmh/api/internal/svc"
@@ -17,9 +15,11 @@ import (
 
 func GetMemberProfileHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		pathParts := strings.Split(r.URL.Path, "/")
-		memberIdStr := pathParts[len(pathParts)-1]
-		memberId, _ := strconv.ParseInt(memberIdStr, 10, 64)
+		memberId, err := parseMemberIDFromPath(r.URL.Path)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
 
 		req := &types.GetMemberReq{Id: memberId}
 

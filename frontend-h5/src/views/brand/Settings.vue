@@ -384,6 +384,15 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  getDefaultBrandInfo,
+  getDefaultNotificationSettings,
+  getDefaultPasswordForm,
+  getDefaultRewardSettings,
+  getDefaultSyncSettings,
+  getSyncStatusText as mapSyncStatusText,
+  validatePasswordForm,
+} from './settings.logic.js'
 
 const router = useRouter()
 
@@ -391,46 +400,18 @@ const saving = ref(false)
 const showChangePassword = ref(false)
 const showDeleteAccount = ref(false)
 
-const brandInfo = reactive({
-  name: '示例品牌',
-  description: '专业的数字营销服务品牌',
-  logo: 'https://api.dicebear.com/7.x/initials/svg?seed=Brand',
-  phone: '400-123-4567',
-  email: 'contact@brand.com'
-})
+const brandInfo = reactive(getDefaultBrandInfo())
 
-const rewardSettings = reactive({
-  defaultRate: 20,
-  minWithdraw: 100,
-  settlementType: 'instant'
-})
+const rewardSettings = reactive(getDefaultRewardSettings())
 
-const notificationSettings = reactive({
-  newOrder: true,
-  newPromoter: true,
-  dailyReport: false,
-  email: 'admin@brand.com'
-})
+const notificationSettings = reactive(getDefaultNotificationSettings())
 
-const syncSettings = reactive({
-  status: 'connected',
-  frequency: 'realtime',
-  dataTypes: ['orders', 'users']
-})
+const syncSettings = reactive(getDefaultSyncSettings())
 
-const passwordForm = reactive({
-  oldPassword: '',
-  newPassword: '',
-  confirmPassword: ''
-})
+const passwordForm = reactive(getDefaultPasswordForm())
 
 const getSyncStatusText = (status) => {
-  const statusMap = {
-    connected: '已连接',
-    disconnected: '未连接',
-    error: '连接错误'
-  }
-  return statusMap[status] || status
+  return mapSyncStatusText(status)
 }
 
 const uploadLogo = () => {
@@ -517,13 +498,9 @@ const manualSync = async () => {
 }
 
 const changePassword = async () => {
-  if (!passwordForm.oldPassword || !passwordForm.newPassword) {
-    alert('请填写完整的密码信息')
-    return
-  }
-  
-  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-    alert('两次输入的新密码不一致')
+  const validationError = validatePasswordForm(passwordForm)
+  if (validationError) {
+    alert(validationError)
     return
   }
   
@@ -532,13 +509,8 @@ const changePassword = async () => {
     await new Promise(resolve => setTimeout(resolve, 1000))
     alert('密码修改成功')
     showChangePassword.value = false
-    
-    // 重置表单
-    Object.assign(passwordForm, {
-      oldPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    })
+
+    Object.assign(passwordForm, getDefaultPasswordForm())
   } catch (error) {
     console.error('修改密码失败:', error)
     alert('修改密码失败')

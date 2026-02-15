@@ -116,11 +116,13 @@ func (l *UpdateCampaignLogic) UpdateCampaign(req *types.UpdateCampaignReq) (resp
 
 	l.Infof("Campaign updated successfully: campaignId=%d, name=%s", campaign.Id, campaign.Name)
 
-	var formFieldsStr string
+	// 解析 formFields JSON 字符串为对象
+	var formFields []types.FormField
 	if campaign.FormFields != "" {
-		formFieldsStr = campaign.FormFields
-	} else {
-		formFieldsStr = "[]"
+		if err := json.Unmarshal([]byte(campaign.FormFields), &formFields); err != nil {
+			l.Errorf("Failed to parse formFields JSON: %v", err)
+			// 继续使用空数组
+		}
 	}
 
 	distributionRewardsResp := ""
@@ -137,7 +139,7 @@ func (l *UpdateCampaignLogic) UpdateCampaign(req *types.UpdateCampaignReq) (resp
 		BrandId:             campaign.BrandId,
 		Name:                campaign.Name,
 		Description:         campaign.Description,
-		FormFields:          formFieldsStr,
+		FormFields:          formFields,
 		RewardRule:          campaign.RewardRule,
 		StartTime:           campaign.StartTime.Format("2006-01-02T15:04:05"),
 		EndTime:             campaign.EndTime.Format("2006-01-02T15:04:05"),

@@ -72,15 +72,15 @@
             <!-- 缩放和旋转控制 -->
             <div v-if="state.previewUrl" class="preview-controls">
               <van-button-group>
-                <van-button size="small" @click="zoomIn" icon="plus" />
-                <van-button size="small" @click="zoomOut" icon="minus" />
-                <van-button size="small" @click="resetZoom" icon="replay" />
+                <van-button size="small" @click="zoomInAction" icon="plus" />
+                <van-button size="small" @click="zoomOutAction" icon="minus" />
+                <van-button size="small" @click="resetZoomAction" icon="replay" />
               </van-button-group>
               
               <van-button-group>
-                <van-button size="small" @click="rotateLeft" icon="arrow-left" />
-                <van-button size="small" @click="rotateRight" icon="arrow" />
-                <van-button size="small" @click="resetRotation" icon="replay" />
+                <van-button size="small" @click="rotateLeftAction" icon="arrow-left" />
+                <van-button size="small" @click="rotateRightAction" icon="arrow" />
+                <van-button size="small" @click="resetRotationAction" icon="replay" />
               </van-button-group>
             </div>
           </div>
@@ -99,7 +99,7 @@
             size="large" 
             block
             :loading="state.loading.generate"
-            :disabled="!state.selectedTemplateId || !state.previewUrl"
+            :disabled="!canGenerate"
             @click="generatePoster"
           >
             生成海报
@@ -109,7 +109,7 @@
             type="success" 
             size="large" 
             block
-            :disabled="!state.posterUrl"
+            :disabled="!canDownload"
             @click="downloadPoster"
             icon="down"
           >
@@ -120,7 +120,7 @@
             type="warning" 
             size="large" 
             block
-            :disabled="!state.posterUrl"
+            :disabled="!canShare"
             @click="sharePoster"
             icon="share"
           >
@@ -133,32 +133,39 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Toast, Dialog, ImagePreview } from 'vant'
 import { posterApi } from '../../services/brandApi'
+import {
+  isWeixinEnvironment,
+  zoomIn as zoomInUtil,
+  zoomOut as zoomOutUtil,
+  resetZoom as resetZoomUtil,
+  rotateLeft as rotateLeftUtil,
+  rotateRight as rotateRightUtil,
+  resetRotation as resetRotationUtil,
+  buildPosterFileName,
+  getDefaultState,
+  canGeneratePoster as canGeneratePosterUtil,
+  canDownloadPoster as canDownloadPosterUtil,
+  canSharePoster as canSharePosterUtil,
+  fallbackCopyText
+} from './posterGenerator.logic.js'
 
 const router = useRouter()
 
 // 响应式状态
-const state = reactive({
-  loading: {
-    templates: false,
-    preview: false,
-    generate: false
-  },
-  templates: [],
-  selectedTemplateId: null,
-  previewUrl: '',
-  posterUrl: '',
-  qrcodeUrl: '',
-  scale: 1,
-  rotation: 0
-})
+const state = reactive(getDefaultState())
 
 // 获取路由参数
 const routeParams = router.currentRoute.value.params
 const campaignId = routeParams.id
+
+// 计算属性
+const canGenerate = computed(() => canGeneratePosterUtil(state.selectedTemplateId, state.previewUrl))
+const canDownload = computed(() => canDownloadPosterUtil(state.posterUrl))
+const canShare = computed(() => canSharePosterUtil(state.posterUrl))
 
 // 临时使用模拟模板数据（等后端API可用后移除）
 const loadTemplates = async () => {
@@ -225,7 +232,7 @@ const downloadPoster = () => {
     // 创建下载链接
     const link = document.createElement('a')
     link.href = state.posterUrl
-    link.download = `poster_${Date.now()}.png`
+    link.download = buildPosterFileName(Date.now())
     link.click()
     Toast.success('开始下载')
   } catch (error) {
@@ -243,7 +250,7 @@ const sharePoster = () => {
 
   try {
     // 检查微信环境
-    const isWeixin = /micromessenger/i.test(navigator.userAgent)
+    const isWeixin = isWeixinEnvironment(navigator.userAgent)
     
     if (isWeixin) {
       // 微信环境，调用微信分享
@@ -276,40 +283,26 @@ const sharePoster = () => {
           .catch((err) => {
             console.error('Clipboard API失败:', err)
             // 降级到传统复制方法
-            fallbackCopyText(shareUrl)
+            const result = fallbackCopyText(shareUrl, document)
+            if (result.success) {
+              Toast.success('链接已复制，可分享给好友')
+            } else {
+              Toast.fail('复制失败，请手动复制链接')
+            }
           })
       } else {
         // 降级到传统复制方法
-        fallbackCopyText(shareUrl)
+        const result = fallbackCopyText(shareUrl, document)
+        if (result.success) {
+          Toast.success('链接已复制，可分享给好友')
+        } else {
+          Toast.fail('复制失败，请手动复制链接')
+        }
       }
     }
   } catch (error) {
     console.error('分享失败:', error)
     Toast.fail('分享失败')
-  }
-}
-
-// 降级复制方法（兼容旧浏览器）
-const fallbackCopyText = (text) => {
-  try {
-    const textArea = document.createElement('textarea')
-    textArea.value = text
-    textArea.style.position = 'fixed'
-    textArea.style.left = '-9999px'
-    textArea.style.top = '0'
-    document.body.appendChild(textArea)
-    textArea.focus()
-    textArea.select()
-    const successful = document.execCommand('copy')
-    document.body.removeChild(textArea)
-    if (successful) {
-      Toast.success('链接已复制，可分享给好友')
-    } else {
-      Toast.fail('复制失败，请手动复制链接')
-    }
-  } catch (err) {
-    console.error('降级复制失败:', err)
-    Toast.fail('复制失败，请手动复制链接')
   }
 }
 
@@ -323,33 +316,29 @@ const showImageDetail = () => {
 }
 
 // 缩放控制
-const zoomIn = () => {
-  if (state.scale < 3) {
-    state.scale += 0.25
-  }
+const zoomInAction = () => {
+  state.scale = zoomInUtil(state.scale)
 }
 
-const zoomOut = () => {
-  if (state.scale > 0.5) {
-    state.scale -= 0.25
-  }
+const zoomOutAction = () => {
+  state.scale = zoomOutUtil(state.scale)
 }
 
-const resetZoom = () => {
-  state.scale = 1
+const resetZoomAction = () => {
+  state.scale = resetZoomUtil()
 }
 
 // 旋转控制
-const rotateLeft = () => {
-  state.rotation -= 90
+const rotateLeftAction = () => {
+  state.rotation = rotateLeftUtil(state.rotation)
 }
 
-const rotateRight = () => {
-  state.rotation += 90
+const rotateRightAction = () => {
+  state.rotation = rotateRightUtil(state.rotation)
 }
 
-const resetRotation = () => {
-  state.rotation = 0
+const resetRotationAction = () => {
+  state.rotation = resetRotationUtil()
 }
 
 // 返回

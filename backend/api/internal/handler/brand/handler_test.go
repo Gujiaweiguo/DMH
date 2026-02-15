@@ -1,10 +1,48 @@
 package brand
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"dmh/api/internal/svc"
+	"dmh/api/internal/types"
+	"dmh/model"
+
 	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
+
+func setupBrandHandlerTestDB(t *testing.T) *gorm.DB {
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("Failed to open test database: %v", err)
+	}
+
+	err = db.AutoMigrate(&model.Brand{}, &model.BrandAsset{}, &model.Campaign{}, &model.Order{})
+	if err != nil {
+		t.Fatalf("Failed to migrate database: %v", err)
+	}
+
+	return db
+}
+
+func createTestBrandForHandler(t *testing.T, db *gorm.DB, name string) *model.Brand {
+	brand := &model.Brand{
+		Name:   name,
+		Status: "active",
+	}
+	if err := db.Create(brand).Error; err != nil {
+		t.Fatalf("Failed to create test brand: %v", err)
+	}
+	return brand
+}
 
 func TestBrandHandlersConstruct(t *testing.T) {
 	assert.NotNil(t, GetBrandsHandler(nil))
@@ -17,4 +55,520 @@ func TestBrandHandlersConstruct(t *testing.T) {
 	assert.NotNil(t, UpdateBrandAssetHandler(nil))
 	assert.NotNil(t, DeleteBrandAssetHandler(nil))
 	assert.NotNil(t, GetBrandStatsHandler(nil))
+}
+
+func TestCreateBrandHandler_Success(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := CreateBrandHandler(svcCtx)
+
+	reqBody := types.CreateBrandReq{
+		Name:        "New Brand",
+		Logo:        "https://example.com/logo.png",
+		Description: "Test brand description",
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/brands", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	var result types.BrandResp
+	err := json.Unmarshal(resp.Body.Bytes(), &result)
+	assert.NoError(t, err)
+	assert.Equal(t, "New Brand", result.Name)
+}
+
+func TestCreateBrandHandler_InvalidJSON(t *testing.T) {
+	handler := CreateBrandHandler(nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/brands", strings.NewReader("{invalid"))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestGetBrandsHandler_Success(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	createTestBrandForHandler(t, db, "Brand 1")
+	createTestBrandForHandler(t, db, "Brand 2")
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetBrandsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/brands?page=1&pageSize=10", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	var result types.BrandListResp
+	err := json.Unmarshal(resp.Body.Bytes(), &result)
+	assert.NoError(t, err)
+	assert.True(t, result.Total >= 2)
+}
+
+// Note: Handler tests for path parameter routes need router integration
+// These tests verify the handler constructs correctly
+func TestGetBrandHandler_Construct(t *testing.T) {
+	handler := GetBrandHandler(nil)
+	assert.NotNil(t, handler)
+}
+
+func TestUpdateBrandHandler_Construct(t *testing.T) {
+	handler := UpdateBrandHandler(nil)
+	assert.NotNil(t, handler)
+}
+
+func TestCreateBrandAssetHandler_Construct(t *testing.T) {
+	handler := CreateBrandAssetHandler(nil)
+	assert.NotNil(t, handler)
+}
+
+func TestGetBrandAssetsHandler_Construct(t *testing.T) {
+	handler := GetBrandAssetsHandler(nil)
+	assert.NotNil(t, handler)
+}
+
+func TestDeleteBrandAssetHandler_Construct(t *testing.T) {
+	handler := DeleteBrandAssetHandler(nil)
+	assert.NotNil(t, handler)
+}
+
+func TestGetBrandStatsHandler_Construct(t *testing.T) {
+	handler := GetBrandStatsHandler(nil)
+	assert.NotNil(t, handler)
+}
+
+// Test handler error paths with parse errors
+func TestGetBrandHandler_ParseError(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetBrandHandler(svcCtx)
+
+	// Invalid ID format
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/brands/invalid", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	// Should fail parsing
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestUpdateBrandHandler_ParseError(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := UpdateBrandHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/brands/1", strings.NewReader("{invalid"))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestGetBrandAssetsHandler_ParseError(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	brand := createTestBrandForHandler(t, db, "Test Brand")
+	campaign := &model.Campaign{Name: "Test Campaign", BrandId: brand.Id, Status: "active"}
+	db.Create(campaign)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetBrandAssetsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/brands/1/assets?page={invalid}", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestGetBrandStatsHandler_ParseError(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetBrandStatsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/brands/invalid/stats", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestGetBrandHandler_NotFound(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetBrandHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/brands/99999", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestUpdateBrandHandler_NotFound(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := UpdateBrandHandler(svcCtx)
+
+	reqBody := types.UpdateBrandReq{
+		Name: "Updated Name",
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/brands/99999", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestGetBrandStatsHandler_NotFound(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetBrandStatsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/brands/99999/stats", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestCreateBrandHandler_EmptyName(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := CreateBrandHandler(svcCtx)
+
+	reqBody := types.CreateBrandReq{
+		Name: "",
+		Logo: "https://example.com/logo.png",
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/brands", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestGetBrandsHandler_EmptyList(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetBrandsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/brands?page=1&pageSize=10", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	var result types.BrandListResp
+	err := json.Unmarshal(resp.Body.Bytes(), &result)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), result.Total)
+}
+
+func TestGetBrandsHandler_Pagination(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	for i := 0; i < 15; i++ {
+		createTestBrandForHandler(t, db, fmt.Sprintf("Brand %d", i))
+	}
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetBrandsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/brands?page=1&pageSize=10", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	var result types.BrandListResp
+	err := json.Unmarshal(resp.Body.Bytes(), &result)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(15), result.Total)
+}
+
+func TestCreateBrandHandler_WithAllFields(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := CreateBrandHandler(svcCtx)
+
+	reqBody := types.CreateBrandReq{
+		Name:        "Complete Brand",
+		Logo:        "https://example.com/logo.png",
+		Description: "Full description",
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/brands", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	var result types.BrandResp
+	err := json.Unmarshal(resp.Body.Bytes(), &result)
+	assert.NoError(t, err)
+	assert.Equal(t, "Complete Brand", result.Name)
+	assert.Equal(t, "Full description", result.Description)
+}
+
+func TestGetBrandsHandler_LargePageSize(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	for i := 0; i < 5; i++ {
+		createTestBrandForHandler(t, db, fmt.Sprintf("Brand %d", i))
+	}
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetBrandsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/brands?page=1&pageSize=100", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	var result types.BrandListResp
+	err := json.Unmarshal(resp.Body.Bytes(), &result)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(5), result.Total)
+}
+
+func TestCreateBrandHandler_SpecialCharacters(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := CreateBrandHandler(svcCtx)
+
+	reqBody := types.CreateBrandReq{
+		Name:        "Brand with 特殊字符 & symbols!",
+		Logo:        "https://example.com/logo.png",
+		Description: "Description with émojis 🎉",
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/brands", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	var result types.BrandResp
+	err := json.Unmarshal(resp.Body.Bytes(), &result)
+	assert.NoError(t, err)
+	assert.Equal(t, "Brand with 特殊字符 & symbols!", result.Name)
+}
+
+func TestGetBrandHandler_Success(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	brand := createTestBrandForHandler(t, db, "Test Brand")
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetBrandHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/brands/%d", brand.Id), nil)
+	req.SetPathValue("id", fmt.Sprintf("%d", brand.Id))
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestUpdateBrandHandler_Success(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	brand := createTestBrandForHandler(t, db, "Test Brand")
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := UpdateBrandHandler(svcCtx)
+
+	reqBody := types.UpdateBrandReq{
+		Name:        "Updated Brand",
+		Description: "Updated description",
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/brands/%d", brand.Id), bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", fmt.Sprintf("%d", brand.Id))
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestGetBrandAssetsHandler_Success(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	brand := createTestBrandForHandler(t, db, "Test Brand")
+	campaign := &model.Campaign{Name: "Test Campaign", BrandId: brand.Id, Status: "active"}
+	db.Create(campaign)
+	asset := &model.BrandAsset{BrandID: brand.Id, Type: "image", FileUrl: "https://example.com/image.png"}
+	db.Create(asset)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetBrandAssetsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/brands/%d/assets?page=1&pageSize=10", brand.Id), nil)
+	req.SetPathValue("id", fmt.Sprintf("%d", brand.Id))
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestCreateBrandAssetHandler_Success(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	brand := createTestBrandForHandler(t, db, "Test Brand")
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := CreateBrandAssetHandler(svcCtx)
+
+	reqBody := types.BrandAssetReq{
+		Type:    "image",
+		FileUrl: "https://example.com/asset.png",
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/brands/%d/assets", brand.Id), bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", fmt.Sprintf("%d", brand.Id))
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestGetBrandAssetHandler_Success(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	brand := createTestBrandForHandler(t, db, "Test Brand")
+	asset := &model.BrandAsset{BrandID: brand.Id, Type: "image", FileUrl: "https://example.com/image.png"}
+	db.Create(asset)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetBrandAssetHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/brands/%d/assets/%d", brand.Id, asset.ID), nil)
+	req.SetPathValue("brandId", fmt.Sprintf("%d", brand.Id))
+	req.SetPathValue("id", fmt.Sprintf("%d", asset.ID))
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestUpdateBrandAssetHandler_Success(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	brand := createTestBrandForHandler(t, db, "Test Brand")
+	asset := &model.BrandAsset{BrandID: brand.Id, Type: "image", FileUrl: "https://example.com/image.png"}
+	db.Create(asset)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := UpdateBrandAssetHandler(svcCtx)
+
+	reqBody := types.BrandAssetReq{
+		Type:    "video",
+		FileUrl: "https://example.com/video.mp4",
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/brands/%d/assets/%d", brand.Id, asset.ID), bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("brandId", fmt.Sprintf("%d", brand.Id))
+	req.SetPathValue("id", fmt.Sprintf("%d", asset.ID))
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestDeleteBrandAssetHandler_Success(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	brand := createTestBrandForHandler(t, db, "Test Brand")
+	asset := &model.BrandAsset{BrandID: brand.Id, Type: "image", FileUrl: "https://example.com/image.png"}
+	db.Create(asset)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := DeleteBrandAssetHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/brands/%d/assets/%d", brand.Id, asset.ID), nil)
+	req.SetPathValue("brandId", fmt.Sprintf("%d", brand.Id))
+	req.SetPathValue("id", fmt.Sprintf("%d", asset.ID))
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestGetBrandStatsHandler_Success(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	brand := createTestBrandForHandler(t, db, "Test Brand")
+	campaign := &model.Campaign{Name: "Test Campaign", BrandId: brand.Id, Status: "active"}
+	db.Create(campaign)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetBrandStatsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/brands/%d/stats", brand.Id), nil)
+	req.SetPathValue("id", fmt.Sprintf("%d", brand.Id))
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestCreateBrandAssetHandler_InvalidJSON(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	brand := createTestBrandForHandler(t, db, "Test Brand")
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := CreateBrandAssetHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/brands/%d/assets", brand.Id), strings.NewReader("{invalid"))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", fmt.Sprintf("%d", brand.Id))
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestUpdateBrandAssetHandler_InvalidJSON(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	brand := createTestBrandForHandler(t, db, "Test Brand")
+	asset := &model.BrandAsset{BrandID: brand.Id, Type: "image", FileUrl: "https://example.com/image.png"}
+	db.Create(asset)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := UpdateBrandAssetHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/brands/%d/assets/%d", brand.Id, asset.ID), strings.NewReader("{invalid"))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("brandId", fmt.Sprintf("%d", brand.Id))
+	req.SetPathValue("id", fmt.Sprintf("%d", asset.ID))
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
 }

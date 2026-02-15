@@ -60,7 +60,9 @@ export const memberApi = {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         if (Array.isArray(value)) {
-          value.forEach(v => queryParams.append(key, v.toString()));
+          value.forEach(v => {
+            queryParams.append(key, v.toString());
+          });
         } else {
           queryParams.append(key, value.toString());
         }

@@ -69,7 +69,7 @@
              <div class="stat-label">订单数</div>
            </div>
            <div class="stat-item">
-             <div class="stat-value">{{ calculateConversionRate() }}%</div>
+             <div class="stat-value">{{ getConversionRate() }}%</div>
              <div class="stat-label">转化率</div>
            </div>
            <div class="stat-item">
@@ -118,6 +118,22 @@ import { useRoute, useRouter } from 'vue-router'
 import { showToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
 import PosterComponent from '@/components/designer/PosterComponent.vue'
 import api from '@/services/api'
+import {
+  formatTime,
+  formatReward,
+  formatPaymentAmount,
+  getPaymentTypeText,
+  getPaymentLabel,
+  isPaymentRequired,
+  calculateConversionRate,
+  isBrandAdmin as checkIsBrandAdmin,
+  buildSourceData,
+  saveSourceToStorage,
+  buildPosterDownloadName,
+  buildVerifyRoute,
+  buildPaymentRoute,
+  buildFormRoute
+} from './campaignDetail.logic.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -128,22 +144,12 @@ const showPosterDialog = ref(false)
 const posterData = ref(null)
 const posterLoading = ref(false)
 
-const isBrandAdmin = computed(() => {
-  const userRole = localStorage.getItem('dmh_user_role')
-  return userRole === 'brand_admin'
-})
+const isBrandAdmin = computed(() => checkIsBrandAdmin())
 
-const source = ref({
-  c_id: route.query.c_id || '',
-  u_id: route.query.u_id || ''
-})
+const source = ref(buildSourceData(route.query))
 
 const saveSource = () => {
-  try {
-    localStorage.setItem('dmh_source', JSON.stringify(source.value))
-  } catch (e) {
-    console.error('保存来源信息失败', e)
-  }
+  saveSourceToStorage(source.value)
 }
 
 const fetchCampaign = async () => {
@@ -163,11 +169,6 @@ const fetchCampaign = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const formatTime = (time) => {
-  if (!time) return ''
-  return time.replace('T', ' ').replace('Z', '').substring(0, 16)
 }
 
 const goToVerify = () => {
@@ -257,11 +258,9 @@ const downloadPoster = () => {
 }
 
 // 计算转化率
-const calculateConversionRate = () => {
+const getConversionRate = () => {
   if (!campaign.value) return 0
-  const { participantCount, orderCount } = campaign.value
-  if (!participantCount || participantCount === 0) return 0
-  return ((orderCount || 0) / participantCount * 100).toFixed(1)
+  return calculateConversionRate(campaign.value.participantCount, campaign.value.orderCount)
 }
 
 onMounted(() => {

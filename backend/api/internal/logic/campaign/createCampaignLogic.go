@@ -105,11 +105,13 @@ func (l *CreateCampaignLogic) CreateCampaign(req *types.CreateCampaignReq) (resp
 
 	l.Infof("Campaign created successfully: campaignId=%d, name=%s", newCampaign.Id, newCampaign.Name)
 
-	var formFieldsStr string
+	// 解析 formFields JSON 字符串为对象
+	var formFields []types.FormField
 	if newCampaign.FormFields != "" {
-		formFieldsStr = newCampaign.FormFields
-	} else {
-		formFieldsStr = "[]"
+		if err := json.Unmarshal([]byte(newCampaign.FormFields), &formFields); err != nil {
+			l.Errorf("Failed to parse formFields JSON: %v", err)
+			// 继续使用空数组
+		}
 	}
 
 	distributionRewardsResp := ""
@@ -126,7 +128,7 @@ func (l *CreateCampaignLogic) CreateCampaign(req *types.CreateCampaignReq) (resp
 		BrandId:             newCampaign.BrandId,
 		Name:                newCampaign.Name,
 		Description:         newCampaign.Description,
-		FormFields:          formFieldsStr,
+		FormFields:          formFields,
 		RewardRule:          newCampaign.RewardRule,
 		StartTime:           newCampaign.StartTime.Format("2006-01-02T15:04:05"),
 		EndTime:             newCampaign.EndTime.Format("2006-01-02T15:04:05"),

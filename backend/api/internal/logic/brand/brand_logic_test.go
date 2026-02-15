@@ -20,7 +20,7 @@ func setupBrandTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
 
-	err = db.AutoMigrate(&model.Brand{})
+	err = db.AutoMigrate(&model.Brand{}, &model.BrandAsset{}, &model.Campaign{}, &model.Order{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}

@@ -50,7 +50,7 @@
       </label>
 
       <button class="btn-primary" :disabled="submitting" @click="submitFeedback">
-        {{ submitting ? '提交中...' : '提交反馈' }}
+        {{ submitButtonText }}
       </button>
     </div>
 
@@ -86,8 +86,8 @@
           <strong>{{ faq.question }}</strong>
           <p class="content">{{ faq.answer }}</p>
           <div class="faq-actions">
-            <button class="btn-link" @click="markHelpful(faq.id, 'helpful')">有帮助（{{ faq.helpfulCount || 0 }}）</button>
-            <button class="btn-link" @click="markHelpful(faq.id, 'not_helpful')">没帮助（{{ faq.notHelpfulCount || 0 }}）</button>
+            <button class="btn-link" @click="markHelpful(faq.id, 'helpful')">有帮助（{{ getHelpfulCountByType(faq, 'helpful') }}）</button>
+            <button class="btn-link" @click="markHelpful(faq.id, 'not_helpful')">没帮助（{{ getHelpfulCountByType(faq, 'not_helpful') }}）</button>
           </div>
         </li>
       </ul>
@@ -96,10 +96,24 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { feedbackApi } from '@/services/api'
+import {
+  CATEGORY_OPTIONS,
+  PRIORITY_OPTIONS,
+  RATING_OPTIONS,
+  STATUS_TEXT_MAP,
+  getDefaultForm,
+  statusText,
+  formatDate,
+  validateFeedbackForm,
+  buildFeedbackPayload,
+  resetForm,
+  getSubmitButtonText,
+  getHelpfulCount
+} from './feedbackCenter.logic.js'
 
 const router = useRouter()
 
@@ -110,55 +124,26 @@ const faqLoading = ref(false)
 const myFeedback = ref([])
 const faqList = ref([])
 
-const form = ref({
-  category: 'poster',
-  priority: 'medium',
-  title: '',
-  content: '',
-  rating: null,
-})
+const form = ref(getDefaultForm())
 
 const goBack = () => {
   router.back()
 }
 
-const statusText = (status) => {
-  const map = {
-    pending: '待处理',
-    reviewing: '处理中',
-    resolved: '已解决',
-    closed: '已关闭',
-  }
-  return map[status] || status
-}
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleString('zh-CN')
-}
+const submitButtonText = computed(() => getSubmitButtonText(submitting.value))
 
 const submitFeedback = async () => {
-  if (!form.value.title || !form.value.content) {
-    showToast('请填写标题和内容')
+  const validation = validateFeedbackForm(form.value)
+  if (!validation.valid) {
+    showToast(validation.errors[0])
     return
   }
 
   submitting.value = true
   try {
-    await feedbackApi.createFeedback({
-      category: form.value.category,
-      priority: form.value.priority,
-      title: form.value.title,
-      content: form.value.content,
-      rating: form.value.rating,
-      featureUseCase: 'h5_feedback_center',
-      deviceInfo: navigator.userAgent,
-      browserInfo: navigator.userAgent,
-    })
+    await feedbackApi.createFeedback(buildFeedbackPayload(form.value))
     showToast('反馈提交成功')
-    form.value.title = ''
-    form.value.content = ''
-    form.value.rating = null
+    form.value = resetForm()
     await loadMyFeedback()
   } catch (error) {
     console.error('submit feedback failed:', error)
@@ -203,6 +188,8 @@ const markHelpful = async (id, type) => {
     showToast('操作失败，请稍后重试')
   }
 }
+
+const getHelpfulCountByType = (faq, type) => getHelpfulCount(faq, type)
 
 onMounted(async () => {
   await Promise.all([loadMyFeedback(), loadFaq()])

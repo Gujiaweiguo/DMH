@@ -206,6 +206,19 @@
 
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
+import {
+  createAIGeneratedMaterial,
+  createUploadedMaterial,
+  filterMaterialsByCategory,
+  formatMaterialDate,
+  getDefaultAITextForm,
+  getDefaultUploadForm,
+  getMaterialCategories,
+  getMaterialTypeText,
+  getMockMaterials,
+  validateAITextInput,
+  validateUploadInput,
+} from './materials.logic.js'
 
 const materials = ref([])
 const currentCategory = ref('all')
@@ -215,77 +228,27 @@ const showAIImageModal = ref(false)
 const uploading = ref(false)
 const aiGenerating = ref(false)
 
-const categories = [
-  { value: 'all', label: '全部' },
-  { value: 'image', label: '图片' },
-  { value: 'text', label: '文案' },
-  { value: 'video', label: '视频' }
-]
+const categories = getMaterialCategories()
 
-const uploadForm = reactive({
-  name: '',
-  description: '',
-  category: 'image',
-  file: null
-})
+const uploadForm = reactive(getDefaultUploadForm())
 
-const aiTextForm = reactive({
-  topic: '',
-  style: 'professional',
-  length: 'medium'
-})
+const aiTextForm = reactive(getDefaultAITextForm())
 
 const filteredMaterials = computed(() => {
-  if (currentCategory.value === 'all') {
-    return materials.value
-  }
-  return materials.value.filter(material => material.type === currentCategory.value)
+  return filterMaterialsByCategory(materials.value, currentCategory.value)
 })
 
 const getTypeText = (type) => {
-  const typeMap = {
-    image: '图片',
-    text: '文案',
-    video: '视频'
-  }
-  return typeMap[type] || type
+  return getMaterialTypeText(type)
 }
 
 const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('zh-CN')
+  return formatMaterialDate(dateString)
 }
 
 const loadMaterials = async () => {
   try {
-    // TODO: 调用真实API
-    // 模拟数据
-    materials.value = [
-      {
-        id: 1,
-        name: '春节促销海报',
-        description: '2026年春节特惠活动主视觉海报',
-        type: 'image',
-        url: 'https://images.unsplash.com/photo-1607344645866-009c7d0f2e8d?w=400',
-        createdAt: '2026-01-01'
-      },
-      {
-        id: 2,
-        name: '新年祝福文案',
-        description: '温馨的新年祝福营销文案',
-        type: 'text',
-        content: '新年新气象，好运连连来！参与我们的春节特惠活动，让这个新年更加精彩...',
-        createdAt: '2026-01-01'
-      },
-      {
-        id: 3,
-        name: '产品展示图',
-        description: '主打产品的精美展示图片',
-        type: 'image',
-        url: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400',
-        createdAt: '2025-12-28'
-      }
-    ]
+    materials.value = getMockMaterials()
   } catch (error) {
     console.error('加载素材失败:', error)
   }
@@ -302,32 +265,28 @@ const handleFileUpload = (event) => {
 }
 
 const uploadMaterial = async () => {
-  if (!uploadForm.file || !uploadForm.name) {
-    alert('请选择文件并填写素材名称')
+  const errorMsg = validateUploadInput(uploadForm)
+  if (errorMsg) {
+    alert(errorMsg)
     return
   }
 
   uploading.value = true
   try {
     // TODO: 实现文件上传
-    const newMaterial = {
+    const newMaterial = createUploadedMaterial({
       id: Date.now(),
       name: uploadForm.name,
       description: uploadForm.description,
-      type: uploadForm.category,
+      category: uploadForm.category,
       url: URL.createObjectURL(uploadForm.file),
-      createdAt: new Date().toISOString().split('T')[0]
-    }
+      createdAt: new Date().toISOString().split('T')[0],
+    })
     
     materials.value.unshift(newMaterial)
     
     // 重置表单
-    Object.assign(uploadForm, {
-      name: '',
-      description: '',
-      category: 'image',
-      file: null
-    })
+    Object.assign(uploadForm, getDefaultUploadForm())
     
     showUploadModal.value = false
     alert('上传成功')
@@ -340,8 +299,9 @@ const uploadMaterial = async () => {
 }
 
 const generateAIText = async () => {
-  if (!aiTextForm.topic) {
-    alert('请输入文案主题')
+  const errorMsg = validateAITextInput(aiTextForm.topic)
+  if (errorMsg) {
+    alert(errorMsg)
     return
   }
 
@@ -350,25 +310,16 @@ const generateAIText = async () => {
     // TODO: 调用AI文案生成API
     await new Promise(resolve => setTimeout(resolve, 2000)) // 模拟API调用
     
-    const generatedText = `🎉 ${aiTextForm.topic}火热进行中！限时优惠，机不可失！立即参与，享受超值福利，让您的生活更加精彩！赶快行动吧，名额有限，先到先得！`
-    
-    const newMaterial = {
+    const newMaterial = createAIGeneratedMaterial({
       id: Date.now(),
-      name: `AI生成-${aiTextForm.topic}`,
-      description: 'AI智能生成的营销文案',
-      type: 'text',
-      content: generatedText,
-      createdAt: new Date().toISOString().split('T')[0]
-    }
+      topic: aiTextForm.topic,
+      createdAt: new Date().toISOString().split('T')[0],
+    })
     
     materials.value.unshift(newMaterial)
     
     // 重置表单
-    Object.assign(aiTextForm, {
-      topic: '',
-      style: 'professional',
-      length: 'medium'
-    })
+    Object.assign(aiTextForm, getDefaultAITextForm())
     
     showAITextModal.value = false
     alert('文案生成成功')

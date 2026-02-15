@@ -4,7 +4,7 @@
     <div class="balance-card">
       <div class="balance-info">
         <div class="balance-label">可提现余额</div>
-        <div class="balance-value">¥{{ balance.toFixed(2) }}</div>
+        <div class="balance-value">¥{{ formatBalance(balance) }}</div>
         <van-button type="primary" size="small" @click="showWithdrawalDialog = true">
           申请提现
         </van-button>
@@ -27,7 +27,7 @@
           >
             <div class="withdrawal-header">
               <div class="withdrawal-amount">
-                <span class="amount">¥{{ withdrawal.amount.toFixed(2) }}</span>
+                <span class="amount">¥{{ formatBalance(withdrawal.amount) }}</span>
                 <van-tag :type="getStatusType(withdrawal.status)">
                   {{ getStatusText(withdrawal.status) }}
                 </van-tag>
@@ -117,6 +117,20 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Toast, Dialog } from 'vant'
 import axios from '@/utils/axios'
+import {
+  PAY_TYPES,
+  getStatusType,
+  getStatusText,
+  getPayTypeText,
+  getPayAccountLabel,
+  getPayRealNameLabel,
+  getDefaultWithdrawalForm,
+  validateAmount,
+  buildWithdrawalPayload,
+  formatBalance,
+  formatDate,
+  calculateNewBalance
+} from './distributorWithdrawals.logic.js'
 
 export default {
   name: 'DistributorWithdrawals',
@@ -134,33 +148,15 @@ export default {
     const showWithdrawalDialog = ref(false)
     const showPayTypePicker = ref(false)
     
-    const withdrawalForm = ref({
-      amount: '',
-      payType: 'wechat',
-      payAccount: '',
-      payRealName: ''
-    })
+    const withdrawalForm = ref(getDefaultWithdrawalForm())
     
-    const payTypes = [
-      { label: '微信', value: 'wechat' },
-      { label: '支付宝', value: 'alipay' },
-      { label: '银行卡', value: 'bank' }
-    ]
+    const payTypes = PAY_TYPES
     
     // 表单验证规则
     const amountRules = [
       { required: true, message: '请输入提现金额' },
       {
-        validator: value => {
-          const amount = parseFloat(value)
-          if (isNaN(amount) || amount <= 0) {
-            return '提现金额必须大于0'
-          }
-          if (amount > balance.value) {
-            return '提现金额不能超过可用余额'
-          }
-          return true
-        }
+        validator: value => validateAmount(value, balance.value)
       }
     ]
     
@@ -173,24 +169,10 @@ export default {
     ]
     
     // 获取提现方式选择器标签
-    const getPayAccountLabel = () => {
-      const payTypeMap = {
-        wechat: '微信号',
-        alipay: '支付宝账号',
-        bank: '银行卡号'
-      }
-      return payTypeMap[withdrawalForm.value.payType] || '提现账号'
-    }
+    const getPayAccountLabelLocal = () => getPayAccountLabel(withdrawalForm.value.payType)
     
     // 获取真实姓名标签
-    const getPayRealNameLabel = () => {
-      const payTypeMap = {
-        wechat: '微信昵称',
-        alipay: '支付宝姓名',
-        bank: '银行卡持卡人'
-      }
-      return payTypeMap[withdrawalForm.value.payType] || '真实姓名'
-    }
+    const getPayRealNameLabelLocal = () => getPayRealNameLabel(withdrawalForm.value.payType)
     
     // 加载提现记录
     const loadWithdrawals = async (isRefresh = false) => {
@@ -247,16 +229,12 @@ export default {
     // 申请提现
     const applyWithdrawal = async () => {
       try {
-		const data = await axios.post('/withdrawals/apply', {
-          amount: parseFloat(withdrawalForm.value.amount),
-          payType: withdrawalForm.value.payType,
-          payAccount: withdrawalForm.value.payAccount,
-          payRealName: withdrawalForm.value.payRealName
-        })
+		const data = await axios.post('/withdrawals/apply', buildWithdrawalPayload(withdrawalForm.value))
         
         if (data.code === 200) {
           Toast.success('提现申请已提交')
           showWithdrawalDialog.value = false
+          const withdrawnAmount = parseFloat(withdrawalForm.value.amount)
           resetWithdrawalForm()
           // 重新加载提现记录
           page.value = 1
@@ -264,7 +242,7 @@ export default {
           withdrawals.value = []
           await loadWithdrawals()
           // 更新余额
-          balance.value -= parseFloat(withdrawalForm.value.amount)
+          balance.value = calculateNewBalance(balance.value, withdrawnAmount)
         }
       } catch (error) {
         console.error('申请提现失败:', error)
@@ -280,56 +258,15 @@ export default {
     
     // 重置表单
     const resetWithdrawalForm = () => {
-      withdrawalForm.value = {
-        amount: '',
-        payType: 'wechat',
-        payAccount: '',
-        payRealName: ''
-      }
+      withdrawalForm.value = getDefaultWithdrawalForm()
     }
     
-    // 获取状态类型
-    const getStatusType = (status) => {
-      const types = {
-        pending: 'warning',
-        approved: 'primary',
-        rejected: 'danger',
-        processing: 'success',
-        completed: 'success',
-        failed: 'danger'
-      }
-      return types[status] || 'default'
-    }
-    
-    // 获取状态文本
-    const getStatusText = (status) => {
-      const texts = {
-        pending: '待审核',
-        approved: '已批准',
-        rejected: '已拒绝',
-        processing: '处理中',
-        completed: '已完成',
-        failed: '失败'
-      }
-      return texts[status] || status
-    }
-    
-    // 获取提现方式文本
-    const getPayTypeText = (payType) => {
-      const texts = {
-        wechat: '微信',
-        alipay: '支付宝',
-        bank: '银行卡'
-      }
-      return texts[payType] || payType
-    }
-    
-    // 格式化日期
-    const formatDate = (date) => {
-      if (!date) return ''
-      const d = new Date(date)
-      return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
-    }
+    // Re-export from logic for template
+    const getStatusTypeLocal = getStatusType
+    const getStatusTextLocal = getStatusText
+    const getPayTypeTextLocal = getPayTypeText
+    const formatDateLocal = formatDate
+    const formatBalanceLocal = formatBalance
     
     onMounted(() => {
       loadWithdrawals()
@@ -351,17 +288,18 @@ export default {
       amountRules,
       payAccountRules,
       payRealNameRules,
-      getPayAccountLabel,
-      getPayRealNameLabel,
+      getPayAccountLabel: getPayAccountLabelLocal,
+      getPayRealNameLabel: getPayRealNameLabelLocal,
       selectPayType,
       resetWithdrawalForm,
       applyWithdrawal,
       onRefresh,
       onLoad,
-      getStatusType,
-      getStatusText,
-      getPayTypeText,
-      formatDate
+      getStatusType: getStatusTypeLocal,
+      getStatusText: getStatusTextLocal,
+      getPayTypeText: getPayTypeTextLocal,
+      formatDate: formatDateLocal,
+      formatBalance: formatBalanceLocal
     }
   }
 }

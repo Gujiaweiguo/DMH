@@ -1,10 +1,37 @@
 package menu
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"dmh/api/internal/svc"
+	"dmh/api/internal/types"
+	"dmh/model"
+
 	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
+
+func setupMenuHandlerTestDB(t *testing.T) *gorm.DB {
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("Failed to open test database: %v", err)
+	}
+
+	err = db.AutoMigrate(&model.Menu{}, &model.Role{}, &model.RoleMenu{}, &model.User{}, &model.UserRole{})
+	if err != nil {
+		t.Fatalf("Failed to migrate database: %v", err)
+	}
+
+	return db
+}
 
 func TestMenuHandlersConstruct(t *testing.T) {
 	assert.NotNil(t, GetMenusHandler(nil))
@@ -14,4 +41,106 @@ func TestMenuHandlersConstruct(t *testing.T) {
 	assert.NotNil(t, DeleteMenuHandler(nil))
 	assert.NotNil(t, ConfigRoleMenusHandler(nil))
 	assert.NotNil(t, GetUserMenusHandler(nil))
+}
+
+func TestGetMenusHandler_Success(t *testing.T) {
+	db := setupMenuHandlerTestDB(t)
+
+	menu := &model.Menu{Name: "Dashboard", Code: "dashboard", Path: "/dashboard", Type: "menu", Platform: "admin", Status: "active"}
+	db.Create(menu)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetMenusHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/menus", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+}
+
+func TestCreateMenuHandler_Success(t *testing.T) {
+	db := setupMenuHandlerTestDB(t)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := CreateMenuHandler(svcCtx)
+
+	reqBody := types.CreateMenuReq{
+		Name:     "New Menu",
+		Code:     "new_menu",
+		Path:     "/new",
+		Type:     "menu",
+		Platform: "admin",
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/menus", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+}
+
+func TestCreateMenuHandler_ParseError(t *testing.T) {
+	handler := CreateMenuHandler(nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/menus", strings.NewReader("{invalid"))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestUpdateMenuHandler_ParseError(t *testing.T) {
+	db := setupMenuHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := UpdateMenuHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/menus/1", strings.NewReader("{invalid"))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestDeleteMenuHandler_ParseError(t *testing.T) {
+	db := setupMenuHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := DeleteMenuHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/menus/invalid", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestConfigRoleMenusHandler_ParseError(t *testing.T) {
+	handler := ConfigRoleMenusHandler(nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/roles/menus", strings.NewReader("{invalid"))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestGetUserMenusHandler_ParseError(t *testing.T) {
+	db := setupMenuHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetUserMenusHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/invalid/menus", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
 }

@@ -150,6 +150,12 @@ import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { authApi } from "@/services/brandApi.js";
 import axios from "@/utils/axios";
+import {
+  getStatusType,
+  getStatusText,
+  getDefaultStatistics,
+  clearDistributorAuth
+} from "./distributorCenter.logic.js";
 
 export default {
 	name: "DistributorCenter",
@@ -160,14 +166,7 @@ export default {
 		const selectedBrandId = ref(null);
 		const applicationStatus = ref(null);
 		const activeTab = ref(1);
-		const statistics = ref({
-			totalEarnings: 0,
-			totalOrders: 0,
-			subordinatesCount: 0,
-			todayEarnings: 0,
-			monthEarnings: 0,
-			balance: 0, // 新增：可提现余额
-		});
+		const statistics = ref(getDefaultStatistics());
 
 		// 加载分销商状态
 		const loadDistributorStatus = async () => {
@@ -226,10 +225,7 @@ export default {
 				console.warn("登出失败:", error);
 			}
 
-			localStorage.removeItem("dmh_token");
-			localStorage.removeItem("dmh_user_role");
-			localStorage.removeItem("dmh_user_info");
-			localStorage.removeItem("dmh_current_brand_id");
+			clearDistributorAuth();
 			router.push("/distributor/login");
 		};
 
@@ -281,25 +277,11 @@ export default {
 			}
 		};
 
-		// 获取状态类型
-		const getStatusType = (status) => {
-			const types = {
-				pending: "warning",
-				approved: "success",
-				rejected: "danger",
-			};
-			return types[status] || "default";
-		};
+		// 获取状态类型 (re-export from logic)
+		const getStatusTypeLocal = getStatusType;
 
-		// 获取状态文本
-		const getStatusText = (status) => {
-			const texts = {
-				pending: "待审核",
-				approved: "已通过",
-				rejected: "已拒绝",
-			};
-			return texts[status] || status;
-		};
+		// 获取状态文本 (re-export from logic)
+		const getStatusTextLocal = getStatusText;
 
 		onMounted(() => {
 			loadDistributorStatus();
@@ -323,8 +305,8 @@ export default {
 			goToStatistics,
 			handleLogout,
 			refresh,
-			getStatusType,
-			getStatusText,
+			getStatusType: getStatusTypeLocal,
+			getStatusText: getStatusTextLocal,
 		};
 	},
 };

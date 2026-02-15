@@ -85,6 +85,15 @@ coverage/
 *.coverprofile
 .nyc_output/
 
+# ==================== 测试输出 ====================
+test-results/
+playwright-report/
+playwright/.cache/
+
+# ==================== 部署备份 ====================
+deployment/backups/
+deployment/logs/*.log
+
 # ==================== 备份文件 ====================
 *.bak
 *.backup

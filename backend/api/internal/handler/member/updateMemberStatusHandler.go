@@ -5,8 +5,6 @@ package member
 
 import (
 	"net/http"
-	"strconv"
-	"strings"
 
 	"dmh/api/internal/logic/member"
 	"dmh/api/internal/svc"
@@ -23,9 +21,11 @@ func UpdateMemberStatusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		pathParts := strings.Split(r.URL.Path, "/")
-		memberIdStr := pathParts[len(pathParts)-1]
-		memberId, _ := strconv.ParseInt(memberIdStr, 10, 64)
+		memberId, err := parseMemberIDFromPath(r.URL.Path)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
 
 		l := member.NewUpdateMemberStatusLogic(r.Context(), svcCtx)
 		resp, err := l.UpdateMemberStatus(memberId, &req)

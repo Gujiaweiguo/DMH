@@ -1,0 +1,164 @@
+package syncadapter
+
+import (
+	"testing"
+
+	"dmh/model"
+
+	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+)
+
+func setupSyncWorkerTestDB(t *testing.T) *gorm.DB {
+	dsn := "file:sync_worker_test?mode=memory&cache=shared"
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("Failed to open test database: %v", err)
+	}
+
+	err = db.AutoMigrate(&model.Order{}, &model.Reward{}, &model.SyncLog{})
+	if err != nil {
+		t.Fatalf("Failed to migrate database: %v", err)
+	}
+
+	return db
+}
+
+func TestNewSyncWorker(t *testing.T) {
+	db := setupSyncWorkerTestDB(t)
+	adapter := &SyncAdapter{}
+	queue := &SyncQueue{}
+
+	worker := NewSyncWorker(adapter, queue, db)
+
+	assert.NotNil(t, worker)
+	assert.NotNil(t, worker.adapter)
+	assert.NotNil(t, worker.queue)
+	assert.NotNil(t, worker.db)
+	assert.NotNil(t, worker.stop)
+}
+
+func TestSyncWorker_Stop(t *testing.T) {
+	db := setupSyncWorkerTestDB(t)
+	adapter := &SyncAdapter{}
+	queue := &SyncQueue{}
+
+	worker := NewSyncWorker(adapter, queue, db)
+
+	assert.NotPanics(t, func() {
+		worker.Stop()
+	})
+}
+
+func TestUpdateSyncStatus_Create(t *testing.T) {
+	db := setupSyncWorkerTestDB(t)
+	adapter := &SyncAdapter{}
+	queue := &SyncQueue{}
+
+	worker := NewSyncWorker(adapter, queue, db)
+
+	worker.updateSyncStatus(123, "synced", "")
+
+	var log model.SyncLog
+	err := db.Where("order_id = ? AND sync_type = ?", 123, "order").First(&log).Error
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(123), log.OrderId)
+	assert.Equal(t, "order", log.SyncType)
+	assert.Equal(t, "synced", log.SyncStatus)
+	assert.Equal(t, 0, log.Attempts)
+	assert.NotNil(t, log.SyncedAt)
+}
+
+func TestUpdateSyncStatus_Update(t *testing.T) {
+	db := setupSyncWorkerTestDB(t)
+	adapter := &SyncAdapter{}
+	queue := &SyncQueue{}
+
+	worker := NewSyncWorker(adapter, queue, db)
+
+	worker.updateSyncStatus(123, "synced", "")
+
+	worker.updateSyncStatus(123, "synced", "")
+
+	var log model.SyncLog
+	err := db.Where("order_id = ? AND sync_type = ?", 123, "order").First(&log).Error
+
+	assert.NoError(t, err)
+	assert.Equal(t, 2, log.Attempts)
+}
+
+func TestUpdateSyncStatus_Failed(t *testing.T) {
+	db := setupSyncWorkerTestDB(t)
+	adapter := &SyncAdapter{}
+	queue := &SyncQueue{}
+
+	worker := NewSyncWorker(adapter, queue, db)
+
+	worker.updateSyncStatus(123, "failed", "connection error")
+
+	var log model.SyncLog
+	err := db.Where("order_id = ? AND sync_type = ?", 123, "order").First(&log).Error
+
+	assert.NoError(t, err)
+	assert.Equal(t, "failed", log.SyncStatus)
+	assert.Equal(t, "connection error", log.ErrorMsg)
+	assert.Nil(t, log.SyncedAt)
+}
+
+func TestUpdateRewardSyncStatus_Create(t *testing.T) {
+	db := setupSyncWorkerTestDB(t)
+	adapter := &SyncAdapter{}
+	queue := &SyncQueue{}
+
+	worker := NewSyncWorker(adapter, queue, db)
+
+	worker.updateRewardSyncStatus(456, "synced", "")
+
+	var log model.SyncLog
+	err := db.Where("order_id = ? AND sync_type = ?", 456, "reward").First(&log).Error
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(456), log.OrderId)
+	assert.Equal(t, "reward", log.SyncType)
+	assert.Equal(t, "synced", log.SyncStatus)
+	assert.Equal(t, 0, log.Attempts)
+	assert.NotNil(t, log.SyncedAt)
+}
+
+func TestUpdateRewardSyncStatus_Update(t *testing.T) {
+	db := setupSyncWorkerTestDB(t)
+	adapter := &SyncAdapter{}
+	queue := &SyncQueue{}
+
+	worker := NewSyncWorker(adapter, queue, db)
+
+	worker.updateRewardSyncStatus(456, "synced", "")
+
+	worker.updateRewardSyncStatus(456, "synced", "")
+
+	var log model.SyncLog
+	err := db.Where("order_id = ? AND sync_type = ?", 456, "reward").First(&log).Error
+
+	assert.NoError(t, err)
+	assert.Equal(t, 2, log.Attempts)
+}
+
+func TestUpdateRewardSyncStatus_Failed(t *testing.T) {
+	db := setupSyncWorkerTestDB(t)
+	adapter := &SyncAdapter{}
+	queue := &SyncQueue{}
+
+	worker := NewSyncWorker(adapter, queue, db)
+
+	worker.updateRewardSyncStatus(456, "failed", "database error")
+
+	var log model.SyncLog
+	err := db.Where("order_id = ? AND sync_type = ?", 456, "reward").First(&log).Error
+
+	assert.NoError(t, err)
+	assert.Equal(t, "failed", log.SyncStatus)
+	assert.Equal(t, "database error", log.ErrorMsg)
+	assert.Nil(t, log.SyncedAt)
+}

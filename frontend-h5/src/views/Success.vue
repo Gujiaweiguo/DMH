@@ -11,12 +11,11 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { goHome } from './success.logic.js'
 
 const router = useRouter()
 
-const goBack = () => {
-  router.push('/')
-}
+const goBack = () => goHome(router)
 </script>
 
 <style scoped>

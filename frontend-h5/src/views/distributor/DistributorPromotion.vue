@@ -200,30 +200,27 @@
              <h3>我的推广链接</h3>
              <van-empty v-if="links.length === 0" description="暂无推广链接" />
              <van-cell-group inset v-else>
-               <van-cell
-                 v-for="link in links"
-                 :key="link.linkId"
-                 :title="link.campaignName || `活动 ${link.campaignId}`"
-                 :value="`点击 ${link.clickCount} 次`"
-                 is-link
-                 @click="viewLink(link)"
-               />
+                <van-cell
+                  v-for="link in links"
+                  :key="link.linkId"
+                  :title="link.campaignName || `活动 ${link.campaignId}`"
+                  :value="formatClickCount(link.clickCount)"
+                  is-link
+                  @click="viewLink(link)"
+                />
              </van-cell-group>
            </div>
          </div>
        </van-tab>
      </van-tabs>
  
-     <!-- 推广说明 -->
-     <div class="promotion-guide">
-       <h3>推广说明</h3>
-       <div class="guide-content">
-         <p>1. 选择要推广的活动，生成专属海报或链接</p>
-         <p>2. 将海报或二维码分享给朋友，引导他们下单</p>
-         <p>3. 用户通过您的推广下单，您即可获得佣金奖励</p>
-         <p>4. 最多支持三级分销，您的下级推广也能为您带来收益</p>
-       </div>
-     </div>
+      <!-- 推广说明 -->
+      <div class="promotion-guide">
+        <h3>推广说明</h3>
+        <div class="guide-content">
+          <p v-for="(guide, index) in promotionGuide" :key="index">{{ guide }}</p>
+        </div>
+      </div>
  
      <!-- 活动选择器 -->
      <van-popup v-model:show="showCampaignPicker" position="bottom">
@@ -237,38 +234,49 @@
  </template>
 
 <script>
- import { ref, computed, onMounted } from 'vue'
- import { useRoute, useRouter } from 'vue-router'
- import { Toast } from 'vant'
- import axios from '@/utils/axios'
- 
- export default {
-   name: 'DistributorPromotion',
-   setup() {
-     const route = useRoute()
-     const router = useRouter()
-     const brandId = ref(parseInt(route.query.brandId) || 0)
-     const activeTab = ref('campaign')
-     const selectedCampaignId = ref(null)
-     const selectedCampaignName = ref('')
-     const showCampaignPicker = ref(false)
-     const generatedLink = ref(null)
-     const qrcodeUrl = ref('')
-     const loadingQrcode = ref(false)
-     const links = ref([])
-     const campaigns = ref([])
-     const campaignPoster = ref(null)
-     const distributorPoster = ref(null)
-     const generatingPoster = ref(false)
-     const campaignPosterData = ref({})
-     const distributorPosterData = ref({})
- 
-     const campaignOptions = computed(() => {
-       return campaigns.value.map(c => ({
-         text: c.name,
-         value: c.id
-       }))
-     })
+  import { ref, computed, onMounted } from 'vue'
+  import { useRoute, useRouter } from 'vue-router'
+  import { Toast } from 'vant'
+  import axios from '@/utils/axios'
+  import {
+    PROMOTION_GUIDE,
+    buildCampaignOptions,
+    buildPosterDownloadName,
+    buildQrcodeDownloadName,
+    buildQrcodeUrl,
+    canGenerateCampaignPoster,
+    buildPosterPayload,
+    buildLinkPayload,
+    formatClickCount,
+    getCampaignDisplayName,
+    DEFAULT_POSTER_DATA,
+    DEFAULT_LINK_DATA
+  } from './distributorPromotion.logic.js'
+  
+  export default {
+    name: 'DistributorPromotion',
+    setup() {
+      const route = useRoute()
+      const router = useRouter()
+      const brandId = ref(parseInt(route.query.brandId) || 0)
+      const activeTab = ref('campaign')
+      const selectedCampaignId = ref(null)
+      const selectedCampaignName = ref('')
+      const showCampaignPicker = ref(false)
+      const generatedLink = ref(null)
+      const qrcodeUrl = ref('')
+      const loadingQrcode = ref(false)
+      const links = ref([])
+      const campaigns = ref([])
+      const campaignPoster = ref(null)
+      const distributorPoster = ref(null)
+      const generatingPoster = ref(false)
+      const campaignPosterData = ref({...DEFAULT_POSTER_DATA})
+      const distributorPosterData = ref({...DEFAULT_POSTER_DATA})
+  
+      const campaignOptions = computed(() => buildCampaignOptions(campaigns.value))
+      
+      const promotionGuide = PROMOTION_GUIDE
  
      // 加载活动列表
      const loadCampaigns = async () => {
@@ -284,79 +292,71 @@
        }
      }
  
-     // 加载我的推广链接
-     const loadMyLinks = async () => {
-       try {
+      // 加载我的推广链接
+      const loadMyLinks = async () => {
+        try {
 		const data = await axios.get('/distributor/links')
-         if (data.code === 200) {
-           links.value = data.data || []
-           // 获取活动名称
-           for (const link of links.value) {
-             const campaign = campaigns.value.find(c => c.id === link.campaignId)
-             if (campaign) {
-               link.campaignName = campaign.name
-             }
-           }
-         }
-       } catch (error) {
-         console.error('获取推广链接失败:', error)
-       }
-     }
+          if (data.code === 200) {
+            links.value = data.data || []
+            // 获取活动名称
+            for (const link of links.value) {
+              link.campaignName = getCampaignDisplayName(link, campaigns.value)
+            }
+          }
+        } catch (error) {
+          console.error('获取推广链接失败:', error)
+        }
+      }
  
-     // 生成活动专属海报
-     const generateCampaignPoster = async () => {
-       if (!selectedCampaignId.value) {
-         Toast('请先选择活动')
-         return
-       }
-
-       generatingPoster.value = true
-       try {
-		const data = await axios.post('/posters/generate', {
-           type: 'campaign',
-           campaignId: selectedCampaignId.value
-         })
-         if (data.code === 200) {
-           campaignPoster.value = data.data
-           campaignPosterData.value = data.data.posterData || {}
-           Toast('海报生成成功')
-         }
-       } catch (error) {
-         Toast(error.response?.data?.message || '海报生成失败')
-       } finally {
-         generatingPoster.value = false
-       }
-     }
-
-    // 生成分销商专属海报
-     const generateDistributorPoster = async () => {
-       generatingPoster.value = true
-       try {
-		const data = await axios.post('/posters/generate', {
-           type: 'distributor'
-         })
-         if (data.code === 200) {
-           distributorPoster.value = data.data
-           distributorPosterData.value = data.data.posterData || {}
-           Toast('海报生成成功')
-         }
-       } catch (error) {
-         Toast(error.response?.data?.message || '海报生成失败')
-       } finally {
-         generatingPoster.value = false
-       }
-     }
+      // 生成活动专属海报
+      const generateCampaignPoster = async () => {
+        if (!canGenerateCampaignPoster(selectedCampaignId.value)) {
+          Toast('请先选择活动')
+          return
+        }
  
-     // 下载海报
-     const downloadPoster = (url, name) => {
-       if (url) {
-         const link = document.createElement('a')
-         link.href = url
-         link.download = `${name}_${Date.now()}.png`
-         link.click()
-         Toast('正在下载海报...')
-       }
-     }
+        generatingPoster.value = true
+        try {
+		const data = await axios.post('/posters/generate', buildPosterPayload('campaign', selectedCampaignId.value))
+          if (data.code === 200) {
+            campaignPoster.value = data.data
+            campaignPosterData.value = data.data.posterData || {...DEFAULT_POSTER_DATA}
+            Toast('海报生成成功')
+          }
+        } catch (error) {
+          Toast(error.response?.data?.message || '海报生成失败')
+        } finally {
+          generatingPoster.value = false
+        }
+      }
+ 
+     // 生成分销商专属海报
+      const generateDistributorPoster = async () => {
+        generatingPoster.value = true
+        try {
+		const data = await axios.post('/posters/generate', buildPosterPayload('distributor'))
+          if (data.code === 200) {
+            distributorPoster.value = data.data
+            distributorPosterData.value = data.data.posterData || {...DEFAULT_POSTER_DATA}
+            Toast('海报生成成功')
+          }
+        } catch (error) {
+          Toast(error.response?.data?.message || '海报生成失败')
+        } finally {
+          generatingPoster.value = false
+        }
+      }
+ 
+      // 下载海报
+      const downloadPoster = (url, name) => {
+        if (url) {
+          const link = document.createElement('a')
+          link.href = url
+          link.download = buildPosterDownloadName(name)
+          link.click()
+          Toast('正在下载海报...')
+        }
+      }
  
      // 分享海报
      const sharePoster = async (url) => {
@@ -385,30 +385,27 @@
        await generateLink(option.value)
      }
  
-     // 生成推广链接
-     const generateLink = async (campaignId) => {
-       try {
-		const data = await axios.post('/distributor/link/generate', {
-           campaignId: campaignId
-         })
-         if (data.code === 200) {
-           generatedLink.value = data.data
-           qrcodeUrl.value = ''
-           // 重新加载链接列表
-           loadMyLinks()
-         }
-       } catch (error) {
-         Toast(error.response?.data?.message || '生成链接失败')
-       }
-     }
- 
-     // 加载二维码
-     const loadQrcode = () => {
-       loadingQrcode.value = true
-       // 使用二维码API
-       qrcodeUrl.value = generatedLink.value.qrcodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(generatedLink.value.link)}`
-       loadingQrcode.value = false
-     }
+      // 生成推广链接
+      const generateLink = async (campaignId) => {
+        try {
+		const data = await axios.post('/distributor/link/generate', buildLinkPayload(campaignId))
+          if (data.code === 200) {
+            generatedLink.value = data.data
+            qrcodeUrl.value = ''
+            // 重新加载链接列表
+            loadMyLinks()
+          }
+        } catch (error) {
+          Toast(error.response?.data?.message || '生成链接失败')
+        }
+      }
+  
+      // 加载二维码
+      const loadQrcode = () => {
+        loadingQrcode.value = true
+        qrcodeUrl.value = buildQrcodeUrl(generatedLink.value.link, generatedLink.value.qrcodeUrl)
+        loadingQrcode.value = false
+      }
  
      // 复制链接
      const copyLink = () => {
@@ -430,61 +427,65 @@
        }
      }
  
-     // 下载二维码
-     const downloadQrcode = () => {
-       if (qrcodeUrl.value) {
-         const link = document.createElement('a')
-         link.href = qrcodeUrl.value
-         link.download = `推广二维码_${generatedLink.value.linkCode}.png`
-         link.click()
-         Toast('正在下载二维码...')
-       }
-     }
- 
-     // 查看链接详情
-     const viewLink = (link) => {
-       selectedCampaignId.value = link.campaignId
-       const campaign = campaigns.value.find(c => c.id === link.campaignId)
-       selectedCampaignName.value = campaign ? campaign.name : `活动 ${link.campaignId}`
-       generatedLink.value = link
-       qrcodeUrl.value = ''
-     }
- 
-     onMounted(() => {
-       loadCampaigns()
-       loadMyLinks()
-     })
- 
-     return {
-       brandId,
-       activeTab,
-       selectedCampaignId,
-       selectedCampaignName,
-       showCampaignPicker,
-       generatedLink,
-       qrcodeUrl,
-       loadingQrcode,
-       links,
-       campaigns,
-       campaignPoster,
-       distributorPoster,
-       generatingPoster,
-       campaignPosterData,
-       distributorPosterData,
-       campaignOptions,
-       generateCampaignPoster,
-       generateDistributorPoster,
-       downloadPoster,
-       sharePoster,
-       onCampaignConfirm,
-       loadQrcode,
-       copyLink,
-       downloadQrcode,
-       viewLink
-     }
-   }
- }
- </script>
+      // 下载二维码
+      const downloadQrcode = () => {
+        if (qrcodeUrl.value) {
+          const link = document.createElement('a')
+          link.href = qrcodeUrl.value
+          link.download = buildQrcodeDownloadName(generatedLink.value.linkCode)
+          link.click()
+          Toast('正在下载二维码...')
+        }
+      }
+  
+      // 查看链接详情
+      const viewLink = (link) => {
+        selectedCampaignId.value = link.campaignId
+        selectedCampaignName.value = getCampaignDisplayName(link, campaigns.value)
+        generatedLink.value = link
+        qrcodeUrl.value = ''
+      }
+  
+      // format click count for template
+      const formatClickCountLocal = formatClickCount
+  
+      onMounted(() => {
+        loadCampaigns()
+        loadMyLinks()
+      })
+  
+      return {
+        brandId,
+        activeTab,
+        selectedCampaignId,
+        selectedCampaignName,
+        showCampaignPicker,
+        generatedLink,
+        qrcodeUrl,
+        loadingQrcode,
+        links,
+        campaigns,
+        campaignPoster,
+        distributorPoster,
+        generatingPoster,
+        campaignPosterData,
+        distributorPosterData,
+        campaignOptions,
+        promotionGuide,
+        generateCampaignPoster,
+        generateDistributorPoster,
+        downloadPoster,
+        sharePoster,
+        onCampaignConfirm,
+        loadQrcode,
+        copyLink,
+        downloadQrcode,
+        viewLink,
+        formatClickCount: formatClickCountLocal
+      }
+    }
+  }
+  </script>
 
 <style scoped>
 .distributor-promotion {

@@ -202,6 +202,14 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  buildDistributorListQuery,
+  countDistributorsByStatus,
+  formatDistributorTime,
+  getDistributorStatusText,
+  mergeDistributorList,
+  parseCurrentBrandId,
+} from './distributors.logic.js'
 
 const router = useRouter()
 
@@ -234,41 +242,26 @@ const statusForm = reactive({
 })
 
 const getCurrentBrandId = () => {
-  const fromStorage = Number(localStorage.getItem('dmh_current_brand_id'))
-  if (Number.isFinite(fromStorage) && fromStorage > 0) return fromStorage
-  try {
-    const info = JSON.parse(localStorage.getItem('dmh_user_info') || '{}')
-    const firstBrandId = Array.isArray(info.brandIds) && info.brandIds.length > 0 ? Number(info.brandIds[0]) : 0
-    if (Number.isFinite(firstBrandId) && firstBrandId > 0) {
-      localStorage.setItem('dmh_current_brand_id', String(firstBrandId))
-      return firstBrandId
-    }
-  } catch {
-    // ignore
+  const brandId = parseCurrentBrandId(
+    localStorage.getItem('dmh_current_brand_id'),
+    localStorage.getItem('dmh_user_info'),
+  )
+  if (brandId > 0 && !localStorage.getItem('dmh_current_brand_id')) {
+    localStorage.setItem('dmh_current_brand_id', String(brandId))
   }
-  return 0
+  return brandId
 }
 
 const formatTime = (timeString) => {
-  if (!timeString) return '-'
-  const date = new Date(timeString)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  })
+  return formatDistributorTime(timeString)
 }
 
 const getStatusText = (status) => {
-  const map = {
-    active: '启用',
-    suspended: '停用'
-  }
-  return map[status] || status || '-'
+  return getDistributorStatusText(status)
 }
 
-const activeCount = computed(() => distributors.value.filter(d => d.status === 'active').length)
-const suspendedCount = computed(() => distributors.value.filter(d => d.status === 'suspended').length)
+const activeCount = computed(() => countDistributorsByStatus(distributors.value, 'active'))
+const suspendedCount = computed(() => countDistributorsByStatus(distributors.value, 'suspended'))
 
 const goToApproval = () => router.push('/brand/distributor-approval')
 const goToLevelRewards = () => router.push('/brand/distributor-level-rewards')
@@ -311,13 +304,14 @@ const loadList = async (replace) => {
       return
     }
 
-    const query = new URLSearchParams()
-    query.set('page', String(page.value))
-    query.set('pageSize', String(pageSize))
-    query.set('brandId', String(brandId))
-    if (filters.keyword.trim()) query.set('keyword', filters.keyword.trim())
-    if (filters.status) query.set('status', filters.status)
-    if (filters.level > 0) query.set('level', String(filters.level))
+    const query = buildDistributorListQuery({
+      page: page.value,
+      pageSize,
+      brandId,
+      keyword: filters.keyword,
+      status: filters.status,
+      level: filters.level,
+    })
 
     const response = await fetch(`/api/v1/brands/${brandId}/distributors?${query.toString()}`, {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -327,8 +321,14 @@ const loadList = async (replace) => {
       const data = await response.json()
       const list = Array.isArray(data.distributors) ? data.distributors : []
       total.value = Number(data.total) || 0
-      distributors.value = replace ? list : distributors.value.concat(list)
-      hasMore.value = distributors.value.length < total.value
+      const merged = mergeDistributorList({
+        currentList: distributors.value,
+        incomingList: list,
+        replace,
+        total: total.value,
+      })
+      distributors.value = merged.distributors
+      hasMore.value = merged.hasMore
       return
     }
 
@@ -853,4 +853,3 @@ onMounted(async () => {
   margin-bottom: 4px;
 }
 </style>
-

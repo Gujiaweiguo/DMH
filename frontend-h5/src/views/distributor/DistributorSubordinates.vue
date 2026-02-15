@@ -26,17 +26,17 @@
             is-link
           >
             <template #title>
-              <div class="subordinate-name">{{ sub.username || '用户' }}{{ sub.id }}</div>
+               <div class="subordinate-name">{{ formatSubordinateName(sub) }}</div>
             </template>
             <template #label>
               <div class="subordinate-info">
-                <p>{{ sub.level }}级分销商 · 加入时间: {{ sub.createdAt }}</p>
+                <p>{{ formatSubordinateInfo(sub) }}</p>
               </div>
             </template>
             <template #value>
               <div class="subordinate-stats">
                 <p>订单: {{ sub.totalOrders }}</p>
-                <p>收益: ¥{{ sub.totalEarnings.toFixed(2) }}</p>
+                <p>收益: ¥{{ formatSubordinateEarnings(sub.totalEarnings) }}</p>
               </div>
             </template>
           </van-cell>
@@ -62,6 +62,15 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { Toast } from 'vant'
 import axios from '@/utils/axios'
+import {
+  PAGE_SIZE,
+  formatSubordinateName,
+  formatSubordinateInfo,
+  formatSubordinateEarnings,
+  shouldFinishLoading,
+  mergeSubordinatesList,
+  buildQueryParams
+} from './distributorSubordinates.logic.js'
 
 export default {
   name: 'DistributorSubordinates',
@@ -73,7 +82,6 @@ export default {
     const finished = ref(false)
     const refreshing = ref(false)
     const page = ref(1)
-    const pageSize = 20
 
     // 加载下级列表
     const loadSubordinates = async () => {
@@ -86,21 +94,14 @@ export default {
       loading.value = true
       try {
 		const data = await axios.get(`/distributor/subordinates/${brandId.value}`, {
-          params: {
-            page: page.value,
-            pageSize: pageSize
-          }
+          params: buildQueryParams(page.value, PAGE_SIZE)
         })
 
         if (data.code === 200) {
           const newSubordinates = data.data.subordinates || []
-          if (refreshing.value) {
-            subordinates.value = newSubordinates
-          } else {
-            subordinates.value.push(...newSubordinates)
-          }
+          subordinates.value = mergeSubordinatesList(subordinates.value, newSubordinates, refreshing.value)
 
-          if (newSubordinates.length < pageSize) {
+          if (shouldFinishLoading(newSubordinates.length, PAGE_SIZE)) {
             finished.value = true
           } else {
             page.value++
@@ -130,7 +131,10 @@ export default {
       finished,
       refreshing,
       loadSubordinates,
-      onRefresh
+      onRefresh,
+      formatSubordinateName,
+      formatSubordinateInfo,
+      formatSubordinateEarnings
     }
   }
 }

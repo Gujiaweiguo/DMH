@@ -319,6 +319,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  formatTime,
+  getStatusText,
+  getDefaultApprovalForm,
+  buildTabs,
+  validateRejection,
+  getMockPendingApplications,
+  getAvatarText
+} from './distributorApproval.logic.js'
 
 const router = useRouter()
 const activeTab = ref('pending')
@@ -327,10 +336,7 @@ const showApprovalModal = ref(false)
 const showDetailModal = ref(false)
 
 const currentApp = ref(null)
-const approvalForm = ref({
-  level: 1,
-  notes: ''
-})
+const approvalForm = ref(getDefaultApprovalForm())
 
 const pendingList = ref([])
 const processedList = ref([])
@@ -338,10 +344,7 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const hasMore = ref(false)
 
-const tabs = computed(() => [
-  { key: 'pending', label: '待审批', count: pendingList.value.length },
-  { key: 'processed', label: '已处理', count: processedList.value.length }
-])
+const tabs = computed(() => buildTabs(pendingList.value.length, processedList.value.length))
 
 const getCurrentBrandId = () => {
   const fromStorage = Number(localStorage.getItem('dmh_current_brand_id'))
@@ -361,27 +364,7 @@ const getCurrentBrandId = () => {
   return 0
 }
 
-// 格式化时间
-const formatTime = (timeString) => {
-  if (!timeString) return '-'
-  const date = new Date(timeString)
-  return date.toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
 
-// 获取状态文本
-const getStatusText = (status) => {
-  const map = {
-    pending: '待审批',
-    approved: '已通过',
-    rejected: '已拒绝'
-  }
-  return map[status] || status
-}
 
 // 加载申请列表
 const loadApplications = async () => {
@@ -405,31 +388,7 @@ const loadApplications = async () => {
       const data = await response.json()
       pendingList.value = data.applications || []
     } else {
-      // 使用模拟数据
-      pendingList.value = [
-        {
-          id: 1,
-          userId: 4,
-          username: 'user004',
-          phone: '138****4444',
-          brandId: 1,
-          brandName: '品牌A',
-          status: 'pending',
-          reason: '我想成为分销商，推广品牌产品',
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 2,
-          userId: 5,
-          username: 'user005',
-          phone: '139****5555',
-          brandId: 1,
-          brandName: '品牌A',
-          status: 'pending',
-          reason: '有多年的销售经验，希望能加入',
-          createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
-        }
-      ]
+      pendingList.value = getMockPendingApplications()
     }
   } catch (error) {
     console.error('加载申请失败:', error)
@@ -472,10 +431,7 @@ const loadProcessed = async () => {
 // 打开审批模态框
 const openApprovalModal = (app) => {
   currentApp.value = app
-  approvalForm.value = {
-    level: 1,
-    notes: ''
-  }
+  approvalForm.value = getDefaultApprovalForm()
   showApprovalModal.value = true
 }
 
@@ -536,7 +492,7 @@ const approveApplication = async () => {
 const rejectApplication = async () => {
   if (!currentApp.value) return
 
-  if (!approvalForm.value.notes) {
+  if (!validateRejection(approvalForm.value)) {
     alert('请填写拒绝理由')
     return
   }

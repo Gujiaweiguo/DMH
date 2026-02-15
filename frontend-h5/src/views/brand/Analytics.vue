@@ -223,27 +223,22 @@
 
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
+import {
+  PERIOD_OPTIONS,
+  getDefaultCoreMetrics,
+  getDefaultChartData,
+  getDefaultFunnelData,
+  EXPORT_TYPES,
+  getExportTypeLabel
+} from './analytics.logic.js'
 
 const selectedPeriod = ref('month')
 
-const coreMetrics = reactive({
-  totalRevenue: 0,
-  totalOrders: 0,
-  activePromoters: 0,
-  avgOrderValue: 0
-})
+const coreMetrics = reactive(getDefaultCoreMetrics())
 
-const chartData = reactive({
-  orders: []
-})
+const chartData = reactive(getDefaultChartData())
 
-const funnelData = ref([
-  { label: '页面访问', value: 10000, percentage: 100 },
-  { label: '点击活动', value: 3500, percentage: 35 },
-  { label: '填写表单', value: 1200, percentage: 12 },
-  { label: '提交订单', value: 800, percentage: 8 },
-  { label: '支付成功', value: 650, percentage: 6.5 }
-])
+const funnelData = ref(getDefaultFunnelData())
 
 const topCampaigns = ref([])
 const topPromoters = ref([])
@@ -330,15 +325,7 @@ const loadAnalyticsData = async () => {
 }
 
 const exportData = (type) => {
-  // TODO: 实现数据导出功能
-  const exportTypes = {
-    orders: '订单数据',
-    promoters: '推广员数据',
-    campaigns: '活动数据',
-    all: '完整报表'
-  }
-  
-  alert(`导出${exportTypes[type]}功能开发中...`)
+  alert(`导出${getExportTypeLabel(type)}功能开发中...`)
 }
 
 // 监听时间周期变化

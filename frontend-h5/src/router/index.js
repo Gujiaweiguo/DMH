@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { resolveGuardNavigation } from "./guard";
 import BrandAnalytics from "../views/brand/Analytics.vue";
 import BrandCampaignEditor from "../views/brand/CampaignEditorVant.vue";
 import BrandCampaignPageDesigner from "../views/brand/CampaignPageDesigner.vue";
@@ -236,37 +237,12 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
 	const token = localStorage.getItem("dmh_token");
 	const userRole = localStorage.getItem("dmh_user_role");
+	const userInfoRaw = localStorage.getItem("dmh_user_info");
+	const redirectPath = resolveGuardNavigation(to, token, userRole, userInfoRaw);
 
-	if (to.meta.requiresAuth) {
-		if (!token) {
-			if (to.path.startsWith("/distributor")) {
-				next("/distributor/login");
-			} else {
-				next("/brand/login");
-			}
-			return;
-		}
-
-		if (to.meta.role && userRole !== to.meta.role) {
-			if (to.meta.role === "distributor") {
-				next("/distributor/login");
-			} else if (to.meta.role === "brand_admin") {
-				next("/brand/login");
-			} else {
-				next("/");
-			}
-			return;
-		}
-		
-		// 检查品牌访问权限
-		if (to.meta.hasBrand) {
-			const userInfo = JSON.parse(localStorage.getItem('dmh_user_info') || '{}');
-			const brandIds = userInfo.brandIds || [];
-			if (!brandIds || !Array.isArray(brandIds) || brandIds.length === 0) {
-				next("/brand/login");
-				return;
-			}
-		}
+	if (redirectPath) {
+		next(redirectPath);
+		return;
 	}
 
 	next();

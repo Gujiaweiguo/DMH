@@ -54,34 +54,46 @@
           <div class="badges">
             <span v-if="campaign.isRegistered" class="badge registered">已报名</span>
             <span class="status" :class="campaign.status">
-              {{ statusText(campaign.status) }}
+               {{ statusTextLocal(campaign.status) }}
             </span>
           </div>
         </div>
         <p class="campaign-desc">{{ campaign.description }}</p>
         <div class="campaign-info">
           <div class="info-item">
-            <span class="label">活动时间</span>
-            <span class="value">{{ formatDate(campaign.startTime) }} ~ {{ formatDate(campaign.endTime) }}</span>
-          </div>
-          <div class="info-item reward">
-            <span class="label">报名奖励</span>
-            <span class="value">{{ campaign.rewardRule?.toFixed(2) || 0 }} 元</span>
-          </div>
+             <span class="label">活动时间</span>
+             <span class="value">{{ formatDateLocal(campaign.startTime) }} ~ {{ formatDateLocal(campaign.endTime) }}</span>
+           </div>
+           <div class="info-item reward">
+             <span class="label">报名奖励</span>
+             <span class="value">{{ formatRewardLocal(campaign.rewardRule) }} 元</span>
+           </div>
         </div>
       </div>
     </div>
 
     <div v-else class="empty">
-      <div class="empty-icon">📝</div>
-      <p>暂无{{ emptyText }}</p>
-    </div>
+       <div class="empty-icon">📝</div>
+       <p>暂无{{ emptyTextComputed }}</p>
+     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import {
+  statusText,
+  emptyText,
+  formatDate,
+  formatReward,
+  buildTabs,
+  filterCampaigns,
+  buildSourceData,
+  saveSourceToStorage,
+  loadMyPhone,
+  markRegisteredCampaigns
+} from './campaignList.logic.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -94,52 +106,27 @@ const myPhone = ref('')
 const onlyUnregistered = ref(false)
 
 // 获取本地存储的手机号
-const loadMyPhone = () => {
-  try {
-    const saved = localStorage.getItem('dmh_my_phone')
-    if (saved) {
-      myPhone.value = saved
-    }
-  } catch (e) {
-    console.error('读取手机号失败', e)
-  }
+const loadMyPhoneFromStorage = () => {
+  myPhone.value = loadMyPhone()
 }
 
 // 筛选标签
-const tabs = computed(() => {
-  const ongoing = campaigns.value.filter(c => c.status === 'active')
-  const ended = campaigns.value.filter(c => c.status === 'ended' || c.status === 'paused')
-  
-  return [
-    { key: 'all', label: '全部', count: campaigns.value.length },
-    { key: 'ongoing', label: '进行中', count: ongoing.length },
-    { key: 'ended', label: '已结束', count: ended.length }
-  ]
-})
+const tabs = computed(() => buildTabs(campaigns.value))
 
 // 筛选后的活动列表
-const filteredCampaigns = computed(() => {
-  if (activeTab.value === 'all') {
-    return campaigns.value
-  } else if (activeTab.value === 'ongoing') {
-    return campaigns.value
-      .filter(c => c.status === 'active')
-      .filter(c => !onlyUnregistered.value || !c.isRegistered)
-  } else if (activeTab.value === 'ended') {
-    return campaigns.value.filter(c => c.status === 'ended' || c.status === 'paused')
-  }
-  return campaigns.value
-})
+const filteredCampaigns = computed(() => filterCampaigns(campaigns.value, activeTab.value, onlyUnregistered.value))
 
 // 空状态提示文字
-const emptyText = computed(() => {
-  const map = {
-    all: '活动',
-    ongoing: '进行中的活动',
-    ended: '已结束的活动'
-  }
-  return map[activeTab.value] || '活动'
-})
+const emptyTextComputed = computed(() => emptyText(activeTab.value))
+
+// 状态文本
+const statusTextLocal = statusText
+
+// 格式化日期
+const formatDateLocal = formatDate
+
+// 格式化奖励
+const formatRewardLocal = formatReward
 
 // 切换标签
 const switchTab = (key) => {
@@ -148,15 +135,8 @@ const switchTab = (key) => {
 
 // 存储来源信息
 const saveSource = () => {
-  const source = {
-    c_id: route.query.c_id || '',
-    u_id: route.query.u_id || ''
-  }
-  try {
-    localStorage.setItem('dmh_source', JSON.stringify(source))
-  } catch (e) {
-    console.error('保存来源信息失败', e)
-  }
+  const source = buildSourceData(route.query)
+  saveSourceToStorage(source)
 }
 
 // 获取我的订单
@@ -181,14 +161,7 @@ const fetchCampaigns = async () => {
     const response = await fetch('/api/v1/campaigns')
     if (response.ok) {
       const data = await response.json()
-      campaigns.value = (data.campaigns || []).map(campaign => {
-        // 标记是否已报名
-        const isRegistered = myOrders.value.some(order => order.campaignId === campaign.id)
-        return {
-          ...campaign,
-          isRegistered
-        }
-      })
+      campaigns.value = markRegisteredCampaigns(data.campaigns || [], myOrders.value)
     } else {
       throw new Error(`HTTP ${response.status}`)
     }
@@ -244,25 +217,9 @@ const fetchCampaigns = async () => {
 
 // 初始化加载
 const init = async () => {
-  loadMyPhone()
+  loadMyPhoneFromStorage()
   await fetchMyOrders()
   await fetchCampaigns()
-}
-
-// 格式化日期
-const formatDate = (time) => {
-  if (!time) return ''
-  return time.substring(0, 10)
-}
-
-// 状态文本
-const statusText = (status) => {
-  const map = {
-    active: '进行中',
-    paused: '已暂停',
-    ended: '已结束'
-  }
-  return map[status] || status
 }
 
 // 跳转到活动详情

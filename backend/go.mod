@@ -7,7 +7,6 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/godror/godror v0.49.6
 	github.com/golang-jwt/jwt/v4 v4.5.0
-	github.com/google/uuid v1.6.0
 	github.com/microsoft/go-mssqldb v1.9.5
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
@@ -35,6 +34,7 @@ require (
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -51,7 +51,6 @@ require (
 	github.com/prometheus/procfs v0.11.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
 	go.opentelemetry.io/otel v1.19.0 // indirect
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.19.0 // indirect

@@ -80,25 +80,39 @@ export const orderApi = {
 
   // 扫码获取订单信息
   scanOrderCode: (code) => {
-    return api.get('/orders/scan', { params: { code } })
+    return api.get('/orders/scan', { code })
   },
 
-  verifyOrder: (code, data) => {
-    return api.post('/orders/verify', { code, ...data })
+  verifyOrder: (code, data = {}) => {
+    const payload = typeof code === 'object' && code !== null
+      ? { ...code }
+      : { ...data }
+
+    if (typeof code === 'string') {
+      if (code.trim() !== '') {
+        payload.code = code
+      }
+    } else if (code !== undefined && code !== null && typeof code !== 'object') {
+      payload.code = code
+    }
+
+    return api.post('/orders/verify', payload)
   },
 
-  unverifyOrder: (code, data) => {
-    return api.post('/orders/unverify', { code, ...data })
-  },
+  unverifyOrder: (code, data = {}) => {
+    const payload = typeof code === 'object' && code !== null
+      ? { ...code }
+      : { ...data }
 
-  // 核销订单
-  verifyOrder: (orderId, code) => {
-    return api.post(`/orders/${orderId}/verify`, { code })
-  },
+    if (typeof code === 'string') {
+      if (code.trim() !== '') {
+        payload.code = code
+      }
+    } else if (code !== undefined && code !== null && typeof code !== 'object') {
+      payload.code = code
+    }
 
-  // 取消核销
-  unverifyOrder: (orderId, code) => {
-    return api.post(`/orders/${orderId}/unverify`, { code })
+    return api.post('/orders/unverify', payload)
   },
 
   getVerificationRecords: () => {

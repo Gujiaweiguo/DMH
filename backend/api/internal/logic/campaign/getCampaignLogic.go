@@ -5,6 +5,7 @@ package campaign
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"dmh/api/internal/svc"
@@ -38,12 +39,21 @@ func (l *GetCampaignLogic) GetCampaign(req *types.GetCampaignReq) (resp *types.C
 
 	l.Infof("Successfully queried campaign: id=%d, name=%s, form_fields=%s", campaign.Id, campaign.Name, campaign.FormFields)
 
+	// 解析 formFields JSON 字符串
+	var formFields []types.FormField
+	if campaign.FormFields != "" {
+		if err := json.Unmarshal([]byte(campaign.FormFields), &formFields); err != nil {
+			l.Errorf("Failed to parse formFields JSON: %v", err)
+			return nil, fmt.Errorf("Failed to parse formFields: %w", err)
+		}
+	}
+
 	resp = &types.CampaignResp{
 		Id:                  campaign.Id,
 		BrandId:             campaign.BrandId,
 		Name:                campaign.Name,
 		Description:         campaign.Description,
-		FormFields:          campaign.FormFields,
+		FormFields:          formFields,
 		RewardRule:          campaign.RewardRule,
 		StartTime:           campaign.StartTime.Format("2006-01-02T15:04:05"),
 		EndTime:             campaign.EndTime.Format("2006-01-02T15:04:05"),

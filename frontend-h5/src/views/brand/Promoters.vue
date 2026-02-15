@@ -221,6 +221,14 @@
 
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
+import {
+  buildPromoterLink,
+  buildPromoterLinkForm,
+  calculatePromoterStats,
+  filterAndSortPromoters,
+  formatPromoterTime,
+  getPromoterStatusText,
+} from './promoters.logic.js'
 
 const promoters = ref([])
 const campaigns = ref([])
@@ -246,54 +254,15 @@ const linkForm = reactive({
 const totalPromoters = computed(() => promoters.value.length)
 
 const filteredPromoters = computed(() => {
-  let filtered = promoters.value
-
-  // 状态筛选
-  if (currentFilter.value !== 'all') {
-    switch (currentFilter.value) {
-      case 'active':
-        filtered = filtered.filter(p => p.status === 'active')
-        break
-      case 'top':
-        filtered = filtered.filter(p => p.level === 'VIP' || p.totalRewards > 1000)
-        break
-      case 'new':
-        const oneWeekAgo = new Date()
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-        filtered = filtered.filter(p => new Date(p.joinDate) > oneWeekAgo)
-        break
-    }
-  }
-
-  // 关键词搜索
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase()
-    filtered = filtered.filter(p => 
-      p.name.toLowerCase().includes(keyword) || 
-      p.phone.includes(keyword)
-    )
-  }
-
-  return filtered.sort((a, b) => b.totalRewards - a.totalRewards)
+  return filterAndSortPromoters(promoters.value, currentFilter.value, searchKeyword.value)
 })
 
 const getStatusText = (status) => {
-  const statusMap = {
-    active: '活跃',
-    inactive: '不活跃',
-    blocked: '已封禁'
-  }
-  return statusMap[status] || status
+  return getPromoterStatusText(status)
 }
 
 const formatTime = (timeString) => {
-  const date = new Date(timeString)
-  return date.toLocaleDateString('zh-CN', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  return formatPromoterTime(timeString)
 }
 
 const loadPromoters = async () => {
@@ -365,12 +334,11 @@ const loadPromoters = async () => {
 }
 
 const calculateStats = () => {
-  promoterStats.active = promoters.value.filter(p => p.status === 'active').length
-  promoterStats.totalRewards = promoters.value.reduce((sum, p) => sum + p.totalRewards, 0)
-  promoterStats.todayOrders = promoters.value.reduce((sum, p) => sum + (p.todayOrders || 0), 0)
-  promoterStats.conversionRate = Math.round(
-    promoters.value.reduce((sum, p) => sum + p.conversionRate, 0) / promoters.value.length
-  )
+  const stats = calculatePromoterStats(promoters.value)
+  promoterStats.active = stats.active
+  promoterStats.totalRewards = stats.totalRewards
+  promoterStats.todayOrders = stats.todayOrders
+  promoterStats.conversionRate = stats.conversionRate
 }
 
 const viewPromoterDetail = (promoter) => {
@@ -379,19 +347,16 @@ const viewPromoterDetail = (promoter) => {
 }
 
 const generateLink = (promoter) => {
-  linkForm.promoterId = promoter.id
-  linkForm.promoterName = promoter.name
-  linkForm.campaignId = ''
+  const form = buildPromoterLinkForm(promoter)
+  linkForm.promoterId = form.promoterId
+  linkForm.promoterName = form.promoterName
+  linkForm.campaignId = form.campaignId
   generatedLink.value = ''
   showLinkModal.value = true
 }
 
 const generatePromoLink = () => {
-  if (!linkForm.campaignId) return
-  
-  // 生成推广链接
-  const baseUrl = window.location.origin
-  generatedLink.value = `${baseUrl}/campaign/${linkForm.campaignId}?ref=${linkForm.promoterId}`
+  generatedLink.value = buildPromoterLink(window.location.origin, linkForm.campaignId, linkForm.promoterId)
 }
 
 const copyLink = async () => {

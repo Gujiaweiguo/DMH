@@ -12,6 +12,7 @@ import (
 	campaign "dmh/api/internal/handler/campaign"
 	distributor "dmh/api/internal/handler/distributor"
 	feedback "dmh/api/internal/handler/feedback"
+	member "dmh/api/internal/handler/member"
 	order "dmh/api/internal/handler/order"
 	poster "dmh/api/internal/handler/poster"
 	reward "dmh/api/internal/handler/reward"
@@ -212,13 +213,13 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodGet,
-				Path:    "/campaigns",
-				Handler: campaign.GetCampaignsHandler(serverCtx),
+				Path:    "/campaigns/:id",
+				Handler: campaign.GetCampaignHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodGet,
-				Path:    "/campaigns/:id",
-				Handler: campaign.GetCampaignHandler(serverCtx),
+				Path:    "/campaigns",
+				Handler: campaign.GetCampaignsHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPut,
@@ -548,6 +549,38 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodGet,
 				Path:    "/users/:id/permissions",
 				Handler: role.GetUserPermissionsHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/members",
+				Handler: member.GetMembersHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/members/:id",
+				Handler: member.GetMemberHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/members/:id/status",
+				Handler: member.UpdateMemberStatusHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/members/:id",
+				Handler: member.UpdateMemberHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/members/:id/profile",
+				Handler: member.GetMemberProfileHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),

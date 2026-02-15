@@ -209,6 +209,7 @@ func (suite *DistributorIntegrationTestSuite) TestDistributorHierarchy() {
 }
 
 func (suite *DistributorIntegrationTestSuite) TestDistributorRewardRecord() {
+	suite.db.Exec("DELETE FROM distributors WHERE user_id = ? AND brand_id = ?", 1, 1)
 	distributor := &model.Distributor{
 		UserId:            1,
 		BrandId:           1,
@@ -314,6 +315,7 @@ func (suite *DistributorIntegrationTestSuite) TestUserBalanceUpdate() {
 }
 
 func (suite *DistributorIntegrationTestSuite) TestDistributorLinkCreation() {
+	suite.db.Exec("DELETE FROM distributors WHERE user_id = ? AND brand_id = ?", 1, 1)
 	distributor := &model.Distributor{
 		UserId:            1,
 		BrandId:           1,
@@ -347,6 +349,7 @@ func (suite *DistributorIntegrationTestSuite) TestDistributorLinkCreation() {
 }
 
 func (suite *DistributorIntegrationTestSuite) TestOrderWithDistributorPath() {
+	suite.db.Exec("DELETE FROM distributors WHERE brand_id = ?", 1)
 	d1 := &model.Distributor{
 		UserId:            1,
 		BrandId:           1,

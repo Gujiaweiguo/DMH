@@ -39,7 +39,7 @@
         </div>
         <div class="info-item">
           <div class="info-label">金额</div>
-          <div class="info-value amount">{{ qrcodeData.amount ? `¥${qrcodeData.amount.toFixed(2)}` : '-' }}</div>
+          <div class="info-value amount">{{ displayAmount(qrcodeData.amount) }}</div>
         </div>
         <div class="info-item">
           <div class="info-label">过期时间</div>
@@ -61,47 +61,26 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showLoadingToast, closeToast } from 'vant'
 import api from '@/services/api'
+import {
+  formatExpireTime,
+  formatAmount,
+  getDefaultQrcodeData,
+  buildQrcodeData,
+  validateCampaignId
+} from './paymentQrcode.logic.js'
 
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(true)
 const error = ref(null)
-const qrcodeData = ref({
-  qrcodeBase64: null,
-  campaignName: null,
-  amount: null,
-  expireAt: null
-})
-
-const formatExpireTime = (timeStr) => {
-  if (!timeStr) return '-'
-  try {
-    const date = new Date(timeStr)
-    const now = new Date()
-    const diff = date - now
-    
-    if (diff < 0) {
-      return '已过期'
-    }
-    
-    const minutes = Math.floor(diff / 60000)
-    const hours = Math.floor(minutes / 60)
-    
-    if (hours > 0) {
-      return `${hours}小时${minutes % 60}分钟后过期`
-    } else {
-      return `${minutes}分钟后过期`
-    }
-  } catch (e) {
-    return timeStr
-  }
-}
+const qrcodeData = ref(getDefaultQrcodeData())
 
 const loadQrcode = async () => {
   const campaignId = route.params.id
-  if (!campaignId) {
-    error.value = '活动ID无效'
+  const validation = validateCampaignId(campaignId)
+  if (!validation.valid) {
+    error.value = validation.error
     return
   }
 
@@ -115,14 +94,10 @@ const loadQrcode = async () => {
 
   try {
     const response = await api.getPaymentQrcode(campaignId)
+    const data = buildQrcodeData(response)
     
-    if (response && response.data) {
-      qrcodeData.value = {
-        qrcodeBase64: response.data.qrcodeUrl,
-        campaignName: response.data.campaignName || '未知活动',
-        amount: response.data.amount || 0,
-        expireAt: response.data.expireAt || new Date(Date.now() + 2 * 60 * 1000).toISOString()
-      }
+    if (data) {
+      qrcodeData.value = data
     } else {
       error.value = response.msg || '加载失败'
     }
@@ -137,6 +112,10 @@ const loadQrcode = async () => {
 
 const goBack = () => {
   router.go(-1)
+}
+
+const displayAmount = (amount) => {
+  return amount ? `¥${formatAmount(amount)}` : '-'
 }
 
 onMounted(() => {

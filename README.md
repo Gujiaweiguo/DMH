@@ -286,12 +286,15 @@ backend/scripts/run_order_mysql8_regression.sh
 ```
 
 * 本地脚本：`backend/scripts/run_order_mysql8_regression.sh`
+* 一键排障+回归：`backend/scripts/repair_login_and_run_order_regression.sh`
 * CI 工作流：`.github/workflows/order-mysql8-regression.yml`
 * 若用例被跳过，脚本会返回非 0，避免假阳性。
 
 常见失败排查：
 
 * `login returned 400`：先确认管理员账号存在且密码正确（默认见 `backend/scripts/init.sql`）。
+  * 可直接执行：`backend/scripts/repair_login_and_run_order_regression.sh`
+  * 该脚本会在本地环境自动修复 `admin`/`brand_manager` 的默认测试密码哈希，并重启 `dmh-api` 后重跑回归。
 * `Unknown column ...`：检查数据库是否执行了订单/活动相关 migration。
 * `field "code" is not set`：确认核销接口请求格式与当前后端解析一致。
 

@@ -1,14 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import api from '../api';
 
-vi.mock('../api', () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-  },
-}));
+const api = {
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+  delete: vi.fn(),
+};
 
 describe('Campaign API', () => {
   beforeEach(() => {
@@ -24,7 +21,7 @@ describe('Campaign API', () => {
         total: 1,
       },
     };
-    (api.get as any).mockResolvedValue(mockResponse);
+    api.get.mockResolvedValue(mockResponse);
 
     const result = await api.get('/api/v1/campaigns?page=1&pageSize=10');
 
@@ -45,7 +42,7 @@ describe('Campaign API', () => {
     const mockResponse = {
       data: { id: 1, ...campaignData },
     };
-    (api.post as any).mockResolvedValue(mockResponse);
+    api.post.mockResolvedValue(mockResponse);
 
     const result = await api.post('/api/v1/campaigns', campaignData);
 
@@ -58,16 +55,16 @@ describe('Campaign API', () => {
     const mockResponse = {
       data: { id: 1, ...updateData },
     };
-    (api.put as any).mockResolvedValue(mockResponse);
+    api.put.mockResolvedValue(mockResponse);
 
-    const result = await api.put('/api/v1/campaigns/1', updateData);
+    await api.put('/api/v1/campaigns/1', updateData);
 
     expect(api.put).toHaveBeenCalledWith('/api/v1/campaigns/1', updateData);
   });
 
   it('deletes campaign', async () => {
     const mockResponse = { data: { message: 'success' } };
-    (api.delete as any).mockResolvedValue(mockResponse);
+    api.delete.mockResolvedValue(mockResponse);
 
     const result = await api.delete('/api/v1/campaigns/1');
 
@@ -90,7 +87,7 @@ describe('Order API', () => {
         total: 1,
       },
     };
-    (api.get as any).mockResolvedValue(mockResponse);
+    api.get.mockResolvedValue(mockResponse);
 
     const result = await api.get('/api/v1/orders?page=1&pageSize=10');
 
@@ -107,9 +104,9 @@ describe('Order API', () => {
     const mockResponse = {
       data: { id: 1, ...orderData },
     };
-    (api.post as any).mockResolvedValue(mockResponse);
+    api.post.mockResolvedValue(mockResponse);
 
-    const result = await api.post('/api/v1/orders', orderData);
+    await api.post('/api/v1/orders', orderData);
 
     expect(api.post).toHaveBeenCalledWith('/api/v1/orders', orderData);
   });
@@ -130,7 +127,7 @@ describe('Auth API', () => {
         roles: ['platform_admin'],
       },
     };
-    (api.post as any).mockResolvedValue(mockResponse);
+    api.post.mockResolvedValue(mockResponse);
 
     const result = await api.post('/api/v1/auth/login', loginData);
 
@@ -152,7 +149,7 @@ describe('Auth API', () => {
         username: 'newuser',
       },
     };
-    (api.post as any).mockResolvedValue(mockResponse);
+    api.post.mockResolvedValue(mockResponse);
 
     const result = await api.post('/api/v1/auth/register', registerData);
 

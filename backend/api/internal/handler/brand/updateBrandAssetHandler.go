@@ -5,6 +5,7 @@ package brand
 
 import (
 	"net/http"
+	"strconv"
 
 	"dmh/api/internal/logic/brand"
 	"dmh/api/internal/svc"
@@ -14,11 +15,20 @@ import (
 
 func UpdateBrandAssetHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.BrandAssetReq
+		var req types.UpdateBrandAssetReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
+
+		brandIdStr := r.PathValue("brandId")
+		idStr := r.PathValue("id")
+
+		brandId, _ := strconv.ParseInt(brandIdStr, 10, 64)
+		id, _ := strconv.ParseInt(idStr, 10, 64)
+
+		req.BrandId = brandId
+		req.Id = id
 
 		l := brand.NewUpdateBrandAssetLogic(r.Context(), svcCtx)
 		resp, err := l.UpdateBrandAsset(&req)

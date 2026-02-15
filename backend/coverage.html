@@ -1,0 +1,3103 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>auth: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">dmh/api/internal/logic/auth/bindEmailLogic.go (86.7%)</option>
+				
+				<option value="file1">dmh/api/internal/logic/auth/bindPhoneLogic.go (86.7%)</option>
+				
+				<option value="file2">dmh/api/internal/logic/auth/changePasswordLogic.go (72.0%)</option>
+				
+				<option value="file3">dmh/api/internal/logic/auth/getUserInfoLogic.go (85.7%)</option>
+				
+				<option value="file4">dmh/api/internal/logic/auth/loginLogic.go (85.7%)</option>
+				
+				<option value="file5">dmh/api/internal/logic/auth/logoutLogic.go (100.0%)</option>
+				
+				<option value="file6">dmh/api/internal/logic/auth/refreshTokenLogic.go (44.4%)</option>
+				
+				<option value="file7">dmh/api/internal/logic/auth/registerLogic.go (72.7%)</option>
+				
+				<option value="file8">dmh/api/internal/logic/auth/sendEmailCodeLogic.go (100.0%)</option>
+				
+				<option value="file9">dmh/api/internal/logic/auth/sendPhoneCodeLogic.go (100.0%)</option>
+				
+				<option value="file10">dmh/api/internal/logic/auth/updateProfileLogic.go (85.7%)</option>
+				
+				<option value="file11">dmh/api/internal/middleware/authmiddleware.go (75.4%)</option>
+				
+				<option value="file12">dmh/api/internal/middleware/performancemiddleware.go (86.7%)</option>
+				
+				<option value="file13">dmh/api/internal/middleware/permissionmiddleware.go (68.2%)</option>
+				
+				<option value="file14">dmh/api/internal/middleware/rate_limit.go (53.0%)</option>
+				
+				<option value="file15">dmh/api/internal/service/audit_service.go (69.0%)</option>
+				
+				<option value="file16">dmh/api/internal/service/password_service.go (83.6%)</option>
+				
+				<option value="file17">dmh/api/internal/service/session_service.go (69.2%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">// Code scaffolded by goctl. Safe to edit.
+// goctl 1.9.2
+
+package auth
+
+import (
+        "context"
+        "errors"
+
+        "dmh/api/internal/svc"
+        "dmh/api/internal/types"
+        "dmh/model"
+
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+type BindEmailLogic struct {
+        logx.Logger
+        ctx    context.Context
+        svcCtx *svc.ServiceContext
+}
+
+func NewBindEmailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *BindEmailLogic <span class="cov8" title="1">{
+        return &amp;BindEmailLogic{
+                Logger: logx.WithContext(ctx),
+                ctx:    ctx,
+                svcCtx: svcCtx,
+        }
+}</span>
+
+func (l *BindEmailLogic) BindEmail(req *types.BindEmailReq) (resp *types.UserInfoResp, err error) <span class="cov8" title="1">{
+        userId, ok := l.ctx.Value("userId").(int64)
+        if !ok || userId == 0 </span><span class="cov8" title="1">{
+                return nil, errors.New("无法从context中获取用户ID")
+        }</span>
+
+        <span class="cov8" title="1">var user model.User
+        if err := l.svcCtx.DB.Where("id = ?", userId).First(&amp;user).Error; err != nil </span><span class="cov8" title="1">{
+                l.Errorf("查询用户失败: %v", err)
+                return nil, errors.New("用户不存在")
+        }</span>
+
+        <span class="cov8" title="1">if req.Email == "" </span><span class="cov8" title="1">{
+                return nil, errors.New("邮箱不能为空")
+        }</span>
+
+        <span class="cov8" title="1">user.Email = req.Email
+        if err := l.svcCtx.DB.Save(&amp;user).Error; err != nil </span><span class="cov0" title="0">{
+                l.Errorf("绑定邮箱失败: %v", err)
+                return nil, errors.New("绑定失败")
+        }</span>
+
+        <span class="cov8" title="1">return &amp;types.UserInfoResp{
+                Id:       user.Id,
+                Username: user.Username,
+                Email:    user.Email,
+        }, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">// Code scaffolded by goctl. Safe to edit.
+// goctl 1.9.2
+
+package auth
+
+import (
+        "context"
+        "errors"
+
+        "dmh/api/internal/svc"
+        "dmh/api/internal/types"
+        "dmh/model"
+
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+type BindPhoneLogic struct {
+        logx.Logger
+        ctx    context.Context
+        svcCtx *svc.ServiceContext
+}
+
+func NewBindPhoneLogic(ctx context.Context, svcCtx *svc.ServiceContext) *BindPhoneLogic <span class="cov8" title="1">{
+        return &amp;BindPhoneLogic{
+                Logger: logx.WithContext(ctx),
+                ctx:    ctx,
+                svcCtx: svcCtx,
+        }
+}</span>
+
+func (l *BindPhoneLogic) BindPhone(req *types.BindPhoneReq) (resp *types.UserInfoResp, err error) <span class="cov8" title="1">{
+        userId, ok := l.ctx.Value("userId").(int64)
+        if !ok || userId == 0 </span><span class="cov8" title="1">{
+                return nil, errors.New("无法从context中获取用户ID")
+        }</span>
+
+        <span class="cov8" title="1">var user model.User
+        if err := l.svcCtx.DB.Where("id = ?", userId).First(&amp;user).Error; err != nil </span><span class="cov8" title="1">{
+                l.Errorf("查询用户失败: %v", err)
+                return nil, errors.New("用户不存在")
+        }</span>
+
+        <span class="cov8" title="1">if req.Phone == "" </span><span class="cov8" title="1">{
+                return nil, errors.New("手机号不能为空")
+        }</span>
+
+        <span class="cov8" title="1">user.Phone = req.Phone
+        if err := l.svcCtx.DB.Save(&amp;user).Error; err != nil </span><span class="cov0" title="0">{
+                l.Errorf("绑定手机号失败: %v", err)
+                return nil, errors.New("绑定失败")
+        }</span>
+
+        <span class="cov8" title="1">return &amp;types.UserInfoResp{
+                Id:       user.Id,
+                Username: user.Username,
+                Phone:    user.Phone,
+        }, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">// Code scaffolded by goctl. Safe to edit.
+// goctl 1.9.2
+
+package auth
+
+import (
+        "context"
+        "errors"
+
+        "dmh/api/internal/middleware"
+        "dmh/api/internal/svc"
+        "dmh/api/internal/types"
+        "dmh/model"
+        "golang.org/x/crypto/bcrypt"
+
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+type ChangePasswordLogic struct {
+        logx.Logger
+        ctx    context.Context
+        svcCtx *svc.ServiceContext
+}
+
+func NewChangePasswordLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ChangePasswordLogic <span class="cov8" title="1">{
+        return &amp;ChangePasswordLogic{
+                Logger: logx.WithContext(ctx),
+                ctx:    ctx,
+                svcCtx: svcCtx,
+        }
+}</span>
+
+func (l *ChangePasswordLogic) ChangePassword(req *types.ChangePasswordReq) (resp *types.CommonResp, err error) <span class="cov8" title="1">{
+        // 从context获取userId
+        userId, err := middleware.GetUserIDFromContext(l.ctx)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">if userId == 0 </span><span class="cov0" title="0">{
+                return nil, errors.New("未登录")
+        }</span>
+
+        // 查询用户
+        <span class="cov8" title="1">var user model.User
+        err = l.svcCtx.DB.Where("id = ?", userId).First(&amp;user).Error
+        if err != nil </span><span class="cov0" title="0">{
+                l.Errorf("查询用户失败: %v", err)
+                return nil, errors.New("用户不存在")
+        }</span>
+
+        // 验证旧密码
+        <span class="cov8" title="1">if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.OldPassword)); err != nil </span><span class="cov8" title="1">{
+                return nil, errors.New("旧密码错误")
+        }</span>
+
+        // 简单的密码强度检查
+        <span class="cov8" title="1">if len(req.NewPassword) &lt; 6 </span><span class="cov8" title="1">{
+                return nil, errors.New("新密码长度不能少于6位")
+        }</span>
+
+        // 加密新密码
+        <span class="cov8" title="1">hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+        if err != nil </span><span class="cov0" title="0">{
+                l.Errorf("密码加密失败: %v", err)
+                return nil, errors.New("密码加密失败")
+        }</span>
+
+        // 更新密码
+        <span class="cov8" title="1">err = l.svcCtx.DB.Model(&amp;user).Update("password", string(hashedPassword)).Error
+        if err != nil </span><span class="cov0" title="0">{
+                l.Errorf("更新密码失败: %v", err)
+                return nil, errors.New("更新密码失败")
+        }</span>
+
+        <span class="cov8" title="1">resp = &amp;types.CommonResp{
+                Message: "密码修改成功",
+        }
+
+        return resp, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">// Code scaffolded by goctl. Safe to edit.
+// goctl 1.9.2
+
+package auth
+
+import (
+        "context"
+        "errors"
+
+        "dmh/api/internal/middleware"
+        "dmh/api/internal/svc"
+        "dmh/api/internal/types"
+        "dmh/model"
+
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+type GetUserInfoLogic struct {
+        logx.Logger
+        ctx    context.Context
+        svcCtx *svc.ServiceContext
+}
+
+func NewGetUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUserInfoLogic <span class="cov8" title="1">{
+        return &amp;GetUserInfoLogic{
+                Logger: logx.WithContext(ctx),
+                ctx:    ctx,
+                svcCtx: svcCtx,
+        }
+}</span>
+
+func (l *GetUserInfoLogic) GetUserInfo() (resp *types.UserInfoResp, err error) <span class="cov8" title="1">{
+        userId, err := middleware.GetUserIDFromContext(l.ctx)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">if userId == 0 </span><span class="cov0" title="0">{
+                return nil, errors.New("未登录")
+        }</span>
+
+        <span class="cov8" title="1">var user model.User
+        err = l.svcCtx.DB.Where("id = ?", userId).First(&amp;user).Error
+        if err != nil </span><span class="cov8" title="1">{
+                l.Errorf("查询用户失败: %v", err)
+                return nil, errors.New("用户不存在")
+        }</span>
+
+        <span class="cov8" title="1">var roles []model.Role
+        err = l.svcCtx.DB.Table("user_roles").
+                Select("roles.*").
+                Joins("LEFT JOIN roles ON user_roles.role_id = roles.id").
+                Where("user_roles.user_id = ?", userId).
+                Find(&amp;roles).Error
+        if err != nil </span><span class="cov0" title="0">{
+                l.Errorf("查询用户角色失败: %v", err)
+                return nil, errors.New("查询用户角色失败")
+        }</span>
+
+        <span class="cov8" title="1">roleCodes := make([]string, 0, len(roles))
+        for _, role := range roles </span><span class="cov8" title="1">{
+                roleCodes = append(roleCodes, role.Code)
+        }</span>
+
+        <span class="cov8" title="1">resp = &amp;types.UserInfoResp{
+                Id:        user.Id,
+                Username:  user.Username,
+                Phone:     user.Phone,
+                RealName:  user.RealName,
+                Email:     user.Email,
+                Avatar:    user.Avatar,
+                Roles:     roleCodes,
+                Status:    user.Status,
+                BrandIds:  []int64{},
+                CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
+        }
+
+        return resp, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">// Code scaffolded by goctl. Safe to edit.
+// goctl 1.9.2
+
+package auth
+
+import (
+        "context"
+        "fmt"
+        "time"
+
+        "dmh/api/internal/middleware"
+        "dmh/api/internal/svc"
+        "dmh/api/internal/types"
+        "dmh/model"
+        "github.com/golang-jwt/jwt/v4"
+        "golang.org/x/crypto/bcrypt"
+
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+type LoginLogic struct {
+        logx.Logger
+        ctx    context.Context
+        svcCtx *svc.ServiceContext
+}
+
+func NewLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoginLogic <span class="cov8" title="1">{
+        return &amp;LoginLogic{
+                Logger: logx.WithContext(ctx),
+                ctx:    ctx,
+                svcCtx: svcCtx,
+        }
+}</span>
+
+func (l *LoginLogic) Login(req *types.LoginReq) (resp *types.LoginResp, err error) <span class="cov8" title="1">{
+        var user model.User
+
+        if err := l.svcCtx.DB.Where("username = ?", req.Username).First(&amp;user).Error; err != nil </span><span class="cov8" title="1">{
+                l.Errorf("用户不存在或密码错误: %v", err)
+                return nil, fmt.Errorf("用户名或密码错误")
+        }</span>
+
+        <span class="cov8" title="1">if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil </span><span class="cov8" title="1">{
+                l.Errorf("密码验证失败: %v", err)
+                return nil, fmt.Errorf("用户名或密码错误")
+        }</span>
+
+        <span class="cov8" title="1">if user.Status != "active" </span><span class="cov8" title="1">{
+                l.Errorf("用户已被禁用: %s", user.Username)
+                return nil, fmt.Errorf("账号已被禁用")
+        }</span>
+
+        // 查询用户角色
+        <span class="cov8" title="1">var roles []model.Role
+        l.svcCtx.DB.Table("roles").
+                Select("roles.*").
+                Joins("INNER JOIN user_roles ur ON roles.id = ur.role_id").
+                Where("ur.user_id = ?", user.Id).
+                Find(&amp;roles)
+
+        roleCodes := make([]string, 0, len(roles))
+        for _, role := range roles </span><span class="cov0" title="0">{
+                roleCodes = append(roleCodes, role.Code)
+        }</span>
+
+        // 查询用户关联的品牌
+        <span class="cov8" title="1">var userBrands []model.UserBrand
+        l.svcCtx.DB.Where("user_id = ?", user.Id).Find(&amp;userBrands)
+
+        brandIds := make([]int64, 0, len(userBrands))
+        for _, ub := range userBrands </span><span class="cov0" title="0">{
+                brandIds = append(brandIds, ub.BrandId)
+        }</span>
+
+        // 生成JWT token
+        <span class="cov8" title="1">token, err := l.generateToken(user.Id, user.Username, roleCodes)
+        if err != nil </span><span class="cov0" title="0">{
+                l.Errorf("生成token失败: %v", err)
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">resp = &amp;types.LoginResp{
+                Token:    token,
+                UserId:   user.Id,
+                Username: user.Username,
+                Phone:    user.Phone,
+                RealName: user.RealName,
+                Roles:    roleCodes,
+                BrandIds: brandIds,
+        }
+        return resp, nil</span>
+}
+
+func (l *LoginLogic) generateToken(userId int64, username string, roles []string) (string, error) <span class="cov8" title="1">{
+        now := time.Now()
+        expiresAt := now.Add(time.Duration(l.svcCtx.Config.Auth.AccessExpire) * time.Second)
+
+        claims := &amp;middleware.JWTClaims{
+                UserID:   userId,
+                Username: username,
+                Roles:    roles,
+                RegisteredClaims: jwt.RegisteredClaims{
+                        IssuedAt:  jwt.NewNumericDate(now),
+                        ExpiresAt: jwt.NewNumericDate(expiresAt),
+                        NotBefore: jwt.NewNumericDate(now),
+                },
+        }
+
+        token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+        tokenString, err := token.SignedString([]byte(l.svcCtx.Config.Auth.AccessSecret))
+        if err != nil </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("生成JWT token失败: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">return tokenString, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package auth
+
+import (
+        "context"
+
+        "dmh/api/internal/svc"
+        "dmh/api/internal/types"
+
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+type LogoutLogic struct {
+        logx.Logger
+        ctx    context.Context
+        svcCtx *svc.ServiceContext
+}
+
+func NewLogoutLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LogoutLogic <span class="cov8" title="1">{
+        return &amp;LogoutLogic{
+                Logger: logx.WithContext(ctx),
+                ctx:    ctx,
+                svcCtx: svcCtx,
+        }
+}</span>
+
+func (l *LogoutLogic) Logout(req *types.CommonResp) (resp *types.CommonResp, err error) <span class="cov8" title="1">{
+        resp = &amp;types.CommonResp{
+                Message: "登出成功",
+        }
+
+        return resp, nil
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">// Code scaffolded by goctl. Safe to edit.
+// goctl 1.9.2
+
+package auth
+
+import (
+        "context"
+        "errors"
+        "time"
+
+        "dmh/api/internal/middleware"
+        "dmh/api/internal/svc"
+        "dmh/api/internal/types"
+
+        "github.com/golang-jwt/jwt/v4"
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+type RefreshTokenLogic struct {
+        logx.Logger
+        ctx    context.Context
+        svcCtx *svc.ServiceContext
+}
+
+func NewRefreshTokenLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RefreshTokenLogic <span class="cov8" title="1">{
+        return &amp;RefreshTokenLogic{
+                Logger: logx.WithContext(ctx),
+                ctx:    ctx,
+                svcCtx: svcCtx,
+        }
+}</span>
+
+func (l *RefreshTokenLogic) RefreshToken(req *types.RefreshTokenReq) (resp *types.RefreshTokenResp, err error) <span class="cov8" title="1">{
+        if req.Token == "" </span><span class="cov8" title="1">{
+                return nil, errors.New("token不能为空")
+        }</span>
+
+        <span class="cov8" title="1">claims := jwt.MapClaims{}
+        token, err := jwt.ParseWithClaims(req.Token, claims, func(token *jwt.Token) (interface{}, error) </span><span class="cov0" title="0">{
+                return []byte(l.svcCtx.Config.Auth.AccessSecret), nil
+        }</span>)
+
+        <span class="cov8" title="1">if err != nil || !token.Valid </span><span class="cov8" title="1">{
+                l.Errorf("token验证失败: %v", err)
+                return nil, errors.New("token无效或已过期")
+        }</span>
+
+        <span class="cov0" title="0">now := time.Now()
+        expiresAt := now.Add(time.Duration(l.svcCtx.Config.Auth.AccessExpire) * time.Second)
+
+        newClaims := &amp;middleware.JWTClaims{
+                UserID:   int64(claims["userId"].(float64)),
+                Username: claims["username"].(string),
+                Roles:    claims["roles"].([]string),
+                RegisteredClaims: jwt.RegisteredClaims{
+                        IssuedAt:  jwt.NewNumericDate(now),
+                        ExpiresAt: jwt.NewNumericDate(expiresAt),
+                        NotBefore: jwt.NewNumericDate(now),
+                },
+        }
+
+        newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, newClaims)
+        tokenString, err := newToken.SignedString([]byte(l.svcCtx.Config.Auth.AccessSecret))
+        if err != nil </span><span class="cov0" title="0">{
+                l.Errorf("生成新token失败: %v", err)
+                return nil, errors.New("生成token失败")
+        }</span>
+
+        <span class="cov0" title="0">return &amp;types.RefreshTokenResp{
+                Token: tokenString,
+        }, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">// Code scaffolded by goctl. Safe to edit.
+// goctl 1.9.2
+
+package auth
+
+import (
+        "context"
+        "errors"
+
+        "dmh/api/internal/middleware"
+        "dmh/api/internal/svc"
+        "dmh/api/internal/types"
+        "dmh/model"
+        "golang.org/x/crypto/bcrypt"
+
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+type RegisterLogic struct {
+        logx.Logger
+        ctx    context.Context
+        svcCtx *svc.ServiceContext
+}
+
+func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RegisterLogic <span class="cov8" title="1">{
+        return &amp;RegisterLogic{
+                Logger: logx.WithContext(ctx),
+                ctx:    ctx,
+                svcCtx: svcCtx,
+        }
+}</span>
+
+func (l *RegisterLogic) Register(req *types.RegisterReq) (resp *types.LoginResp, err error) <span class="cov8" title="1">{
+        if req.Username == "" </span><span class="cov8" title="1">{
+                return nil, errors.New("用户名不能为空")
+        }</span>
+        <span class="cov8" title="1">if req.Password == "" </span><span class="cov8" title="1">{
+                return nil, errors.New("密码不能为空")
+        }</span>
+        <span class="cov8" title="1">if req.Phone == "" </span><span class="cov8" title="1">{
+                return nil, errors.New("手机号不能为空")
+        }</span>
+
+        <span class="cov8" title="1">var existingUser model.User
+        err = l.svcCtx.DB.Where("username = ?", req.Username).First(&amp;existingUser).Error
+        if err == nil </span><span class="cov8" title="1">{
+                return nil, errors.New("用户名已存在")
+        }</span>
+
+        <span class="cov8" title="1">err = l.svcCtx.DB.Where("phone = ?", req.Phone).First(&amp;existingUser).Error
+        if err == nil </span><span class="cov8" title="1">{
+                return nil, errors.New("手机号已被注册")
+        }</span>
+
+        <span class="cov8" title="1">if len(req.Password) &lt; 6 </span><span class="cov8" title="1">{
+                return nil, errors.New("密码长度不能少于6位")
+        }</span>
+
+        <span class="cov8" title="1">hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+        if err != nil </span><span class="cov0" title="0">{
+                l.Errorf("密码加密失败: %v", err)
+                return nil, errors.New("注册失败")
+        }</span>
+
+        <span class="cov8" title="1">user := model.User{
+                Username: req.Username,
+                Password: string(hashedPassword),
+                Phone:    req.Phone,
+                Email:    req.Email,
+                RealName: req.RealName,
+                Status:   "active",
+        }
+
+        err = l.svcCtx.DB.Create(&amp;user).Error
+        if err != nil </span><span class="cov0" title="0">{
+                l.Errorf("创建用户失败: %v", err)
+                return nil, errors.New("注册失败")
+        }</span>
+
+        <span class="cov8" title="1">var participantRole model.Role
+        err = l.svcCtx.DB.Where("code = ?", "participant").First(&amp;participantRole).Error
+        if err != nil </span><span class="cov0" title="0">{
+                l.Errorf("查询participant角色失败: %v", err)
+                participantRole = model.Role{
+                        Code: "participant",
+                        Name: "参与者",
+                }
+                err = l.svcCtx.DB.Create(&amp;participantRole).Error
+                if err != nil </span><span class="cov0" title="0">{
+                        l.Errorf("创建participant角色失败: %v", err)
+                }</span>
+        }
+
+        <span class="cov8" title="1">userRole := model.UserRole{
+                UserID: user.Id,
+                RoleID: participantRole.ID,
+        }
+        err = l.svcCtx.DB.Create(&amp;userRole).Error
+        if err != nil </span><span class="cov0" title="0">{
+                l.Errorf("分配用户角色失败: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">authMiddleware := middleware.NewAuthMiddleware(l.svcCtx.Config.Auth.AccessSecret)
+        token, err := authMiddleware.GenerateToken(user.Id, user.Username, []string{"participant"}, []int64{})
+        if err != nil </span><span class="cov0" title="0">{
+                l.Errorf("生成token失败: %v", err)
+                return nil, errors.New("注册失败")
+        }</span>
+
+        <span class="cov8" title="1">resp = &amp;types.LoginResp{
+                Token:    token,
+                UserId:   user.Id,
+                Username: user.Username,
+                Phone:    user.Phone,
+                RealName: user.RealName,
+                Roles:    []string{"participant"},
+                BrandIds: []int64{},
+        }
+
+        return resp, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">// Code scaffolded by goctl. Safe to edit.
+// goctl 1.9.2
+
+package auth
+
+import (
+        "context"
+        "errors"
+
+        "dmh/api/internal/svc"
+        "dmh/api/internal/types"
+
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+type SendEmailCodeLogic struct {
+        logx.Logger
+        ctx    context.Context
+        svcCtx *svc.ServiceContext
+}
+
+func NewSendEmailCodeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SendEmailCodeLogic <span class="cov8" title="1">{
+        return &amp;SendEmailCodeLogic{
+                Logger: logx.WithContext(ctx),
+                ctx:    ctx,
+                svcCtx: svcCtx,
+        }
+}</span>
+
+func (l *SendEmailCodeLogic) SendEmailCode(req *types.SendCodeReq) (resp *types.CommonResp, err error) <span class="cov8" title="1">{
+        if req.Target == "" </span><span class="cov8" title="1">{
+                return nil, errors.New("邮箱不能为空")
+        }</span>
+
+        <span class="cov8" title="1">l.Infof("发送验证码到邮箱: %s", req.Target)
+
+        return &amp;types.CommonResp{
+                Message: "发送成功",
+        }, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">// Code scaffolded by goctl. Safe to edit.
+// goctl 1.9.2
+
+package auth
+
+import (
+        "context"
+        "errors"
+
+        "dmh/api/internal/svc"
+        "dmh/api/internal/types"
+
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+type SendPhoneCodeLogic struct {
+        logx.Logger
+        ctx    context.Context
+        svcCtx *svc.ServiceContext
+}
+
+func NewSendPhoneCodeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SendPhoneCodeLogic <span class="cov8" title="1">{
+        return &amp;SendPhoneCodeLogic{
+                Logger: logx.WithContext(ctx),
+                ctx:    ctx,
+                svcCtx: svcCtx,
+        }
+}</span>
+
+func (l *SendPhoneCodeLogic) SendPhoneCode(req *types.SendCodeReq) (resp *types.CommonResp, err error) <span class="cov8" title="1">{
+        if req.Target == "" </span><span class="cov8" title="1">{
+                return nil, errors.New("手机号不能为空")
+        }</span>
+
+        <span class="cov8" title="1">l.Infof("发送验证码到手机号: %s", req.Target)
+
+        return &amp;types.CommonResp{
+                Message: "发送成功",
+        }, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">// Code scaffolded by goctl. Safe to edit.
+// goctl 1.9.2
+
+package auth
+
+import (
+        "context"
+        "errors"
+
+        "dmh/api/internal/svc"
+        "dmh/api/internal/types"
+        "dmh/model"
+
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+type UpdateProfileLogic struct {
+        logx.Logger
+        ctx    context.Context
+        svcCtx *svc.ServiceContext
+}
+
+func NewUpdateProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateProfileLogic <span class="cov8" title="1">{
+        return &amp;UpdateProfileLogic{
+                Logger: logx.WithContext(ctx),
+                ctx:    ctx,
+                svcCtx: svcCtx,
+        }
+}</span>
+
+func (l *UpdateProfileLogic) UpdateProfile(req *types.UpdateProfileReq) (resp *types.UserInfoResp, err error) <span class="cov8" title="1">{
+        userId, ok := l.ctx.Value("userId").(int64)
+        if !ok || userId == 0 </span><span class="cov8" title="1">{
+                return nil, errors.New("无法从context中获取用户ID")
+        }</span>
+
+        <span class="cov8" title="1">var user model.User
+        if err := l.svcCtx.DB.Where("id = ?", userId).First(&amp;user).Error; err != nil </span><span class="cov8" title="1">{
+                l.Errorf("查询用户失败: %v", err)
+                return nil, errors.New("用户不存在")
+        }</span>
+
+        <span class="cov8" title="1">if req.RealName != "" </span><span class="cov8" title="1">{
+                user.RealName = req.RealName
+        }</span>
+
+        <span class="cov8" title="1">if err := l.svcCtx.DB.Save(&amp;user).Error; err != nil </span><span class="cov0" title="0">{
+                l.Errorf("更新用户信息失败: %v", err)
+                return nil, errors.New("更新失败")
+        }</span>
+
+        <span class="cov8" title="1">return &amp;types.UserInfoResp{
+                Id:       user.Id,
+                Username: user.Username,
+                RealName: user.RealName,
+        }, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package middleware
+
+import (
+        "context"
+        "encoding/json"
+        "fmt"
+        "net/http"
+        "strconv"
+        "strings"
+        "time"
+
+        "github.com/golang-jwt/jwt/v4"
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+// AuthMiddleware 权限验证中间件
+type AuthMiddleware struct {
+        logx.Logger
+        jwtSecret string
+}
+
+// JWTClaims JWT声明结构
+type JWTClaims struct {
+        UserID   int64    `json:"userId"`
+        Username string   `json:"username"`
+        Roles    []string `json:"roles"`
+        BrandIDs []int64  `json:"brandIds,omitempty"`
+        jwt.RegisteredClaims
+}
+
+// AuthResponse 认证响应结构
+type AuthResponse struct {
+        Code    int         `json:"code"`
+        Message string      `json:"message"`
+        Data    interface{} `json:"data,omitempty"`
+}
+
+func NewAuthMiddleware(jwtSecret string) *AuthMiddleware <span class="cov8" title="1">{
+        return &amp;AuthMiddleware{
+                Logger:    logx.WithContext(context.Background()),
+                jwtSecret: jwtSecret,
+        }
+}</span>
+
+// Handle 处理JWT认证和权限检查
+func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc <span class="cov8" title="1">{
+        return func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                // 跳过不需要认证的路径
+                if m.isPublicPath(r.URL.Path) </span><span class="cov8" title="1">{
+                        next(w, r)
+                        return
+                }</span>
+
+                // 提取并验证JWT token
+                <span class="cov8" title="1">token, err := m.extractToken(r)
+                if err != nil </span><span class="cov8" title="1">{
+                        m.writeErrorResponse(w, http.StatusUnauthorized, "Token提取失败: "+err.Error())
+                        return
+                }</span>
+
+                // 解析和验证token
+                <span class="cov8" title="1">claims, err := m.validateToken(token)
+                if err != nil </span><span class="cov0" title="0">{
+                        m.Logger.Errorf("Token验证失败: %v", err)
+                        m.writeErrorResponse(w, http.StatusUnauthorized, "Token验证失败: "+err.Error())
+                        return
+                }</span>
+
+                // 检查token是否即将过期，如果是则返回刷新提示
+                <span class="cov8" title="1">if m.shouldRefreshToken(claims) </span><span class="cov0" title="0">{
+                        w.Header().Set("X-Token-Refresh", "true")
+                }</span>
+
+                // 将用户信息注入到context中
+                <span class="cov8" title="1">ctx := m.injectUserContext(r.Context(), claims)
+                r = r.WithContext(ctx)
+
+                // 记录访问日志
+                m.Logger.Infof("用户 %d (%s) 访问 %s %s, 角色: %v",
+                        claims.UserID, claims.Username, r.Method, r.URL.Path, claims.Roles)
+
+                next(w, r)</span>
+        }
+}
+
+// extractToken 从请求中提取JWT token
+func (m *AuthMiddleware) extractToken(r *http.Request) (string, error) <span class="cov8" title="1">{
+        // 从Authorization header中提取
+        authHeader := r.Header.Get("Authorization")
+        if authHeader != "" </span><span class="cov8" title="1">{
+                parts := strings.SplitN(authHeader, " ", 2)
+                if len(parts) == 2 &amp;&amp; parts[0] == "Bearer" </span><span class="cov8" title="1">{
+                        return parts[1], nil
+                }</span>
+                <span class="cov0" title="0">return "", fmt.Errorf("Authorization header格式错误")</span>
+        }
+
+        // 从Cookie中提取（可选）
+        <span class="cov8" title="1">cookie, err := r.Cookie("dmh_token")
+        if err == nil &amp;&amp; cookie.Value != "" </span><span class="cov0" title="0">{
+                return cookie.Value, nil
+        }</span>
+
+        // 从查询参数中提取（可选，用于某些特殊场景）
+        <span class="cov8" title="1">token := r.URL.Query().Get("token")
+        if token != "" </span><span class="cov0" title="0">{
+                return token, nil
+        }</span>
+
+        <span class="cov8" title="1">return "", fmt.Errorf("未找到认证token")</span>
+}
+
+// validateToken 验证JWT token并返回claims
+func (m *AuthMiddleware) validateToken(tokenString string) (*JWTClaims, error) <span class="cov8" title="1">{
+        token, err := jwt.ParseWithClaims(tokenString, &amp;JWTClaims{}, func(token *jwt.Token) (interface{}, error) </span><span class="cov8" title="1">{
+                // 验证签名方法
+                if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("意外的签名方法: %v", token.Header["alg"])
+                }</span>
+                <span class="cov8" title="1">return []byte(m.jwtSecret), nil</span>
+        })
+
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("token解析失败: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">if !token.Valid </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("token无效")
+        }</span>
+
+        <span class="cov8" title="1">claims, ok := token.Claims.(*JWTClaims)
+        if !ok </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("token claims类型错误")
+        }</span>
+
+        // 验证token是否过期
+        <span class="cov8" title="1">if claims.ExpiresAt != nil &amp;&amp; claims.ExpiresAt.Time.Before(time.Now()) </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("token已过期")
+        }</span>
+
+        // 验证必要字段
+        <span class="cov8" title="1">if claims.UserID &lt;= 0 </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("token中用户ID无效")
+        }</span>
+
+        <span class="cov8" title="1">if claims.Username == "" </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("token中用户名为空")
+        }</span>
+
+        <span class="cov8" title="1">if len(claims.Roles) == 0 </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("token中角色信息为空")
+        }</span>
+
+        <span class="cov8" title="1">return claims, nil</span>
+}
+
+// shouldRefreshToken 检查是否应该刷新token
+func (m *AuthMiddleware) shouldRefreshToken(claims *JWTClaims) bool <span class="cov8" title="1">{
+        if claims.ExpiresAt == nil </span><span class="cov0" title="0">{
+                return false
+        }</span>
+
+        // 如果token在30分钟内过期，建议刷新
+        <span class="cov8" title="1">refreshThreshold := time.Now().Add(30 * time.Minute)
+        return claims.ExpiresAt.Time.Before(refreshThreshold)</span>
+}
+
+// injectUserContext 将用户信息注入到context中
+func (m *AuthMiddleware) injectUserContext(ctx context.Context, claims *JWTClaims) context.Context <span class="cov8" title="1">{
+        ctx = context.WithValue(ctx, "userId", claims.UserID)
+        ctx = context.WithValue(ctx, "username", claims.Username)
+        ctx = context.WithValue(ctx, "roles", claims.Roles)
+        ctx = context.WithValue(ctx, "brandIds", claims.BrandIDs)
+        ctx = context.WithValue(ctx, "userClaims", claims)
+        return ctx
+}</span>
+
+// isPublicPath 检查是否为公开路径（不需要认证）
+func (m *AuthMiddleware) isPublicPath(path string) bool <span class="cov8" title="1">{
+        publicPaths := []string{
+                "/api/v1/auth/login",
+                "/api/v1/auth/register",
+                "/api/v1/auth/refresh",
+                "/api/v1/campaigns", // 匿名用户可以查看活动列表
+                "/health",
+                "/ping",
+        }
+
+        for _, publicPath := range publicPaths </span><span class="cov8" title="1">{
+                if strings.HasPrefix(path, publicPath) </span><span class="cov8" title="1">{
+                        return true
+                }</span>
+        }
+
+        <span class="cov8" title="1">return false</span>
+}
+
+// writeErrorResponse 写入错误响应
+func (m *AuthMiddleware) writeErrorResponse(w http.ResponseWriter, statusCode int, message string) <span class="cov8" title="1">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(statusCode)
+
+        response := AuthResponse{
+                Code:    statusCode,
+                Message: message,
+        }
+
+        json.NewEncoder(w).Encode(response)
+}</span>
+
+// GenerateToken 生成JWT token（用于登录时调用）
+func (m *AuthMiddleware) GenerateToken(userID int64, username string, roles []string, brandIDs []int64) (string, error) <span class="cov8" title="1">{
+        now := time.Now()
+        claims := &amp;JWTClaims{
+                UserID:   userID,
+                Username: username,
+                Roles:    roles,
+                BrandIDs: brandIDs,
+                RegisteredClaims: jwt.RegisteredClaims{
+                        IssuedAt:  jwt.NewNumericDate(now),
+                        ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)), // 24小时过期
+                        NotBefore: jwt.NewNumericDate(now),
+                        Issuer:    "dmh-system",
+                },
+        }
+
+        token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+        return token.SignedString([]byte(m.jwtSecret))
+}</span>
+
+// RefreshToken 刷新JWT token
+func (m *AuthMiddleware) RefreshToken(oldTokenString string) (string, error) <span class="cov8" title="1">{
+        // 解析旧token（即使过期也要解析）
+        token, err := jwt.ParseWithClaims(oldTokenString, &amp;JWTClaims{}, func(token *jwt.Token) (interface{}, error) </span><span class="cov8" title="1">{
+                return []byte(m.jwtSecret), nil
+        }</span>)
+
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                // 如果是过期错误，我们仍然可以刷新
+                if ve, ok := err.(*jwt.ValidationError); ok &amp;&amp; ve.Errors&amp;jwt.ValidationErrorExpired != 0 </span>{<span class="cov0" title="0">
+                        // token过期，但我们可以从中提取claims来生成新token
+                }</span> else<span class="cov8" title="1"> {
+                        return "", fmt.Errorf("token解析失败: %v", err)
+                }</span>
+        }
+
+        <span class="cov8" title="1">claims, ok := token.Claims.(*JWTClaims)
+        if !ok </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("token claims类型错误")
+        }</span>
+
+        // 检查token是否在可刷新时间窗口内（例如过期后7天内可刷新）
+        <span class="cov8" title="1">if claims.ExpiresAt != nil </span><span class="cov8" title="1">{
+                maxRefreshTime := claims.ExpiresAt.Time.Add(7 * 24 * time.Hour)
+                if time.Now().After(maxRefreshTime) </span><span class="cov0" title="0">{
+                        return "", fmt.Errorf("token过期时间过长，无法刷新")
+                }</span>
+        }
+
+        // 生成新token
+        <span class="cov8" title="1">return m.GenerateToken(claims.UserID, claims.Username, claims.Roles, claims.BrandIDs)</span>
+}
+
+// GetUserFromContext 从context中获取用户信息
+func GetUserFromContext(ctx context.Context) (*JWTClaims, error) <span class="cov8" title="1">{
+        claims, ok := ctx.Value("userClaims").(*JWTClaims)
+        if !ok </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("无法从context中获取用户信息")
+        }</span>
+        <span class="cov8" title="1">return claims, nil</span>
+}
+
+// GetUserIDFromContext 从context中获取用户ID
+func GetUserIDFromContext(ctx context.Context) (int64, error) <span class="cov8" title="1">{
+        switch value := ctx.Value("userId").(type) </span>{
+        case int64:<span class="cov8" title="1">
+                return value, nil</span>
+        case int:<span class="cov8" title="1">
+                return int64(value), nil</span>
+        case json.Number:<span class="cov0" title="0">
+                parsed, err := value.Int64()
+                if err != nil </span><span class="cov0" title="0">{
+                        return 0, fmt.Errorf("用户ID转换失败: %v", err)
+                }</span>
+                <span class="cov0" title="0">return parsed, nil</span>
+        case float64:<span class="cov0" title="0">
+                return int64(value), nil</span>
+        case string:<span class="cov8" title="1">
+                parsed, err := strconv.ParseInt(value, 10, 64)
+                if err != nil </span><span class="cov0" title="0">{
+                        return 0, fmt.Errorf("用户ID转换失败: %v", err)
+                }</span>
+                <span class="cov8" title="1">return parsed, nil</span>
+        default:<span class="cov8" title="1">
+                return 0, fmt.Errorf("无法从context中获取用户ID")</span>
+        }
+}
+
+// GetUserRolesFromContext 从context中获取用户角色
+func GetUserRolesFromContext(ctx context.Context) ([]string, error) <span class="cov8" title="1">{
+        switch roles := ctx.Value("roles").(type) </span>{
+        case []string:<span class="cov8" title="1">
+                return roles, nil</span>
+        case []interface{}:<span class="cov0" title="0">
+                roleStrings := make([]string, 0, len(roles))
+                for _, role := range roles </span><span class="cov0" title="0">{
+                        if roleStr, ok := role.(string); ok </span><span class="cov0" title="0">{
+                                roleStrings = append(roleStrings, roleStr)
+                        }</span>
+                }
+                <span class="cov0" title="0">if len(roleStrings) == 0 </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("无法从context中获取用户角色")
+                }</span>
+                <span class="cov0" title="0">return roleStrings, nil</span>
+        default:<span class="cov8" title="1">
+                return nil, fmt.Errorf("无法从context中获取用户角色")</span>
+        }
+}
+
+// HasRole 检查用户是否有指定角色
+func HasRole(ctx context.Context, role string) bool <span class="cov8" title="1">{
+        roles, err := GetUserRolesFromContext(ctx)
+        if err != nil </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        <span class="cov8" title="1">for _, r := range roles </span><span class="cov8" title="1">{
+                if r == role || r == "platform_admin" </span><span class="cov8" title="1">{ // 平台管理员拥有所有角色权限
+                        return true
+                }</span>
+        }
+        <span class="cov8" title="1">return false</span>
+}
+
+// IsPlatformAdmin 检查是否为平台管理员
+func IsPlatformAdmin(ctx context.Context) bool <span class="cov8" title="1">{
+        return HasRole(ctx, "platform_admin")
+}</span>
+
+// GetUserBrandIDs 从context中获取用户管理的品牌ID列表（已废弃，保留兼容性）
+func GetUserBrandIDs(ctx context.Context) ([]int64, error) <span class="cov8" title="1">{
+        return []int64{}, nil // 返回空列表
+}</span>
+
+// CanAccessBrand 检查用户是否可以访问指定品牌
+func CanAccessBrand(ctx context.Context, brandID int64) bool <span class="cov8" title="1">{
+        // 只有平台管理员可以访问所有品牌
+        return IsPlatformAdmin(ctx)
+}</span>
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package middleware
+
+import (
+        "net/http"
+        "time"
+
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+// PerformanceMiddleware 性能监控中间件
+type PerformanceMiddleware struct {
+        logger logx.Logger
+}
+
+// NewPerformanceMiddleware 创建性能监控中间件
+func NewPerformanceMiddleware() *PerformanceMiddleware <span class="cov8" title="1">{
+        return &amp;PerformanceMiddleware{
+                logger: logx.WithContext(nil),
+        }
+}</span>
+
+// Handle 处理请求并记录性能指标
+func (m *PerformanceMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc <span class="cov8" title="1">{
+        return func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                start := time.Now()
+                path := r.URL.Path
+                method := r.Method
+
+                // 包装 ResponseWriter 以获取状态码
+                wrapped := &amp;responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+
+                next(wrapped, r)
+
+                duration := time.Since(start)
+
+                // 记录慢请求 (超过 500ms)
+                if duration &gt; 500*time.Millisecond </span><span class="cov0" title="0">{
+                        m.logger.Slowf("[SLOW] %s %s - %d - %v", method, path, wrapped.statusCode, duration)
+                }</span>
+
+                // 记录错误请求 (状态码 &gt;= 400)
+                <span class="cov8" title="1">if wrapped.statusCode &gt;= 400 </span><span class="cov0" title="0">{
+                        m.logger.Errorf("[ERROR] %s %s - %d - %v", method, path, wrapped.statusCode, duration)
+                }</span>
+
+                // 记录所有请求 (DEBUG 级别)
+                <span class="cov8" title="1">m.logger.Infof("[REQUEST] %s %s - %d - %v", method, path, wrapped.statusCode, duration)</span>
+        }
+}
+
+// responseWriter 包装 http.ResponseWriter 以捕获状态码
+type responseWriter struct {
+        http.ResponseWriter
+        statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) <span class="cov8" title="1">{
+        rw.statusCode = code
+        rw.ResponseWriter.WriteHeader(code)
+}</span>
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">package middleware
+
+import (
+        "context"
+        "database/sql"
+        "encoding/json"
+        "fmt"
+        "net/http"
+        "strconv"
+        "strings"
+        "sync"
+        "time"
+
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+// PermissionMiddleware 权限检查中间件
+type PermissionMiddleware struct {
+        logx.Logger
+        db    *sql.DB
+        cache *PermissionCache
+}
+
+// Permission 权限结构
+type Permission struct {
+        ID          int64  `json:"id"`
+        Name        string `json:"name"`
+        Code        string `json:"code"`
+        Resource    string `json:"resource"`
+        Action      string `json:"action"`
+        Description string `json:"description"`
+}
+
+// UserPermissions 用户权限缓存结构
+type UserPermissions struct {
+        UserID      int64           `json:"userId"`
+        Roles       []string        `json:"roles"`
+        Permissions map[string]bool `json:"permissions"` // permission_code -&gt; bool
+        BrandIDs    []int64         `json:"brandIds"`
+        CachedAt    time.Time       `json:"cachedAt"`
+}
+
+// PermissionCache 权限缓存
+type PermissionCache struct {
+        mu    sync.RWMutex
+        cache map[int64]*UserPermissions
+        ttl   time.Duration
+}
+
+// PermissionResponse 权限检查响应
+type PermissionResponse struct {
+        Code    int         `json:"code"`
+        Message string      `json:"message"`
+        Data    interface{} `json:"data,omitempty"`
+}
+
+func NewPermissionMiddleware(db *sql.DB) *PermissionMiddleware <span class="cov8" title="1">{
+        return &amp;PermissionMiddleware{
+                Logger: logx.WithContext(context.Background()),
+                db:     db,
+                cache:  NewPermissionCache(30 * time.Minute), // 30分钟缓存
+        }
+}</span>
+
+func NewPermissionCache(ttl time.Duration) *PermissionCache <span class="cov8" title="1">{
+        cache := &amp;PermissionCache{
+                cache: make(map[int64]*UserPermissions),
+                ttl:   ttl,
+        }
+
+        // 启动清理goroutine
+        go cache.cleanup()
+
+        return cache
+}</span>
+
+// Handle 处理权限检查
+func (m *PermissionMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc <span class="cov8" title="1">{
+        return func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                // 跳过不需要权限检查的路径
+                if m.isPublicPath(r.URL.Path) </span><span class="cov0" title="0">{
+                        next(w, r)
+                        return
+                }</span>
+
+                // 从context获取用户信息
+                <span class="cov8" title="1">userID, err := GetUserIDFromContext(r.Context())
+                if err != nil </span><span class="cov8" title="1">{
+                        m.writeErrorResponse(w, http.StatusUnauthorized, "用户信息获取失败")
+                        return
+                }</span>
+
+                // 平台管理员拥有所有权限，直接放行
+                <span class="cov8" title="1">if IsPlatformAdmin(r.Context()) </span><span class="cov8" title="1">{
+                        m.Logger.Infof("平台管理员 %d 访问 %s %s - 直接放行", userID, r.Method, r.URL.Path)
+                        next(w, r)
+                        return
+                }</span>
+
+                // 提取资源和操作
+                <span class="cov8" title="1">resource, action := m.extractResourceAction(r)
+                permissionCode := fmt.Sprintf("%s:%s", resource, action)
+
+                // 检查权限
+                hasPermission, err := m.checkPermission(r.Context(), userID, permissionCode)
+                if err != nil </span><span class="cov0" title="0">{
+                        m.Logger.Errorf("权限检查失败: %v", err)
+                        m.writeErrorResponse(w, http.StatusInternalServerError, "权限检查失败")
+                        return
+                }</span>
+
+                <span class="cov8" title="1">if !hasPermission </span><span class="cov0" title="0">{
+                        m.Logger.Error(fmt.Sprintf("用户 %d 无权限访问 %s:%s", userID, resource, action))
+                        m.writeErrorResponse(w, http.StatusForbidden, fmt.Sprintf("无权限执行操作: %s", permissionCode))
+                        return
+                }</span>
+
+                // 数据级权限检查
+                <span class="cov8" title="1">if err := m.checkDataLevelPermission(r.Context(), r); err != nil </span><span class="cov8" title="1">{
+                        m.Logger.Error(fmt.Sprintf("用户 %d 数据级权限检查失败: %v", userID, err))
+                        m.writeErrorResponse(w, http.StatusForbidden, err.Error())
+                        return
+                }</span>
+
+                <span class="cov8" title="1">m.Logger.Infof("用户 %d 权限检查通过: %s", userID, permissionCode)
+                next(w, r)</span>
+        }
+}
+
+// checkPermission 检查用户是否有指定权限
+func (m *PermissionMiddleware) checkPermission(ctx context.Context, userID int64, permissionCode string) (bool, error) <span class="cov8" title="1">{
+        // 先从缓存获取
+        userPerms, err := m.getUserPermissions(userID)
+        if err != nil </span><span class="cov0" title="0">{
+                return false, err
+        }</span>
+
+        // 检查是否有该权限
+        <span class="cov8" title="1">return userPerms.Permissions[permissionCode], nil</span>
+}
+
+// getUserPermissions 获取用户权限（优先从缓存）
+func (m *PermissionMiddleware) getUserPermissions(userID int64) (*UserPermissions, error) <span class="cov8" title="1">{
+        // 先尝试从缓存获取
+        if userPerms := m.cache.Get(userID); userPerms != nil </span><span class="cov8" title="1">{
+                return userPerms, nil
+        }</span>
+
+        // 缓存未命中，从数据库查询
+        <span class="cov8" title="1">userPerms, err := m.loadUserPermissionsFromDB(userID)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // 存入缓存
+        <span class="cov8" title="1">m.cache.Set(userID, userPerms)
+
+        return userPerms, nil</span>
+}
+
+// loadUserPermissionsFromDB 从数据库加载用户权限
+func (m *PermissionMiddleware) loadUserPermissionsFromDB(userID int64) (*UserPermissions, error) <span class="cov8" title="1">{
+        userPerms := &amp;UserPermissions{
+                UserID:      userID,
+                Permissions: make(map[string]bool),
+                CachedAt:    time.Now(),
+        }
+
+        // 查询用户角色
+        roleQuery := `
+                SELECT r.code 
+                FROM user_roles ur 
+                JOIN roles r ON ur.role_id = r.id 
+                WHERE ur.user_id = ?`
+
+        rows, err := m.db.Query(roleQuery, userID)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("查询用户角色失败: %v", err)
+        }</span>
+        <span class="cov8" title="1">defer rows.Close()
+
+        var roles []string
+        for rows.Next() </span><span class="cov8" title="1">{
+                var role string
+                if err := rows.Scan(&amp;role); err != nil </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("扫描角色失败: %v", err)
+                }</span>
+                <span class="cov8" title="1">roles = append(roles, role)</span>
+        }
+        <span class="cov8" title="1">userPerms.Roles = roles
+
+        // 查询用户权限
+        permQuery := `
+                SELECT DISTINCT p.code 
+                FROM user_roles ur 
+                JOIN role_permissions rp ON ur.role_id = rp.role_id 
+                JOIN permissions p ON rp.permission_id = p.id 
+                WHERE ur.user_id = ?`
+
+        rows, err = m.db.Query(permQuery, userID)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("查询用户权限失败: %v", err)
+        }</span>
+        <span class="cov8" title="1">defer rows.Close()
+
+        for rows.Next() </span><span class="cov8" title="1">{
+                var permCode string
+                if err := rows.Scan(&amp;permCode); err != nil </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("扫描权限失败: %v", err)
+                }</span>
+                <span class="cov8" title="1">userPerms.Permissions[permCode] = true</span>
+        }
+
+        <span class="cov8" title="1">return userPerms, nil</span>
+}
+
+// getUserBrandIDs 获取用户管理的品牌ID列表（已废弃，保留兼容性）
+func (m *PermissionMiddleware) getUserBrandIDs(userID int64) ([]int64, error) <span class="cov0" title="0">{
+        return []int64{}, nil
+}</span>
+
+// checkDataLevelPermission 检查数据级权限
+func (m *PermissionMiddleware) checkDataLevelPermission(ctx context.Context, r *http.Request) error <span class="cov8" title="1">{
+        // 平台管理员可以访问所有数据
+        if IsPlatformAdmin(ctx) </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+
+        // 获取用户角色
+        <span class="cov8" title="1">roles, err := GetUserRolesFromContext(ctx)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">path := r.URL.Path
+
+        // 普通用户只能访问公开接口
+        for _, role := range roles </span><span class="cov8" title="1">{
+                if role == "participant" </span><span class="cov8" title="1">{
+                        // 普通用户不能访问 /api/v1/brands
+                        if strings.HasPrefix(path, "/api/v1/brands") &amp;&amp; r.Method == http.MethodGet </span><span class="cov8" title="1">{
+                                return fmt.Errorf("普通用户无权访问品牌管理接口")
+                        }</span>
+                }
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// extractResourceAction 从请求中提取资源和操作
+func (m *PermissionMiddleware) extractResourceAction(r *http.Request) (string, string) <span class="cov8" title="1">{
+        path := strings.TrimPrefix(r.URL.Path, "/api/v1/")
+        parts := strings.Split(path, "/")
+
+        var resource, action string
+
+        if len(parts) &gt; 0 </span><span class="cov8" title="1">{
+                resource = parts[0]
+        }</span>
+
+        // 根据HTTP方法和路径模式确定操作
+        <span class="cov8" title="1">switch r.Method </span>{
+        case http.MethodGet:<span class="cov8" title="1">
+                action = "read"</span>
+        case http.MethodPost:<span class="cov0" title="0">
+                // 特殊处理一些POST操作
+                if strings.Contains(path, "/approve") </span><span class="cov0" title="0">{
+                        action = "approve"
+                }</span> else<span class="cov0" title="0"> if strings.Contains(path, "/reset-password") </span><span class="cov0" title="0">{
+                        action = "reset-password"
+                }</span> else<span class="cov0" title="0"> if strings.Contains(path, "/status") </span><span class="cov0" title="0">{
+                        action = "status"
+                }</span> else<span class="cov0" title="0"> {
+                        action = "create"
+                }</span>
+        case http.MethodPut, http.MethodPatch:<span class="cov0" title="0">
+                action = "update"</span>
+        case http.MethodDelete:<span class="cov0" title="0">
+                action = "delete"</span>
+        default:<span class="cov0" title="0">
+                action = "read"</span>
+        }
+
+        <span class="cov8" title="1">return resource, action</span>
+}
+
+// extractBrandIDFromPath 从URL路径中提取品牌ID
+func (m *PermissionMiddleware) extractBrandIDFromPath(path string) int64 <span class="cov0" title="0">{
+        // 匹配 /api/v1/brands/{id} 或 /api/v1/brands/{id}/xxx 模式
+        if strings.Contains(path, "/brands/") </span><span class="cov0" title="0">{
+                parts := strings.Split(path, "/brands/")
+                if len(parts) &gt; 1 </span><span class="cov0" title="0">{
+                        idPart := strings.Split(parts[1], "/")[0]
+                        if id, err := strconv.ParseInt(idPart, 10, 64); err == nil </span><span class="cov0" title="0">{
+                                return id
+                        }</span>
+                }
+        }
+
+        // 匹配其他可能包含品牌ID的路径
+        // 例如 /api/v1/campaigns?brandId=1
+        // 这种情况在业务逻辑中处理
+
+        <span class="cov0" title="0">return 0</span>
+}
+
+// isPublicPath 检查是否为公开路径
+func (m *PermissionMiddleware) isPublicPath(path string) bool <span class="cov8" title="1">{
+        publicPaths := []string{
+                "/api/v1/auth/login",
+                "/api/v1/auth/register",
+                "/api/v1/auth/refresh",
+                "/health",
+                "/ping",
+        }
+
+        for _, publicPath := range publicPaths </span><span class="cov8" title="1">{
+                if strings.HasPrefix(path, publicPath) </span><span class="cov0" title="0">{
+                        return true
+                }</span>
+        }
+
+        // 匿名用户可以查看活动列表（GET请求）
+        <span class="cov8" title="1">if strings.HasPrefix(path, "/api/v1/campaigns") &amp;&amp; strings.Contains(path, "GET") </span><span class="cov0" title="0">{
+                return true
+        }</span>
+
+        <span class="cov8" title="1">return false</span>
+}
+
+// writeErrorResponse 写入错误响应
+func (m *PermissionMiddleware) writeErrorResponse(w http.ResponseWriter, statusCode int, message string) <span class="cov8" title="1">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(statusCode)
+
+        response := PermissionResponse{
+                Code:    statusCode,
+                Message: message,
+        }
+
+        json.NewEncoder(w).Encode(response)
+}</span>
+
+// ClearUserCache 清除用户权限缓存（用户权限变更时调用）
+func (m *PermissionMiddleware) ClearUserCache(userID int64) <span class="cov8" title="1">{
+        m.cache.Delete(userID)
+        m.Logger.Infof("已清除用户 %d 的权限缓存", userID)
+}</span>
+
+// ClearAllCache 清除所有权限缓存
+func (m *PermissionMiddleware) ClearAllCache() <span class="cov0" title="0">{
+        m.cache.Clear()
+        m.Logger.Info("已清除所有权限缓存")
+}</span>
+
+// PermissionCache 方法实现
+
+// Get 从缓存获取用户权限
+func (c *PermissionCache) Get(userID int64) *UserPermissions <span class="cov8" title="1">{
+        c.mu.RLock()
+        defer c.mu.RUnlock()
+
+        userPerms, exists := c.cache[userID]
+        if !exists </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        // 检查是否过期
+        <span class="cov8" title="1">if time.Since(userPerms.CachedAt) &gt; c.ttl </span><span class="cov0" title="0">{
+                delete(c.cache, userID)
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">return userPerms</span>
+}
+
+// Set 设置用户权限到缓存
+func (c *PermissionCache) Set(userID int64, userPerms *UserPermissions) <span class="cov8" title="1">{
+        c.mu.Lock()
+        defer c.mu.Unlock()
+
+        c.cache[userID] = userPerms
+}</span>
+
+// Delete 删除用户权限缓存
+func (c *PermissionCache) Delete(userID int64) <span class="cov8" title="1">{
+        c.mu.Lock()
+        defer c.mu.Unlock()
+
+        delete(c.cache, userID)
+}</span>
+
+// Clear 清除所有缓存
+func (c *PermissionCache) Clear() <span class="cov0" title="0">{
+        c.mu.Lock()
+        defer c.mu.Unlock()
+
+        c.cache = make(map[int64]*UserPermissions)
+}</span>
+
+// cleanup 定期清理过期缓存
+func (c *PermissionCache) cleanup() <span class="cov8" title="1">{
+        ticker := time.NewTicker(10 * time.Minute) // 每10分钟清理一次
+        defer ticker.Stop()
+
+        for range ticker.C </span><span class="cov0" title="0">{
+                c.mu.Lock()
+                now := time.Now()
+                for userID, userPerms := range c.cache </span><span class="cov0" title="0">{
+                        if now.Sub(userPerms.CachedAt) &gt; c.ttl </span><span class="cov0" title="0">{
+                                delete(c.cache, userID)
+                        }</span>
+                }
+                <span class="cov0" title="0">c.mu.Unlock()</span>
+        }
+}
+
+// ValidatePermission 验证权限格式
+func ValidatePermission(permissionCode string) error <span class="cov8" title="1">{
+        parts := strings.Split(permissionCode, ":")
+        if len(parts) != 2 </span><span class="cov8" title="1">{
+                return fmt.Errorf("权限格式错误，应为 resource:action 格式")
+        }</span>
+
+        <span class="cov8" title="1">resource, action := parts[0], parts[1]
+        if resource == "" || action == "" </span><span class="cov8" title="1">{
+                return fmt.Errorf("资源和操作不能为空")
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file14" style="display: none">package middleware
+
+import (
+        "context"
+        "fmt"
+        "net/http"
+        "strconv"
+        "sync"
+        "time"
+
+        "github.com/zeromicro/go-zero/core/logx"
+)
+
+type RateLimiter interface {
+        Allow(userID string) bool
+        GetRemaining(userID string) int
+        GetResetTime(userID string) time.Time
+}
+
+type MemoryRateLimiter struct {
+        mu       sync.RWMutex
+        requests map[string]*userRequests
+        max      int
+        duration time.Duration
+}
+
+type userRequests struct {
+        timestamps []time.Time
+}
+
+func NewMemoryRateLimiter(maxRequests int, duration time.Duration) *MemoryRateLimiter <span class="cov8" title="1">{
+        limiter := &amp;MemoryRateLimiter{
+                requests: make(map[string]*userRequests),
+                max:      maxRequests,
+                duration: duration,
+        }
+
+        go limiter.cleanupExpired()
+
+        return limiter
+}</span>
+
+func (l *MemoryRateLimiter) Allow(userID string) bool <span class="cov8" title="1">{
+        l.mu.Lock()
+        defer l.mu.Unlock()
+
+        now := time.Now()
+        ur, exists := l.requests[userID]
+
+        if !exists </span><span class="cov8" title="1">{
+                l.requests[userID] = &amp;userRequests{
+                        timestamps: []time.Time{now},
+                }
+                return true
+        }</span>
+
+        <span class="cov8" title="1">cutoff := now.Add(-l.duration)
+        validTimestamps := make([]time.Time, 0)
+        for _, ts := range ur.timestamps </span><span class="cov8" title="1">{
+                if ts.After(cutoff) </span><span class="cov8" title="1">{
+                        validTimestamps = append(validTimestamps, ts)
+                }</span>
+        }
+
+        <span class="cov8" title="1">if len(validTimestamps) &gt;= l.max </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        <span class="cov8" title="1">validTimestamps = append(validTimestamps, now)
+        l.requests[userID].timestamps = validTimestamps
+
+        return true</span>
+}
+
+func (l *MemoryRateLimiter) GetRemaining(userID string) int <span class="cov8" title="1">{
+        l.mu.RLock()
+        defer l.mu.RUnlock()
+
+        ur, exists := l.requests[userID]
+        if !exists </span><span class="cov0" title="0">{
+                return l.max
+        }</span>
+
+        <span class="cov8" title="1">now := time.Now()
+        cutoff := now.Add(-l.duration)
+        count := 0
+
+        for _, ts := range ur.timestamps </span><span class="cov8" title="1">{
+                if ts.After(cutoff) </span><span class="cov8" title="1">{
+                        count++
+                }</span>
+        }
+
+        <span class="cov8" title="1">return l.max - count</span>
+}
+
+func (l *MemoryRateLimiter) GetResetTime(userID string) time.Time <span class="cov8" title="1">{
+        l.mu.RLock()
+        defer l.mu.RUnlock()
+
+        ur, exists := l.requests[userID]
+        if !exists </span><span class="cov0" title="0">{
+                return time.Now()
+        }</span>
+
+        <span class="cov8" title="1">if len(ur.timestamps) == 0 </span><span class="cov0" title="0">{
+                return time.Now()
+        }</span>
+
+        <span class="cov8" title="1">return ur.timestamps[0].Add(l.duration)</span>
+}
+
+func (l *MemoryRateLimiter) cleanupExpired() <span class="cov8" title="1">{
+        ticker := time.NewTicker(1 * time.Minute)
+        defer ticker.Stop()
+
+        for range ticker.C </span><span class="cov0" title="0">{
+                l.mu.Lock()
+
+                toDelete := make([]string, 0)
+                for userID, ur := range l.requests </span><span class="cov0" title="0">{
+                        if len(ur.timestamps) &gt; 0 </span><span class="cov0" title="0">{
+                                cutoff := time.Now().Add(-l.duration)
+                                hasValid := false
+                                for _, ts := range ur.timestamps </span><span class="cov0" title="0">{
+                                        if ts.After(cutoff) </span><span class="cov0" title="0">{
+                                                hasValid = true
+                                                break</span>
+                                        }
+                                }
+                                <span class="cov0" title="0">if !hasValid </span><span class="cov0" title="0">{
+                                        toDelete = append(toDelete, userID)
+                                }</span>
+                        }
+                }
+
+                <span class="cov0" title="0">for _, id := range toDelete </span><span class="cov0" title="0">{
+                        delete(l.requests, id)
+                }</span>
+
+                <span class="cov0" title="0">l.mu.Unlock()</span>
+        }
+}
+
+type RedisRateLimiter struct {
+        mu          sync.Mutex
+        redis       RedisClient
+        prefix      string
+        maxRequests int
+        duration    time.Duration
+}
+
+func NewRedisRateLimiter(redis RedisClient, prefix string, maxRequests int, duration time.Duration) *RedisRateLimiter <span class="cov0" title="0">{
+        return &amp;RedisRateLimiter{
+                redis:       redis,
+                prefix:      prefix,
+                maxRequests: maxRequests,
+                duration:    duration,
+        }
+}</span>
+
+func (l *RedisRateLimiter) Allow(userID string) bool <span class="cov0" title="0">{
+        l.mu.Lock()
+        defer l.mu.Unlock()
+
+        key := fmt.Sprintf("%s:requests:%s", l.prefix, userID)
+
+        count, err := l.redis.Incr(context.Background(), key)
+        if err != nil </span><span class="cov0" title="0">{
+                logx.Errorf("Redis INCR失败: %v", err)
+                return true
+        }</span>
+
+        <span class="cov0" title="0">if count == 1 </span><span class="cov0" title="0">{
+                l.redis.Expire(context.Background(), key, int(l.duration.Seconds()))
+        }</span>
+
+        <span class="cov0" title="0">if count &gt; int64(l.maxRequests) </span><span class="cov0" title="0">{
+                return false
+        }</span>
+
+        <span class="cov0" title="0">return true</span>
+}
+
+func (l *RedisRateLimiter) GetRemaining(userID string) int <span class="cov0" title="0">{
+        l.mu.Lock()
+        defer l.mu.Unlock()
+
+        key := fmt.Sprintf("%s:requests:%s", l.prefix, userID)
+
+        count, err := l.redis.Get(context.Background(), key)
+        if err != nil </span><span class="cov0" title="0">{
+                logx.Errorf("Redis GET失败: %v", err)
+                return l.maxRequests
+        }</span>
+
+        <span class="cov0" title="0">countInt, _ := strconv.Atoi(count)
+        remaining := l.maxRequests - countInt
+        if remaining &lt; 0 </span><span class="cov0" title="0">{
+                return 0
+        }</span>
+
+        <span class="cov0" title="0">return remaining</span>
+}
+
+func (l *RedisRateLimiter) GetResetTime(userID string) time.Time <span class="cov0" title="0">{
+        l.mu.Lock()
+        defer l.mu.Unlock()
+
+        key := fmt.Sprintf("%s:requests:expire:%s", l.prefix, userID)
+
+        ttl, err := l.redis.TTL(context.Background(), key)
+        if err != nil </span><span class="cov0" title="0">{
+                logx.Errorf("Redis TTL失败: %v", err)
+                return time.Now()
+        }</span>
+
+        <span class="cov0" title="0">ttlInt, _ := strconv.Atoi(ttl)
+        return time.Now().Add(time.Duration(ttlInt) * time.Second)</span>
+}
+
+type RedisClient interface {
+        Incr(ctx context.Context, key string) (int64, error)
+        Get(ctx context.Context, key string) (string, error)
+        Expire(ctx context.Context, key string, seconds int) error
+        TTL(ctx context.Context, key string) (string, error)
+}
+
+func RateLimitMiddleware(limiter RateLimiter) func(http.Handler) http.Handler <span class="cov8" title="1">{
+        return func(next http.Handler) http.Handler </span><span class="cov8" title="1">{
+                return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                        userID := getUserID(r)
+
+                        if !limiter.Allow(userID) </span><span class="cov8" title="1">{
+                                remaining := limiter.GetRemaining(userID)
+                                resetTime := limiter.GetResetTime(userID)
+
+                                logx.WithContext(r.Context()).Infof("Rate limit exceeded for user %s, remaining: %d, reset: %v",
+                                        userID, remaining, resetTime)
+
+                                w.Header().Set("Content-Type", "application/json")
+                                w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
+                                w.Header().Set("X-RateLimit-Reset", resetTime.Format(time.RFC3339))
+                                w.WriteHeader(http.StatusTooManyRequests)
+                                w.Write([]byte(fmt.Sprintf(`{
+        "code": 429,
+        "msg": "请求过于频繁，请稍后再试",
+        "remaining": %d,
+        "resetAt": "`+resetTime.Format(time.RFC3339)+`"
+                }`, remaining)))
+                                return
+                        }</span>
+
+                        <span class="cov8" title="1">remaining := limiter.GetRemaining(userID)
+                        w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
+
+                        next.ServeHTTP(w, r)</span>
+                })
+        }
+}
+
+func getUserID(r *http.Request) string <span class="cov8" title="1">{
+        userID := r.Context().Value("userId")
+        if userID != nil </span><span class="cov0" title="0">{
+                return fmt.Sprintf("%v", userID)
+        }</span>
+
+        <span class="cov8" title="1">ip := r.RemoteAddr
+        if ip == "" </span><span class="cov0" title="0">{
+                ip = "unknown"
+        }</span>
+        <span class="cov8" title="1">return ip</span>
+}
+</pre>
+		
+		<pre class="file" id="file15" style="display: none">package service
+
+import (
+        "encoding/json"
+        "fmt"
+        "net/http"
+        "strings"
+        "time"
+
+        "dmh/model"
+
+        "gorm.io/gorm"
+)
+
+// AuditService 审计服务
+type AuditService struct {
+        db *gorm.DB
+}
+
+// NewAuditService 创建审计服务
+func NewAuditService(db *gorm.DB) *AuditService <span class="cov8" title="1">{
+        return &amp;AuditService{
+                db: db,
+        }
+}</span>
+
+// AuditContext 审计上下文
+type AuditContext struct {
+        UserID    *int64
+        Username  string
+        ClientIP  string
+        UserAgent string
+}
+
+// LogUserAction 记录用户操作日志
+func (s *AuditService) LogUserAction(ctx *AuditContext, action, resource, resourceID string, details interface{}) error <span class="cov8" title="1">{
+        detailsJSON := ""
+        if details != nil </span><span class="cov8" title="1">{
+                if detailsBytes, err := json.Marshal(details); err == nil </span><span class="cov8" title="1">{
+                        detailsJSON = string(detailsBytes)
+                }</span>
+        }
+
+        <span class="cov8" title="1">auditLog := &amp;model.AuditLog{
+                UserID:     ctx.UserID,
+                Username:   ctx.Username,
+                Action:     action,
+                Resource:   resource,
+                ResourceID: resourceID,
+                Details:    detailsJSON,
+                ClientIP:   ctx.ClientIP,
+                UserAgent:  ctx.UserAgent,
+                Status:     "success",
+        }
+
+        return s.db.Create(auditLog).Error</span>
+}
+
+// LogFailedAction 记录失败的操作
+func (s *AuditService) LogFailedAction(ctx *AuditContext, action, resource, resourceID string, errorMsg string) error <span class="cov8" title="1">{
+        auditLog := &amp;model.AuditLog{
+                UserID:     ctx.UserID,
+                Username:   ctx.Username,
+                Action:     action,
+                Resource:   resource,
+                ResourceID: resourceID,
+                ClientIP:   ctx.ClientIP,
+                UserAgent:  ctx.UserAgent,
+                Status:     "failed",
+                ErrorMsg:   errorMsg,
+        }
+
+        return s.db.Create(auditLog).Error
+}</span>
+
+// LogLoginAttempt 记录登录尝试
+func (s *AuditService) LogLoginAttempt(userID *int64, username, clientIP, userAgent string, success bool, failReason string) error <span class="cov8" title="1">{
+        loginAttempt := &amp;model.LoginAttempt{
+                UserID:     userID,
+                Username:   username,
+                ClientIP:   clientIP,
+                UserAgent:  userAgent,
+                Success:    success,
+                FailReason: failReason,
+        }
+
+        return s.db.Create(loginAttempt).Error
+}</span>
+
+// LogSecurityEvent 记录安全事件
+func (s *AuditService) LogSecurityEvent(eventType, severity string, userID *int64, username, clientIP, userAgent, description string, details interface{}) error <span class="cov8" title="1">{
+        detailsJSON := ""
+        if details != nil </span><span class="cov8" title="1">{
+                if detailsBytes, err := json.Marshal(details); err == nil </span><span class="cov8" title="1">{
+                        detailsJSON = string(detailsBytes)
+                }</span>
+        }
+
+        <span class="cov8" title="1">securityEvent := &amp;model.SecurityEvent{
+                EventType:   eventType,
+                Severity:    severity,
+                UserID:      userID,
+                Username:    username,
+                ClientIP:    clientIP,
+                UserAgent:   userAgent,
+                Description: description,
+                Details:     detailsJSON,
+                Handled:     false,
+        }
+
+        return s.db.Create(securityEvent).Error</span>
+}
+
+// GetAuditLogs 获取审计日志
+func (s *AuditService) GetAuditLogs(page, pageSize int, filters map[string]interface{}) ([]model.AuditLog, int64, error) <span class="cov8" title="1">{
+        var logs []model.AuditLog
+        var total int64
+
+        query := s.db.Model(&amp;model.AuditLog{})
+
+        // 应用过滤条件
+        if userID, ok := filters["user_id"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("user_id = ?", userID)
+        }</span>
+        <span class="cov8" title="1">if username, ok := filters["username"]; ok </span><span class="cov8" title="1">{
+                query = query.Where("username LIKE ?", "%"+username.(string)+"%")
+        }</span>
+        <span class="cov8" title="1">if action, ok := filters["action"]; ok </span><span class="cov8" title="1">{
+                query = query.Where("action = ?", action)
+        }</span>
+        <span class="cov8" title="1">if resource, ok := filters["resource"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("resource = ?", resource)
+        }</span>
+        <span class="cov8" title="1">if status, ok := filters["status"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("status = ?", status)
+        }</span>
+        <span class="cov8" title="1">if startTime, ok := filters["start_time"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("created_at &gt;= ?", startTime)
+        }</span>
+        <span class="cov8" title="1">if endTime, ok := filters["end_time"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("created_at &lt;= ?", endTime)
+        }</span>
+
+        // 获取总数
+        <span class="cov8" title="1">if err := query.Count(&amp;total).Error; err != nil </span><span class="cov0" title="0">{
+                return nil, 0, err
+        }</span>
+
+        // 获取分页数据
+        <span class="cov8" title="1">offset := (page - 1) * pageSize
+        err := query.Order("created_at DESC").
+                Offset(offset).
+                Limit(pageSize).
+                Find(&amp;logs).Error
+
+        return logs, total, err</span>
+}
+
+// GetLoginAttempts 获取登录尝试记录
+func (s *AuditService) GetLoginAttempts(page, pageSize int, filters map[string]interface{}) ([]model.LoginAttempt, int64, error) <span class="cov8" title="1">{
+        var attempts []model.LoginAttempt
+        var total int64
+
+        query := s.db.Model(&amp;model.LoginAttempt{})
+
+        // 应用过滤条件
+        if userID, ok := filters["user_id"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("user_id = ?", userID)
+        }</span>
+        <span class="cov8" title="1">if username, ok := filters["username"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("username LIKE ?", "%"+username.(string)+"%")
+        }</span>
+        <span class="cov8" title="1">if clientIP, ok := filters["client_ip"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("client_ip = ?", clientIP)
+        }</span>
+        <span class="cov8" title="1">if success, ok := filters["success"]; ok </span><span class="cov8" title="1">{
+                query = query.Where("success = ?", success)
+        }</span>
+        <span class="cov8" title="1">if startTime, ok := filters["start_time"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("created_at &gt;= ?", startTime)
+        }</span>
+        <span class="cov8" title="1">if endTime, ok := filters["end_time"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("created_at &lt;= ?", endTime)
+        }</span>
+
+        // 获取总数
+        <span class="cov8" title="1">if err := query.Count(&amp;total).Error; err != nil </span><span class="cov0" title="0">{
+                return nil, 0, err
+        }</span>
+
+        // 获取分页数据
+        <span class="cov8" title="1">offset := (page - 1) * pageSize
+        err := query.Order("created_at DESC").
+                Offset(offset).
+                Limit(pageSize).
+                Find(&amp;attempts).Error
+
+        return attempts, total, err</span>
+}
+
+// GetSecurityEvents 获取安全事件
+func (s *AuditService) GetSecurityEvents(page, pageSize int, filters map[string]interface{}) ([]model.SecurityEvent, int64, error) <span class="cov8" title="1">{
+        var events []model.SecurityEvent
+        var total int64
+
+        query := s.db.Model(&amp;model.SecurityEvent{})
+
+        // 应用过滤条件
+        if eventType, ok := filters["event_type"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("event_type = ?", eventType)
+        }</span>
+        <span class="cov8" title="1">if severity, ok := filters["severity"]; ok </span><span class="cov8" title="1">{
+                query = query.Where("severity = ?", severity)
+        }</span>
+        <span class="cov8" title="1">if userID, ok := filters["user_id"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("user_id = ?", userID)
+        }</span>
+        <span class="cov8" title="1">if handled, ok := filters["handled"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("handled = ?", handled)
+        }</span>
+        <span class="cov8" title="1">if startTime, ok := filters["start_time"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("created_at &gt;= ?", startTime)
+        }</span>
+        <span class="cov8" title="1">if endTime, ok := filters["end_time"]; ok </span><span class="cov0" title="0">{
+                query = query.Where("created_at &lt;= ?", endTime)
+        }</span>
+
+        // 获取总数
+        <span class="cov8" title="1">if err := query.Count(&amp;total).Error; err != nil </span><span class="cov0" title="0">{
+                return nil, 0, err
+        }</span>
+
+        // 获取分页数据
+        <span class="cov8" title="1">offset := (page - 1) * pageSize
+        err := query.Order("created_at DESC").
+                Offset(offset).
+                Limit(pageSize).
+                Find(&amp;events).Error
+
+        return events, total, err</span>
+}
+
+// HandleSecurityEvent 处理安全事件
+func (s *AuditService) HandleSecurityEvent(eventID, handlerID int64, note string) error <span class="cov8" title="1">{
+        updates := map[string]interface{}{
+                "handled":    true,
+                "handled_by": handlerID,
+                "handled_at": time.Now(),
+        }
+
+        return s.db.Model(&amp;model.SecurityEvent{}).
+                Where("id = ?", eventID).
+                Updates(updates).Error
+}</span>
+
+// DetectSuspiciousActivity 检测可疑活动
+func (s *AuditService) DetectSuspiciousActivity() error <span class="cov8" title="1">{
+        // 检测频繁登录失败
+        if err := s.detectFrequentLoginFailures(); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // 检测异常IP登录
+        <span class="cov8" title="1">if err := s.detectAbnormalIPLogin(); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // 检测权限提升操作
+        <span class="cov8" title="1">if err := s.detectPrivilegeEscalation(); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// detectFrequentLoginFailures 检测频繁登录失败
+func (s *AuditService) detectFrequentLoginFailures() error <span class="cov8" title="1">{
+        // 查找最近1小时内登录失败超过10次的IP
+        var results []struct {
+                ClientIP string
+                Count    int64
+        }
+
+        // 使用UTC时间查询以确保与数据库存储的UTC时间一致
+        oneHourAgo := time.Now().UTC().Add(-1 * time.Hour)
+        err := s.db.Model(&amp;model.LoginAttempt{}).
+                Select("client_ip, COUNT(*) as count").
+                Where("success = ? AND created_at &gt;= ?", false, oneHourAgo).
+                Group("client_ip").
+                Having("COUNT(*) &gt;= ?", 10).
+                Find(&amp;results).Error
+
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // 记录安全事件
+        <span class="cov8" title="1">for _, result := range results </span><span class="cov8" title="1">{
+                err := s.LogSecurityEvent(
+                        "frequent_login_failures",
+                        "medium",
+                        nil,
+                        "",
+                        result.ClientIP,
+                        "",
+                        fmt.Sprintf("IP %s 在1小时内登录失败 %d 次", result.ClientIP, result.Count),
+                        map[string]interface{}{
+                                "client_ip":     result.ClientIP,
+                                "failure_count": result.Count,
+                                "time_window":   "1 hour",
+                        },
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// detectAbnormalIPLogin 检测异常IP登录
+func (s *AuditService) detectAbnormalIPLogin() error <span class="cov8" title="1">{
+        // 查找用户从新IP登录的情况
+        var results []struct {
+                UserID   int64
+                Username string
+                ClientIP string
+        }
+
+        // 查找最近24小时内的成功登录 (使用UTC时间以确保与数据库存储一致)
+        oneDayAgo := time.Now().UTC().Add(-24 * time.Hour)
+        err := s.db.Raw(`
+                SELECT DISTINCT la.user_id, la.username, la.client_ip
+                FROM login_attempts la
+                WHERE la.success = true 
+                AND la.created_at &gt;= ?
+                AND la.user_id IS NOT NULL
+                AND NOT EXISTS (
+                        SELECT 1 FROM login_attempts la2 
+                        WHERE la2.user_id = la.user_id 
+                        AND la2.client_ip = la.client_ip 
+                        AND la2.success = true 
+                        AND la2.created_at &lt; ?
+                )
+        `, oneDayAgo, oneDayAgo).Scan(&amp;results).Error
+
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // 记录安全事件
+        <span class="cov8" title="1">for _, result := range results </span><span class="cov0" title="0">{
+                s.LogSecurityEvent(
+                        "abnormal_ip_login",
+                        "low",
+                        &amp;result.UserID,
+                        result.Username,
+                        result.ClientIP,
+                        "",
+                        fmt.Sprintf("用户 %s 从新IP %s 登录", result.Username, result.ClientIP),
+                        map[string]interface{}{
+                                "user_id":   result.UserID,
+                                "username":  result.Username,
+                                "client_ip": result.ClientIP,
+                        },
+                )
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// detectPrivilegeEscalation 检测权限提升操作
+func (s *AuditService) detectPrivilegeEscalation() error <span class="cov8" title="1">{
+        // 查找最近1小时内的权限相关操作 (使用UTC时间以确保与数据库存储一致)
+        oneHourAgo := time.Now().UTC().Add(-1 * time.Hour)
+        var logs []model.AuditLog
+
+        err := s.db.Where("action IN ? AND created_at &gt;= ?",
+                []string{"update_user_role", "assign_permission", "create_admin_user"},
+                oneHourAgo).Find(&amp;logs).Error
+
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // 记录安全事件
+        <span class="cov8" title="1">for _, log := range logs </span><span class="cov0" title="0">{
+                s.LogSecurityEvent(
+                        "privilege_escalation",
+                        "high",
+                        log.UserID,
+                        log.Username,
+                        log.ClientIP,
+                        log.UserAgent,
+                        fmt.Sprintf("用户 %s 执行了权限提升操作: %s", log.Username, log.Action),
+                        map[string]interface{}{
+                                "action":      log.Action,
+                                "resource":    log.Resource,
+                                "resource_id": log.ResourceID,
+                                "details":     log.Details,
+                        },
+                )
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// GetAuditContextFromHTTP 从HTTP请求中获取审计上下文
+func GetAuditContextFromHTTP(r *http.Request, userID *int64, username string) *AuditContext <span class="cov0" title="0">{
+        return &amp;AuditContext{
+                UserID:    userID,
+                Username:  username,
+                ClientIP:  getClientIP(r),
+                UserAgent: r.UserAgent(),
+        }
+}</span>
+
+// getClientIP 获取客户端真实IP
+func getClientIP(r *http.Request) string <span class="cov0" title="0">{
+        // 尝试从各种头部获取真实IP
+        clientIP := r.Header.Get("X-Forwarded-For")
+        if clientIP != "" </span><span class="cov0" title="0">{
+                // X-Forwarded-For 可能包含多个IP，取第一个
+                ips := strings.Split(clientIP, ",")
+                return strings.TrimSpace(ips[0])
+        }</span>
+
+        <span class="cov0" title="0">clientIP = r.Header.Get("X-Real-IP")
+        if clientIP != "" </span><span class="cov0" title="0">{
+                return clientIP
+        }</span>
+
+        <span class="cov0" title="0">clientIP = r.Header.Get("X-Client-IP")
+        if clientIP != "" </span><span class="cov0" title="0">{
+                return clientIP
+        }</span>
+
+        // 如果都没有，使用RemoteAddr
+        <span class="cov0" title="0">return strings.Split(r.RemoteAddr, ":")[0]</span>
+}
+</pre>
+		
+		<pre class="file" id="file16" style="display: none">package service
+
+import (
+        "fmt"
+        "regexp"
+        "time"
+
+        "dmh/model"
+
+        "golang.org/x/crypto/bcrypt"
+        "gorm.io/gorm"
+)
+
+// PasswordService 密码服务
+type PasswordService struct {
+        db *gorm.DB
+}
+
+// NewPasswordService 创建密码服务
+func NewPasswordService(db *gorm.DB) *PasswordService <span class="cov8" title="1">{
+        return &amp;PasswordService{
+                db: db,
+        }
+}</span>
+
+// GetPasswordPolicy 获取密码策略
+func (s *PasswordService) GetPasswordPolicy() (*model.PasswordPolicy, error) <span class="cov8" title="1">{
+        var policies []model.PasswordPolicy
+
+        // 获取所有策略，按ID倒序（最新的在前）
+        err := s.db.Order("id DESC").Find(&amp;policies).Error
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // 如果没有策略，返回默认策略
+        <span class="cov8" title="1">if len(policies) == 0 </span><span class="cov8" title="1">{
+                return s.getDefaultPasswordPolicy(), nil
+        }</span>
+
+        // 返回最新的策略
+        <span class="cov8" title="1">return &amp;policies[0], nil</span>
+}
+
+// getDefaultPasswordPolicy 获取默认密码策略
+func (s *PasswordService) getDefaultPasswordPolicy() *model.PasswordPolicy <span class="cov8" title="1">{
+        return &amp;model.PasswordPolicy{
+                MinLength:             8,
+                RequireUppercase:      true,
+                RequireLowercase:      true,
+                RequireNumbers:        true,
+                RequireSpecialChars:   true,
+                MaxAge:                90,
+                HistoryCount:          5,
+                MaxLoginAttempts:      5,
+                LockoutDuration:       30,
+                SessionTimeout:        480,
+                MaxConcurrentSessions: 3,
+        }
+}</span>
+
+// ValidatePassword 验证密码是否符合策略
+func (s *PasswordService) ValidatePassword(password string, userID int64) error <span class="cov8" title="1">{
+        policy, err := s.GetPasswordPolicy()
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("获取密码策略失败: %v", err)
+        }</span>
+
+        // 检查密码长度
+        <span class="cov8" title="1">if len(password) &lt; policy.MinLength </span><span class="cov8" title="1">{
+                return fmt.Errorf("密码长度不能少于%d位", policy.MinLength)
+        }</span>
+
+        // 检查大写字母
+        <span class="cov8" title="1">if policy.RequireUppercase </span><span class="cov8" title="1">{
+                if matched, _ := regexp.MatchString(`[A-Z]`, password); !matched </span><span class="cov8" title="1">{
+                        return fmt.Errorf("密码必须包含至少一个大写字母")
+                }</span>
+        }
+
+        // 检查小写字母
+        <span class="cov8" title="1">if policy.RequireLowercase </span><span class="cov8" title="1">{
+                if matched, _ := regexp.MatchString(`[a-z]`, password); !matched </span><span class="cov8" title="1">{
+                        return fmt.Errorf("密码必须包含至少一个小写字母")
+                }</span>
+        }
+
+        // 检查数字
+        <span class="cov8" title="1">if policy.RequireNumbers </span><span class="cov8" title="1">{
+                if matched, _ := regexp.MatchString(`[0-9]`, password); !matched </span><span class="cov8" title="1">{
+                        return fmt.Errorf("密码必须包含至少一个数字")
+                }</span>
+        }
+
+        // 检查特殊字符
+        <span class="cov8" title="1">if policy.RequireSpecialChars </span><span class="cov8" title="1">{
+                if matched, _ := regexp.MatchString(`[!@#$%^&amp;*()_+\-=\[\]{};':"\\|,.&lt;&gt;\?]`, password); !matched </span><span class="cov8" title="1">{
+                        return fmt.Errorf("密码必须包含至少一个特殊字符")
+                }</span>
+        }
+
+        // 检查密码历史
+        <span class="cov8" title="1">if userID &gt; 0 </span><span class="cov8" title="1">{
+                if err := s.checkPasswordHistory(password, userID, policy.HistoryCount); err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// checkPasswordHistory 检查密码历史
+func (s *PasswordService) checkPasswordHistory(password string, userID int64, historyCount int) error <span class="cov8" title="1">{
+        if historyCount &lt;= 0 </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">var histories []model.PasswordHistory
+        err := s.db.Where("user_id = ?", userID).
+                Order("created_at DESC").
+                Limit(historyCount).
+                Find(&amp;histories).Error
+
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("检查密码历史失败: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">for _, history := range histories </span><span class="cov8" title="1">{
+                if err := bcrypt.CompareHashAndPassword([]byte(history.PasswordHash), []byte(password)); err == nil </span><span class="cov8" title="1">{
+                        return fmt.Errorf("不能使用最近%d次使用过的密码", historyCount)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// SavePasswordHistory 保存密码历史
+func (s *PasswordService) SavePasswordHistory(userID int64, passwordHash string) error <span class="cov8" title="1">{
+        policy, err := s.GetPasswordPolicy()
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // 保存新的密码历史
+        <span class="cov8" title="1">history := &amp;model.PasswordHistory{
+                UserID:       userID,
+                PasswordHash: passwordHash,
+        }
+
+        if err := s.db.Create(history).Error; err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("保存密码历史失败: %v", err)
+        }</span>
+
+        // 清理超出限制的历史记录
+        <span class="cov8" title="1">if policy.HistoryCount &gt; 0 </span><span class="cov8" title="1">{
+                var oldHistories []model.PasswordHistory
+                err := s.db.Where("user_id = ?", userID).
+                        Order("created_at DESC").
+                        Offset(policy.HistoryCount).
+                        Find(&amp;oldHistories).Error
+
+                if err == nil &amp;&amp; len(oldHistories) &gt; 0 </span><span class="cov0" title="0">{
+                        var ids []int64
+                        for _, h := range oldHistories </span><span class="cov0" title="0">{
+                                ids = append(ids, h.ID)
+                        }</span>
+                        <span class="cov0" title="0">s.db.Where("id IN ?", ids).Delete(&amp;model.PasswordHistory{})</span>
+                }
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// IsPasswordExpired 检查密码是否过期
+func (s *PasswordService) IsPasswordExpired(userID int64) (bool, error) <span class="cov8" title="1">{
+        policy, err := s.GetPasswordPolicy()
+        if err != nil </span><span class="cov0" title="0">{
+                return false, err
+        }</span>
+
+        <span class="cov8" title="1">if policy.MaxAge &lt;= 0 </span><span class="cov0" title="0">{
+                return false, nil // 密码不过期
+        }</span>
+
+        <span class="cov8" title="1">var user model.User
+        err = s.db.Where("id = ?", userID).First(&amp;user).Error
+        if err != nil </span><span class="cov0" title="0">{
+                return false, err
+        }</span>
+
+        // 检查最后一次密码更新时间
+        <span class="cov8" title="1">var lastPasswordChange time.Time
+        var history model.PasswordHistory
+        err = s.db.Where("user_id = ?", userID).
+                Order("created_at DESC").
+                First(&amp;history).Error
+
+        if err != nil </span><span class="cov8" title="1">{
+                if err == gorm.ErrRecordNotFound </span><span class="cov8" title="1">{
+                        // 如果没有密码历史，使用用户创建时间
+                        lastPasswordChange = user.CreatedAt
+                }</span> else<span class="cov0" title="0"> {
+                        return false, err
+                }</span>
+        } else<span class="cov8" title="1"> {
+                lastPasswordChange = history.CreatedAt
+        }</span>
+
+        // 检查是否过期
+        <span class="cov8" title="1">expireTime := lastPasswordChange.AddDate(0, 0, policy.MaxAge)
+        return time.Now().After(expireTime), nil</span>
+}
+
+// GeneratePasswordStrengthScore 生成密码强度评分
+func (s *PasswordService) GeneratePasswordStrengthScore(password string) int <span class="cov8" title="1">{
+        score := 0
+
+        // 长度评分
+        if len(password) &gt;= 8 </span><span class="cov8" title="1">{
+                score += 25
+        }</span>
+        <span class="cov8" title="1">if len(password) &gt;= 12 </span><span class="cov8" title="1">{
+                score += 25
+        }</span>
+
+        // 字符类型评分
+        <span class="cov8" title="1">if matched, _ := regexp.MatchString(`[a-z]`, password); matched </span><span class="cov8" title="1">{
+                score += 10
+        }</span>
+        <span class="cov8" title="1">if matched, _ := regexp.MatchString(`[A-Z]`, password); matched </span><span class="cov8" title="1">{
+                score += 10
+        }</span>
+        <span class="cov8" title="1">if matched, _ := regexp.MatchString(`[0-9]`, password); matched </span><span class="cov8" title="1">{
+                score += 10
+        }</span>
+        <span class="cov8" title="1">if matched, _ := regexp.MatchString(`[!@#$%^&amp;*()_+\-=\[\]{};':"\\|,.&lt;&gt;\?]`, password); matched </span><span class="cov8" title="1">{
+                score += 20
+        }</span>
+
+        // 复杂度评分
+        <span class="cov8" title="1">if len(password) &gt; 0 </span><span class="cov8" title="1">{
+                uniqueChars := make(map[rune]bool)
+                for _, char := range password </span><span class="cov8" title="1">{
+                        uniqueChars[char] = true
+                }</span>
+                <span class="cov8" title="1">if len(uniqueChars) &gt; len(password)/2 </span><span class="cov8" title="1">{
+                        score += 10
+                }</span>
+        }
+
+        // 确保评分在0-100之间
+        <span class="cov8" title="1">if score &gt; 100 </span><span class="cov8" title="1">{
+                score = 100
+        }</span>
+
+        <span class="cov8" title="1">return score</span>
+}
+
+// GetPasswordStrengthLevel 获取密码强度等级
+func (s *PasswordService) GetPasswordStrengthLevel(score int) string <span class="cov8" title="1">{
+        if score &gt;= 80 </span><span class="cov8" title="1">{
+                return "强"
+        }</span> else<span class="cov8" title="1"> if score &gt;= 60 </span><span class="cov8" title="1">{
+                return "中等"
+        }</span> else<span class="cov8" title="1"> if score &gt;= 40 </span><span class="cov0" title="0">{
+                return "弱"
+        }</span> else<span class="cov8" title="1"> {
+                return "很弱"
+        }</span>
+}
+
+// HashPassword 加密密码
+func (s *PasswordService) HashPassword(password string) (string, error) <span class="cov8" title="1">{
+        hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("密码加密失败: %v", err)
+        }</span>
+        <span class="cov8" title="1">return string(hashedBytes), nil</span>
+}
+
+// VerifyPassword 验证密码
+func (s *PasswordService) VerifyPassword(password, hashedPassword string) error <span class="cov8" title="1">{
+        return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+}</span>
+
+// UpdatePasswordPolicy 更新密码策略
+func (s *PasswordService) UpdatePasswordPolicy(policy *model.PasswordPolicy) error <span class="cov8" title="1">{
+        var existingPolicy model.PasswordPolicy
+        err := s.db.First(&amp;existingPolicy).Error
+
+        if err != nil </span><span class="cov8" title="1">{
+                if err == gorm.ErrRecordNotFound </span><span class="cov8" title="1">{
+                        // 创建新策略
+                        return s.db.Create(policy).Error
+                }</span>
+                <span class="cov0" title="0">return err</span>
+        }
+
+        // 更新现有策略
+        <span class="cov0" title="0">policy.ID = existingPolicy.ID
+        return s.db.Save(policy).Error</span>
+}
+</pre>
+		
+		<pre class="file" id="file17" style="display: none">package service
+
+import (
+        "crypto/rand"
+        "encoding/hex"
+        "fmt"
+        "time"
+
+        "dmh/model"
+
+        "gorm.io/gorm"
+)
+
+// SessionService 会话管理服务
+type SessionService struct {
+        db              *gorm.DB
+        passwordService *PasswordService
+}
+
+// NewSessionService 创建会话管理服务
+func NewSessionService(db *gorm.DB, passwordService *PasswordService) *SessionService <span class="cov8" title="1">{
+        return &amp;SessionService{
+                db:              db,
+                passwordService: passwordService,
+        }
+}</span>
+
+// CreateSession 创建用户会话
+func (s *SessionService) CreateSession(userID int64, clientIP, userAgent string) (*model.UserSession, error) <span class="cov8" title="1">{
+        policy, err := s.passwordService.GetPasswordPolicy()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("获取会话策略失败: %v", err)
+        }</span>
+
+        // 检查并发会话限制
+        <span class="cov8" title="1">if err := s.checkConcurrentSessions(userID, policy.MaxConcurrentSessions); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // 生成会话ID
+        <span class="cov8" title="1">sessionID, err := s.generateSessionID()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("生成会话ID失败: %v", err)
+        }</span>
+
+        // 计算过期时间
+        <span class="cov8" title="1">expiresAt := time.Now().Add(time.Duration(policy.SessionTimeout) * time.Minute)
+
+        // 创建会话记录
+        session := &amp;model.UserSession{
+                ID:           sessionID,
+                UserID:       userID,
+                ClientIP:     clientIP,
+                UserAgent:    userAgent,
+                LoginAt:      time.Now(),
+                LastActiveAt: time.Now(),
+                ExpiresAt:    expiresAt,
+                Status:       "active",
+        }
+
+        if err := s.db.Create(session).Error; err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("创建会话失败: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">return session, nil</span>
+}
+
+// checkConcurrentSessions 检查并发会话限制
+func (s *SessionService) checkConcurrentSessions(userID int64, maxSessions int) error <span class="cov8" title="1">{
+        if maxSessions &lt;= 0 </span><span class="cov0" title="0">{
+                return nil // 无限制
+        }</span>
+
+        // 清理过期会话
+        <span class="cov8" title="1">s.cleanupExpiredSessions()
+
+        // 统计当前活跃会话数
+        var activeCount int64
+        err := s.db.Model(&amp;model.UserSession{}).
+                Where("user_id = ? AND status = ? AND expires_at &gt; ?", userID, "active", time.Now()).
+                Count(&amp;activeCount).Error
+
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("检查会话数量失败: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">if activeCount &gt;= int64(maxSessions) </span><span class="cov8" title="1">{
+                // 强制下线最旧的会话
+                if err := s.forceLogoutOldestSession(userID); err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("强制下线旧会话失败: %v", err)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// forceLogoutOldestSession 强制下线最旧的会话
+func (s *SessionService) forceLogoutOldestSession(userID int64) error <span class="cov8" title="1">{
+        var oldestSession model.UserSession
+        err := s.db.Where("user_id = ? AND status = ?", userID, "active").
+                Order("login_at ASC").
+                First(&amp;oldestSession).Error
+
+        if err != nil </span><span class="cov0" title="0">{
+                if err == gorm.ErrRecordNotFound </span><span class="cov0" title="0">{
+                        return nil // 没有找到会话
+                }</span>
+                <span class="cov0" title="0">return err</span>
+        }
+
+        // 撤销最旧的会话
+        <span class="cov8" title="1">return s.RevokeSession(oldestSession.ID, "concurrent_limit_exceeded")</span>
+}
+
+// generateSessionID 生成会话ID
+func (s *SessionService) generateSessionID() (string, error) <span class="cov8" title="1">{
+        bytes := make([]byte, 32)
+        if _, err := rand.Read(bytes); err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov8" title="1">return hex.EncodeToString(bytes), nil</span>
+}
+
+// GetSession 获取会话信息
+func (s *SessionService) GetSession(sessionID string) (*model.UserSession, error) <span class="cov8" title="1">{
+        var session model.UserSession
+        err := s.db.Where("id = ?", sessionID).First(&amp;session).Error
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return &amp;session, nil</span>
+}
+
+// ValidateSession 验证会话有效性
+func (s *SessionService) ValidateSession(sessionID string) (*model.UserSession, error) <span class="cov8" title="1">{
+        session, err := s.GetSession(sessionID)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("会话不存在")
+        }</span>
+
+        // 检查会话状态
+        <span class="cov8" title="1">if session.Status != "active" </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("会话已失效")
+        }</span>
+
+        // 检查会话是否过期
+        <span class="cov8" title="1">if time.Now().After(session.ExpiresAt) </span><span class="cov8" title="1">{
+                // 标记会话为过期
+                s.db.Model(session).Update("status", "expired")
+                return nil, fmt.Errorf("会话已过期")
+        }</span>
+
+        <span class="cov8" title="1">return session, nil</span>
+}
+
+// UpdateSessionActivity 更新会话活跃时间
+func (s *SessionService) UpdateSessionActivity(sessionID string) error <span class="cov8" title="1">{
+        policy, err := s.passwordService.GetPasswordPolicy()
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">now := time.Now()
+        newExpiresAt := now.Add(time.Duration(policy.SessionTimeout) * time.Minute)
+
+        updates := map[string]interface{}{
+                "last_active_at": now,
+                "expires_at":     newExpiresAt,
+        }
+
+        return s.db.Model(&amp;model.UserSession{}).
+                Where("id = ? AND status = ?", sessionID, "active").
+                Updates(updates).Error</span>
+}
+
+// RevokeSession 撤销会话
+func (s *SessionService) RevokeSession(sessionID, reason string) error <span class="cov8" title="1">{
+        updates := map[string]interface{}{
+                "status": "revoked",
+        }
+
+        return s.db.Model(&amp;model.UserSession{}).
+                Where("id = ?", sessionID).
+                Updates(updates).Error
+}</span>
+
+// RevokeUserSessions 撤销用户的所有会话
+func (s *SessionService) RevokeUserSessions(userID int64, excludeSessionID string) error <span class="cov8" title="1">{
+        query := s.db.Model(&amp;model.UserSession{}).Where("user_id = ? AND status = ?", userID, "active")
+
+        if excludeSessionID != "" </span><span class="cov8" title="1">{
+                query = query.Where("id != ?", excludeSessionID)
+        }</span>
+
+        <span class="cov8" title="1">return query.Update("status", "revoked").Error</span>
+}
+
+// GetUserSessions 获取用户的所有会话
+func (s *SessionService) GetUserSessions(userID int64) ([]model.UserSession, error) <span class="cov8" title="1">{
+        var sessions []model.UserSession
+        err := s.db.Where("user_id = ?", userID).
+                Order("created_at DESC").
+                Find(&amp;sessions).Error
+
+        return sessions, err
+}</span>
+
+// GetActiveSessions 获取活跃会话列表
+func (s *SessionService) GetActiveSessions(page, pageSize int) ([]model.UserSession, int64, error) <span class="cov8" title="1">{
+        var sessions []model.UserSession
+        var total int64
+
+        query := s.db.Model(&amp;model.UserSession{}).Where("status = ? AND expires_at &gt; ?", "active", time.Now())
+
+        // 获取总数
+        if err := query.Count(&amp;total).Error; err != nil </span><span class="cov0" title="0">{
+                return nil, 0, err
+        }</span>
+
+        // 获取分页数据
+        <span class="cov8" title="1">offset := (page - 1) * pageSize
+        err := query.Order("last_active_at DESC").
+                Offset(offset).
+                Limit(pageSize).
+                Find(&amp;sessions).Error
+
+        return sessions, total, err</span>
+}
+
+// cleanupExpiredSessions 清理过期会话
+func (s *SessionService) cleanupExpiredSessions() error <span class="cov8" title="1">{
+        return s.db.Model(&amp;model.UserSession{}).
+                Where("status = ? AND expires_at &lt;= ?", "active", time.Now()).
+                Update("status", "expired").Error
+}</span>
+
+// CleanupOldSessions 清理旧会话记录
+func (s *SessionService) CleanupOldSessions(retentionDays int) error <span class="cov8" title="1">{
+        if retentionDays &lt;= 0 </span><span class="cov0" title="0">{
+                retentionDays = 30 // 默认保留30天
+        }</span>
+
+        <span class="cov8" title="1">cutoffTime := time.Now().AddDate(0, 0, -retentionDays)
+
+        return s.db.Where("created_at &lt; ?", cutoffTime).Delete(&amp;model.UserSession{}).Error</span>
+}
+
+// GetSessionStatistics 获取会话统计信息
+func (s *SessionService) GetSessionStatistics() (map[string]interface{}, error) <span class="cov0" title="0">{
+        stats := make(map[string]interface{})
+
+        // 活跃会话数
+        var activeCount int64
+        s.db.Model(&amp;model.UserSession{}).
+                Where("status = ? AND expires_at &gt; ?", "active", time.Now()).
+                Count(&amp;activeCount)
+        stats["active_sessions"] = activeCount
+
+        // 今日新建会话数
+        today := time.Now().Truncate(24 * time.Hour)
+        var todayCount int64
+        s.db.Model(&amp;model.UserSession{}).
+                Where("created_at &gt;= ?", today).
+                Count(&amp;todayCount)
+        stats["today_sessions"] = todayCount
+
+        // 过期会话数
+        var expiredCount int64
+        s.db.Model(&amp;model.UserSession{}).
+                Where("status = ? OR (status = ? AND expires_at &lt;= ?)", "expired", "active", time.Now()).
+                Count(&amp;expiredCount)
+        stats["expired_sessions"] = expiredCount
+
+        // 撤销会话数
+        var revokedCount int64
+        s.db.Model(&amp;model.UserSession{}).
+                Where("status = ?", "revoked").
+                Count(&amp;revokedCount)
+        stats["revoked_sessions"] = revokedCount
+
+        // 平均会话时长（分钟）
+        var avgDuration float64
+        s.db.Model(&amp;model.UserSession{}).
+                Select("AVG(TIMESTAMPDIFF(MINUTE, login_at, COALESCE(updated_at, NOW())))").
+                Where("status IN ?", []string{"expired", "revoked"}).
+                Scan(&amp;avgDuration)
+        stats["avg_session_duration"] = avgDuration
+
+        return stats, nil
+}</span>
+
+// ForceLogoutUser 强制用户下线
+func (s *SessionService) ForceLogoutUser(userID int64, reason string) error <span class="cov8" title="1">{
+        // 撤销用户的所有活跃会话
+        err := s.db.Model(&amp;model.UserSession{}).
+                Where("user_id = ? AND status = ?", userID, "active").
+                Update("status", "revoked").Error
+
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("强制下线用户失败: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// IsUserOnline 检查用户是否在线
+func (s *SessionService) IsUserOnline(userID int64) (bool, error) <span class="cov8" title="1">{
+        var count int64
+        err := s.db.Model(&amp;model.UserSession{}).
+                Where("user_id = ? AND status = ? AND expires_at &gt; ?", userID, "active", time.Now()).
+                Count(&amp;count).Error
+
+        return count &gt; 0, err
+}</span>
+
+// GetOnlineUsers 获取在线用户列表
+func (s *SessionService) GetOnlineUsers() ([]int64, error) <span class="cov8" title="1">{
+        var userIDs []int64
+        err := s.db.Model(&amp;model.UserSession{}).
+                Select("DISTINCT user_id").
+                Where("status = ? AND expires_at &gt; ?", "active", time.Now()).
+                Pluck("user_id", &amp;userIDs).Error
+
+        return userIDs, err
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

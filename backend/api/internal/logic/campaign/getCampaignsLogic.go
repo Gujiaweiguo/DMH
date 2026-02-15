@@ -5,6 +5,7 @@ package campaign
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"dmh/api/internal/svc"
@@ -60,12 +61,20 @@ func (l *GetCampaignsLogic) GetCampaigns(req *types.GetCampaignsReq) (resp *type
 			paymentConfig = *campaign.PaymentConfig
 		}
 
+		// 解析 formFields JSON 字符串为对象
+		var formFields []types.FormField
+		if campaign.FormFields != "" {
+			if err := json.Unmarshal([]byte(campaign.FormFields), &formFields); err != nil {
+				l.Errorf("Failed to parse formFields JSON: %v", err)
+			}
+		}
+
 		campaignResps = append(campaignResps, types.CampaignResp{
 			Id:                  campaign.Id,
 			BrandId:             campaign.BrandId,
 			Name:                campaign.Name,
 			Description:         campaign.Description,
-			FormFields:          string(campaign.FormFields),
+			FormFields:          formFields,
 			RewardRule:          campaign.RewardRule,
 			StartTime:           campaign.StartTime.Format("2006-01-02T15:04:05"),
 			EndTime:             campaign.EndTime.Format("2006-01-02T15:04:05"),

@@ -661,3 +661,43 @@ func TestFeedbackLogicTestSuite(t *testing.T) {
 func intPtr(i int) *int {
 	return &i
 }
+
+func TestMarkFAQHelpful_LegacyColumnCompatibility(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	assert.NoError(t, err)
+
+	err = db.Exec(`
+		CREATE TABLE faq_items (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			category TEXT NOT NULL,
+			question TEXT NOT NULL,
+			answer TEXT NOT NULL,
+			sort_order INTEGER DEFAULT 0,
+			view_count INTEGER DEFAULT 0,
+			helpfulCount INTEGER DEFAULT 0,
+			notHelpfulCount INTEGER DEFAULT 0
+		)
+	`).Error
+	assert.NoError(t, err)
+
+	err = db.Exec(`
+		INSERT INTO faq_items (category, question, answer, sort_order, view_count, helpfulCount, notHelpfulCount)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, "poster", "legacy question", "legacy answer", 1, 0, 2, 3).Error
+	assert.NoError(t, err)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	logic := NewMarkFAQHelpfulLogic(context.Background(), svcCtx)
+
+	respHelpful, err := logic.MarkFAQHelpful(&types.MarkFAQHelpfulReq{Id: 1, Type: "helpful"})
+	assert.NoError(t, err)
+	assert.NotNil(t, respHelpful)
+	assert.Equal(t, 3, respHelpful.HelpfulCount)
+	assert.Equal(t, 3, respHelpful.NotHelpfulCount)
+
+	respNotHelpful, err := logic.MarkFAQHelpful(&types.MarkFAQHelpfulReq{Id: 1, Type: "not_helpful"})
+	assert.NoError(t, err)
+	assert.NotNil(t, respNotHelpful)
+	assert.Equal(t, 3, respNotHelpful.HelpfulCount)
+	assert.Equal(t, 4, respNotHelpful.NotHelpfulCount)
+}

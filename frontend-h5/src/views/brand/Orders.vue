@@ -184,6 +184,14 @@
 
 <script setup>
 import { ref, computed, reactive, onMounted, watch } from 'vue'
+import {
+  applyOrderStatus,
+  buildExportOrderData,
+  calculateOrderStats,
+  filterAndSortOrders,
+  formatOrderDateTime,
+  getOrderStatusText,
+} from './orders.logic.js'
 
 const orders = ref([])
 const loading = ref(false)
@@ -211,45 +219,15 @@ const orderStats = reactive({
 const totalOrders = computed(() => orders.value.length)
 
 const filteredOrders = computed(() => {
-  let filtered = orders.value
-
-  // 状态筛选
-  if (currentStatus.value !== 'all') {
-    filtered = filtered.filter(order => order.status === currentStatus.value)
-  }
-
-  // 日期筛选
-  if (dateRange.start) {
-    filtered = filtered.filter(order => 
-      new Date(order.createdAt) >= new Date(dateRange.start)
-    )
-  }
-  if (dateRange.end) {
-    filtered = filtered.filter(order => 
-      new Date(order.createdAt) <= new Date(dateRange.end + ' 23:59:59')
-    )
-  }
-
-  return filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+  return filterAndSortOrders(orders.value, currentStatus.value, dateRange)
 })
 
 const getStatusText = (status) => {
-  const statusMap = {
-    pending: '待支付',
-    paid: '已支付',
-    cancelled: '已取消'
-  }
-  return statusMap[status] || status
+  return getOrderStatusText(status)
 }
 
 const formatDateTime = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleString('zh-CN', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  return formatOrderDateTime(dateString)
 }
 
 const loadOrders = async () => {
@@ -321,24 +299,18 @@ const loadOrders = async () => {
 }
 
 const calculateStats = () => {
-  const today = new Date().toDateString()
-  
-  orderStats.total = orders.value.length
-  orderStats.totalAmount = orders.value.reduce((sum, order) => sum + order.amount, 0)
-  orderStats.totalRewards = orders.value.reduce((sum, order) => sum + (order.rewardAmount || 0), 0)
-  orderStats.todayOrders = orders.value.filter(order => 
-    new Date(order.createdAt).toDateString() === today
-  ).length
+  const stats = calculateOrderStats(orders.value)
+  orderStats.total = stats.total
+  orderStats.totalAmount = stats.totalAmount
+  orderStats.totalRewards = stats.totalRewards
+  orderStats.todayOrders = stats.todayOrders
 }
 
 const processOrder = async (order, newStatus) => {
   try {
     // TODO: 调用API更新订单状态
-    order.status = newStatus
-    if (newStatus === 'paid' && order.referrerId) {
-      // 计算奖励
-      order.rewardAmount = order.amount * 0.2 // 20%奖励
-    }
+    const next = applyOrderStatus(order, newStatus)
+    Object.assign(order, next)
     calculateStats()
   } catch (error) {
     console.error('处理订单失败:', error)
@@ -348,15 +320,7 @@ const processOrder = async (order, newStatus) => {
 
 const exportOrder = (order) => {
   // TODO: 实现订单导出功能
-  const data = {
-    订单号: order.id,
-    活动名称: order.campaignName,
-    用户手机: order.phone,
-    订单金额: order.amount,
-    订单状态: getStatusText(order.status),
-    创建时间: order.createdAt,
-    ...order.formData
-  }
+  const data = buildExportOrderData(order)
   
   console.log('导出订单数据:', data)
   alert('导出功能开发中...')

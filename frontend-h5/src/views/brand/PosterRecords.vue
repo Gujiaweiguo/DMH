@@ -9,7 +9,7 @@
     <div class="filters">
       <div class="filter-tabs">
         <button
-          v-for="type in typeTabs"
+          v-for="type in TYPE_TABS"
           :key="type.value"
           @click="currentType = type.value"
           :class="['filter-tab', { active: currentType === type.value }]"
@@ -67,7 +67,7 @@
               <h3 class="poster-title">{{ record.campaignName || '活动海报' }}</h3>
               <span class="record-time">{{ formatDateTime(record.createdAt) }}</span>
             </div>
-            <span class="type-badge">{{ record.recordType === 'campaign' ? '活动海报' : '分销商海报' }}</span>
+            <span class="type-badge">{{ getRecordTypeLabel(record.recordType) }}</span>
           </div>
 
           <div class="card-content">
@@ -124,7 +124,7 @@
                 :disabled="record.regenerating"
                 class="action-btn regenerate"
               >
-                {{ record.regenerating ? '生成中...' : '重新生成' }}
+                {{ getRegenerateButtonText(record.regenerating) }}
               </button>
             </div>
           </div>
@@ -166,6 +166,17 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Toast } from 'vant'
 import { posterApi } from '../../services/brandApi.js'
+import {
+  TYPE_TABS,
+  formatDateTime,
+  getRecordTypeLabel,
+  filterRecords,
+  calculateStats,
+  buildPosterFileName,
+  getDefaultDateRange,
+  getDefaultStats,
+  getRegenerateButtonText
+} from './posterRecords.logic.js'
 
 const router = useRouter()
 
@@ -173,54 +184,13 @@ const records = ref([])
 const loading = ref(false)
 const currentType = ref('all')
 const searchKeyword = ref('')
-const dateRange = ref({
-  start: '',
-  end: ''
-})
+const dateRange = ref(getDefaultDateRange())
 
-const typeTabs = [
-  { value: 'all', label: '全部' },
-  { value: 'campaign', label: '活动海报' },
-  { value: 'distributor', label: '分销商海报' }
-]
-
-const recordStats = ref({
-  total: 0,
-  campaign: 0,
-  distributor: 0,
-  today: 0,
-  totalDownloads: 0
-})
+const recordStats = ref(getDefaultStats())
 
 const filteredRecords = computed(() => {
-  let result = records.value
-
-  if (currentType.value !== 'all') {
-    result = result.filter(r => r.recordType === currentType.value)
-  }
-
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase()
-    result = result.filter(r =>
-      r.campaignName?.toLowerCase().includes(keyword) ||
-      r.distributorName?.toLowerCase().includes(keyword)
-    )
-  }
-
-  return result
+  return filterRecords(records.value, currentType.value, searchKeyword.value)
 })
-
-const formatDateTime = (dateString) => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
 
 const loadRecords = async () => {
   loading.value = true
@@ -228,7 +198,7 @@ const loadRecords = async () => {
     const resp = await posterApi.getPosterRecords()
     if (resp && resp.records) {
       records.value = resp.records
-      calculateStats()
+      recordStats.value = calculateStats(records.value)
     }
   } catch (error) {
     console.error('加载海报记录失败:', error)
@@ -238,26 +208,11 @@ const loadRecords = async () => {
   }
 }
 
-const calculateStats = () => {
-  const today = new Date().toLocaleDateString('zh-CN')
-  
-  recordStats.value = {
-    total: records.value.length,
-    campaign: records.value.filter(r => r.recordType === 'campaign').length,
-    distributor: records.value.filter(r => r.recordType === 'distributor').length,
-    today: records.value.filter(r => {
-      const recordDate = new Date(r.createdAt).toLocaleDateString('zh-CN')
-      return recordDate === today
-    }).length,
-    totalDownloads: records.value.reduce((sum, r) => sum + (r.downloadCount || 0), 0)
-  }
-}
-
 const downloadPoster = async (url, campaignName) => {
   try {
     const link = document.createElement('a')
     link.href = url
-    link.download = `海报_${campaignName}_${Date.now()}.png`
+    link.download = buildPosterFileName(campaignName)
     link.target = '_blank'
     link.click()
     Toast.success('开始下载海报')

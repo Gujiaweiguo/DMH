@@ -1,13 +1,13 @@
-// Code scaffolded by goctl. Safe to edit.
-// goctl 1.9.2
-
 package distributor
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
+	"dmh/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -26,8 +26,33 @@ func NewGetDistributorApplicationLogic(ctx context.Context, svcCtx *svc.ServiceC
 	}
 }
 
-func (l *GetDistributorApplicationLogic) GetDistributorApplication() (resp *types.DistributorApplicationResp, err error) {
-	// todo: add your logic here and delete this line
+func (l *GetDistributorApplicationLogic) GetDistributorApplication(req *types.GetDistributorApplicationReq) (resp *types.DistributorApplicationResp, err error) {
+	if req.Id <= 0 {
+		return nil, errors.New("申请ID无效")
+	}
 
-	return
+	var application model.DistributorApplication
+	err = l.svcCtx.DB.Where("id = ?", req.Id).First(&application).Error
+	if err != nil {
+		return nil, errors.New("申请记录不存在")
+	}
+
+	resp = &types.DistributorApplicationResp{
+		Id:        application.Id,
+		UserId:    application.UserId,
+		BrandId:   application.BrandId,
+		Status:    application.Status,
+		Reason:    application.Reason,
+		CreatedAt: application.CreatedAt.Format(time.RFC3339),
+	}
+
+	if application.ReviewedBy != nil {
+		resp.ReviewedBy = *application.ReviewedBy
+	}
+	if application.ReviewedAt != nil {
+		resp.ReviewedAt = application.ReviewedAt.Format(time.RFC3339)
+	}
+	resp.ReviewNotes = application.ReviewNotes
+
+	return resp, nil
 }

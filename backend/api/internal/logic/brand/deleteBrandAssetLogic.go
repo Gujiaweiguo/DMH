@@ -5,9 +5,11 @@ package brand
 
 import (
 	"context"
+	"errors"
 
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
+	"dmh/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -26,8 +28,24 @@ func NewDeleteBrandAssetLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
-func (l *DeleteBrandAssetLogic) DeleteBrandAsset() (resp *types.CommonResp, err error) {
-	// todo: add your logic here and delete this line
+func (l *DeleteBrandAssetLogic) DeleteBrandAsset(req *types.DeleteBrandAssetReq) (resp *types.CommonResp, err error) {
+	if req.BrandId <= 0 || req.Id <= 0 {
+		return nil, errors.New("参数无效")
+	}
 
-	return
+	var asset model.BrandAsset
+	if err := l.svcCtx.DB.Where("id = ? AND brand_id = ?", req.Id, req.BrandId).First(&asset).Error; err != nil {
+		return nil, errors.New("素材不存在")
+	}
+
+	if err := l.svcCtx.DB.Delete(&asset).Error; err != nil {
+		l.Errorf("删除品牌素材失败: %v", err)
+		return nil, errors.New("删除品牌素材失败")
+	}
+
+	resp = &types.CommonResp{
+		Message: "删除成功",
+	}
+
+	return resp, nil
 }

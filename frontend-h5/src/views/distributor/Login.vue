@@ -47,54 +47,57 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, reactive, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { authApi } from "../../services/brandApi.js";
+import {
+  getDefaultForm,
+  hasDistributorRole,
+  saveDistributorAuth,
+  isAlreadyLoggedIn,
+  getLoginErrorMessage,
+  getButtonText
+} from "./distributorLogin.logic.js";
 
 const router = useRouter();
 
-const form = reactive({
-	username: "",
-	password: "",
-});
+const form = reactive(getDefaultForm());
 
 const loading = ref(false);
 const errorMessage = ref("");
 
 onMounted(() => {
-	const token = localStorage.getItem("dmh_token");
-	const userRole = localStorage.getItem("dmh_user_role");
-	if (token && userRole === "distributor") {
-		router.replace("/distributor");
-	}
+  if (isAlreadyLoggedIn()) {
+    router.replace("/distributor");
+  }
 });
 
 // biome-ignore lint/correctness/noUnusedVariables: used in template
 const handleLogin = async () => {
-	loading.value = true;
-	errorMessage.value = "";
+  loading.value = true;
+  errorMessage.value = "";
 
-	try {
-		const data = await authApi.login(form.username, form.password);
-		if (!data) {
-			throw new Error("登录响应为空");
-		}
+  try {
+    const data = await authApi.login(form.username, form.password);
+    if (!data) {
+      throw new Error("登录响应为空");
+    }
 
-		if (!data.roles || !data.roles.includes("distributor")) {
-			throw new Error("您没有分销员权限");
-		}
+    if (!hasDistributorRole(data)) {
+      throw new Error("您没有分销员权限");
+    }
 
-		localStorage.setItem("dmh_token", data.token);
-		localStorage.setItem("dmh_user_role", "distributor");
-		localStorage.setItem("dmh_user_info", JSON.stringify(data));
-
-		router.push("/distributor");
-	} catch (error) {
-		errorMessage.value = error.message || "登录失败，请重试";
-	} finally {
-		loading.value = false;
-	}
+    saveDistributorAuth(data);
+    router.push("/distributor");
+  } catch (error) {
+    errorMessage.value = getLoginErrorMessage(error);
+  } finally {
+    loading.value = false;
+  }
 };
+
+// biome-ignore lint/correctness/noUnusedVariables: used in template
+const loginButtonText = computed(() => getButtonText(loading.value));
 </script>
 
 <style scoped>

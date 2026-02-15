@@ -10,6 +10,8 @@ export default defineConfig({
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // CI 环境下使用 headless，本地开发保持非 headless
+    headless: process.env.CI === 'true' ? true : false,
   },
 
   projects: [
@@ -18,7 +20,6 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         channel: 'chrome', // Use system chrome browser
-        headless: false,
       },
     },
   ],
@@ -26,6 +27,6 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3000',
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
   },
 });

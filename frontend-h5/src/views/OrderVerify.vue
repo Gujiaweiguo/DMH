@@ -62,7 +62,7 @@
             </div>
             <div class="info-row" v-if="orderInfo.formData">
               <span class="label">报名信息：</span>
-              <div class="form-data-value">{{ formatFormData(orderInfo.formData) }}</div>
+              <div class="form-data-value">{{ formatFormDataDisplay(orderInfo.formData) }}</div>
             </div>
           </div>
         </div>
@@ -96,6 +96,15 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
 import { api, orderApi } from '@/services/api'
+import {
+  getVerificationStatusText,
+  formatDate as formatDateUtil,
+  formatFormData,
+  canVerify as canVerifyOrder,
+  canUnverify as canUnverifyOrder,
+  isValidVerificationCode,
+  buildScanButtonText
+} from './orderVerify.logic.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -108,16 +117,13 @@ const processing = ref(false)
 const errorMessage = ref('')
 
 const verificationStatusText = computed(() => {
-  const statusMap = {
-    'unverified': '未核销',
-    'verified': '已核销',
-    'cancelled': '已取消'
-  }
-  return statusMap[orderInfo.value?.verificationStatus] || 'unknown'
+  return getVerificationStatusText(orderInfo.value?.verificationStatus)
 })
 
+const scanButtonText = computed(() => buildScanButtonText(scanning.value))
+
 const handleScan = async () => {
-  if (!verificationCode.value) {
+  if (!isValidVerificationCode(verificationCode.value)) {
     showToast('请输入核销码')
     return
   }
@@ -191,29 +197,9 @@ const unverifyOrder = () => {
   })
 }
 
-const formatDate = (time) => {
-  if (!time) return ''
-  const date = new Date(time)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+const formatDate = (time) => formatDateUtil(time)
 
-const formatFormData = (formDataStr) => {
-  try {
-    const formData = JSON.parse(formDataStr || '{}')
-    return Object.entries(formData)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join(', ')
-  } catch (error) {
-    console.error('解析表单数据失败', error)
-    return formDataStr || ''
-  }
-}
+const formatFormDataDisplay = (formDataStr) => formatFormData(formDataStr)
 
 const goBack = () => {
   router.back()

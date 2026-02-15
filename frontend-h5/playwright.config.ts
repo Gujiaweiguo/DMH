@@ -7,9 +7,11 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3102',
+    baseURL: 'http://localhost:3100',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // CI 环境下使用 headless，本地开发保持非 headless
+    headless: process.env.CI === 'true' ? true : false,
   },
 
   projects: [
@@ -18,14 +20,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         channel: 'chrome',
-        headless: false,
       },
     },
   ],
-
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3102',
-    reuseExistingServer: true,
-  },
 });

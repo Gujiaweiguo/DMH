@@ -4,8 +4,11 @@
 package campaign
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
@@ -16,13 +19,14 @@ import (
 
 func GetCampaignHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.GetCampaignReq
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
+		// 从 URL 路径中提取 ID
+		path := strings.TrimPrefix(r.URL.Path, "/api/v1/campaigns/")
+		idStr := strings.TrimSuffix(path, "/")
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, fmt.Errorf("invalid campaign id: %w", err))
 			return
 		}
-
-		id := req.Id
 
 		var campaign model.Campaign
 
@@ -31,12 +35,21 @@ func GetCampaignHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
+		// 解析 formFields JSON 字符串为对象
+		var formFields []types.FormField
+		if campaign.FormFields != "" {
+			if err := json.Unmarshal([]byte(campaign.FormFields), &formFields); err != nil {
+				httpx.ErrorCtx(r.Context(), w, err)
+				return
+			}
+		}
+
 		resp := &types.CampaignResp{
 			Id:                 campaign.Id,
 			BrandId:            campaign.BrandId,
 			Name:               campaign.Name,
 			Description:        campaign.Description,
-			FormFields:         campaign.FormFields,
+			FormFields:         formFields,
 			RewardRule:         campaign.RewardRule,
 			StartTime:          campaign.StartTime.Format("2006-01-02T15:04:05"),
 			EndTime:            campaign.EndTime.Format("2006-01-02T15:04:05"),

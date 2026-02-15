@@ -33,18 +33,19 @@ func (l *GetDashboardStatsLogic) GetDashboardStats(req *types.GetDashboardStatsR
 		return nil, errors.New("brandId is required")
 	}
 
-	baseQuery := l.svcCtx.DB.Model(&model.Order{})
+	baseQuery := l.svcCtx.DB.Model(&model.Order{}).Select("orders.*")
 
 	if req.StartDate != "" {
-		baseQuery = baseQuery.Where("created_at >= ?", req.StartDate)
+		baseQuery = baseQuery.Where("orders.created_at >= ?", req.StartDate)
 	}
 
 	if req.EndDate != "" {
-		baseQuery = baseQuery.Where("created_at <= ?", req.EndDate)
+		baseQuery = baseQuery.Where("orders.created_at <= ?", req.EndDate)
 	}
 
 	if req.BrandId > 0 {
-		baseQuery = baseQuery.Where("brand_id = ?", req.BrandId)
+		baseQuery = baseQuery.Joins("JOIN campaigns ON campaigns.id = orders.campaign_id").
+			Where("campaigns.brand_id = ?", req.BrandId)
 	}
 
 	var totalOrders int64
@@ -53,7 +54,7 @@ func (l *GetDashboardStatsLogic) GetDashboardStats(req *types.GetDashboardStatsR
 		return nil, err
 	}
 
-	if err := baseQuery.Select("COALESCE(SUM(amount), 0)").Scan(&totalRevenue).Error; err != nil {
+	if err := baseQuery.Select("COALESCE(SUM(orders.amount), 0)").Scan(&totalRevenue).Error; err != nil {
 		return nil, err
 	}
 
@@ -64,43 +65,44 @@ func (l *GetDashboardStatsLogic) GetDashboardStats(req *types.GetDashboardStatsR
 
 	var todayOrders int64
 	var todayRevenue float64
-	if err := baseQuery.Where("DATE(created_at) = ?", todayStart).
+	if err := baseQuery.Where("DATE(orders.created_at) = ?", todayStart).
 		Select("COUNT(*)").Scan(&todayOrders).Error; err != nil {
 		return nil, err
 	}
-	if err := baseQuery.Where("DATE(created_at) = ?", todayStart).
-		Select("COALESCE(SUM(amount), 0)").Scan(&todayRevenue).Error; err != nil {
+	if err := baseQuery.Where("DATE(orders.created_at) = ?", todayStart).
+		Select("COALESCE(SUM(orders.amount), 0)").Scan(&todayRevenue).Error; err != nil {
 		return nil, err
 	}
 
 	var weekOrders int64
 	var weekRevenue float64
-	if err := baseQuery.Where("created_at >= ?", weekStart).
+	if err := baseQuery.Where("orders.created_at >= ?", weekStart).
 		Select("COUNT(*)").Scan(&weekOrders).Error; err != nil {
 		return nil, err
 	}
-	if err := baseQuery.Where("created_at >= ?", weekStart).
-		Select("COALESCE(SUM(amount), 0)").Scan(&weekRevenue).Error; err != nil {
+	if err := baseQuery.Where("orders.created_at >= ?", weekStart).
+		Select("COALESCE(SUM(orders.amount), 0)").Scan(&weekRevenue).Error; err != nil {
 		return nil, err
 	}
 
 	var monthOrders int64
 	var monthRevenue float64
-	if err := baseQuery.Where("created_at >= ?", monthStart).
+	if err := baseQuery.Where("orders.created_at >= ?", monthStart).
 		Select("COUNT(*)").Scan(&monthOrders).Error; err != nil {
 		return nil, err
 	}
-	if err := baseQuery.Where("created_at >= ?", monthStart).
-		Select("COALESCE(SUM(amount), 0)").Scan(&monthRevenue).Error; err != nil {
+	if err := baseQuery.Where("orders.created_at >= ?", monthStart).
+		Select("COALESCE(SUM(orders.amount), 0)").Scan(&monthRevenue).Error; err != nil {
 		return nil, err
 	}
 
 	var orderTrends []types.TrendData
 	orderQuery := l.svcCtx.DB.Model(&model.Order{}).
-		Select("DATE(created_at) as date, COUNT(*) as value")
+		Select("DATE(orders.created_at) as date, COUNT(*) as value")
 
 	if req.BrandId > 0 {
-		orderQuery = orderQuery.Where("brand_id = ?", req.BrandId)
+		orderQuery = orderQuery.Joins("JOIN campaigns ON campaigns.id = orders.campaign_id").
+			Where("campaigns.brand_id = ?", req.BrandId)
 	}
 
 	var dateCondition string
@@ -114,23 +116,23 @@ func (l *GetDashboardStatsLogic) GetDashboardStats(req *types.GetDashboardStatsR
 		dateCondition = "DATE_SUB(NOW(), INTERVAL 90 DAY)"
 	}
 
-	if err := orderQuery.Where("created_at >= ?", dateCondition).
-		Group("DATE(created_at)").
-		Order("DATE(created_at) ASC").
+	if err := orderQuery.Where("orders.created_at >= ?", dateCondition).
+		Group("DATE(orders.created_at)").
+		Order("DATE(orders.created_at) ASC").
 		Scan(&orderTrends).Error; err != nil {
 		return nil, err
 	}
 
 	var topCampaigns []types.CampaignStats
 	campaignQuery := l.svcCtx.DB.Model(&model.Campaign{}).
-		Select("id, name, (SELECT COUNT(*) FROM orders WHERE campaign_id = campaigns.id) as order_count, (SELECT COALESCE(SUM(amount), 0) FROM orders WHERE campaign_id = campaigns.id) as revenue")
+		Select("campaigns.id, campaigns.name, (SELECT COUNT(*) FROM orders WHERE orders.campaign_id = campaigns.id) as order_count, (SELECT COALESCE(SUM(amount), 0) FROM orders WHERE orders.campaign_id = campaigns.id) as revenue")
 
 	if req.BrandId > 0 {
-		campaignQuery = campaignQuery.Where("brand_id = ?", req.BrandId)
+		campaignQuery = campaignQuery.Where("campaigns.brand_id = ?", req.BrandId)
 	}
 
-	if err := campaignQuery.Where("created_at >= ?", dateFilterQuery(req)).
-		Order("(SELECT COUNT(*) FROM orders WHERE campaign_id = campaigns.id) DESC").
+	if err := campaignQuery.Where("campaigns.created_at >= ?", dateFilterQuery(req)).
+		Order("(SELECT COUNT(*) FROM orders WHERE orders.campaign_id = campaigns.id) DESC").
 		Limit(5).
 		Find(&topCampaigns).Error; err != nil {
 		return nil, err

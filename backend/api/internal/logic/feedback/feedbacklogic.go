@@ -3,6 +3,7 @@ package feedback
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"dmh/api/internal/svc"
@@ -496,27 +497,32 @@ func NewMarkFAQHelpfulLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ma
 }
 
 func (l *MarkFAQHelpfulLogic) MarkFAQHelpful(req *types.MarkFAQHelpfulReq) (*types.FAQResp, error) {
-	var faq model.FAQItem
-	err := l.svcCtx.DB.First(&faq, req.Id).Error
+	helpfulColumn, notHelpfulColumn, err := resolveFAQCounterColumns(l.svcCtx.DB)
 	if err != nil {
 		return nil, err
 	}
 
-	// 增加有帮助或无帮助计数
-	if req.Type == "helpful" {
-		err = l.svcCtx.DB.Model(&faq).UpdateColumn("helpful_count", gorm.Expr("helpful_count + ?", 1)).Error
-	} else if req.Type == "not_helpful" {
-		err = l.svcCtx.DB.Model(&faq).UpdateColumn("not_helpful_count", gorm.Expr("not_helpful_count + ?", 1)).Error
-	} else {
+	counterColumn := ""
+	switch req.Type {
+	case "helpful":
+		if helpfulColumn == "" {
+			return nil, fmt.Errorf("faq_items 缺少 helpful 计数字段")
+		}
+		counterColumn = helpfulColumn
+	case "not_helpful":
+		if notHelpfulColumn == "" {
+			return nil, fmt.Errorf("faq_items 缺少 not_helpful 计数字段")
+		}
+		counterColumn = notHelpfulColumn
+	default:
 		return nil, fmt.Errorf("无效的类型: %s", req.Type)
 	}
 
-	if err != nil {
+	if err := incrementFAQCounter(l.svcCtx.DB, req.Id, counterColumn); err != nil {
 		return nil, err
 	}
 
-	// 刷新数据
-	err = l.svcCtx.DB.First(&faq, req.Id).Error
+	faq, err := queryFAQWithCounterAliases(l.svcCtx.DB, req.Id, helpfulColumn, notHelpfulColumn)
 	if err != nil {
 		return nil, err
 	}
@@ -531,6 +537,100 @@ func (l *MarkFAQHelpfulLogic) MarkFAQHelpful(req *types.MarkFAQHelpfulReq) (*typ
 		HelpfulCount:    faq.HelpfulCount,
 		NotHelpfulCount: faq.NotHelpfulCount,
 	}, nil
+}
+
+func resolveFAQCounterColumns(db *gorm.DB) (helpfulColumn string, notHelpfulColumn string, err error) {
+	columns, err := listFAQTableColumns(db)
+	if err != nil {
+		return "", "", err
+	}
+
+	helpfulColumn = pickFAQCounterColumn(columns, []string{"helpful_count", "helpfulCount", "helpful", "helpul_count", "helpulCount"})
+	notHelpfulColumn = pickFAQCounterColumn(columns, []string{"not_helpful_count", "notHelpfulCount", "not_helpful", "notHelpful"})
+
+	if helpfulColumn == "" && notHelpfulColumn == "" {
+		return "", "", fmt.Errorf("faq_items 计数字段缺失: columns=%v", columns)
+	}
+
+	return helpfulColumn, notHelpfulColumn, nil
+}
+
+func listFAQTableColumns(db *gorm.DB) ([]string, error) {
+	type columnRow struct {
+		Name string `gorm:"column:name"`
+	}
+
+	var rows []columnRow
+	var err error
+
+	if db.Dialector.Name() == "sqlite" {
+		err = db.Raw("PRAGMA table_info(faq_items)").Scan(&rows).Error
+	} else {
+		err = db.Raw("SELECT COLUMN_NAME AS name FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'faq_items'").Scan(&rows).Error
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	columns := make([]string, 0, len(rows))
+	for _, row := range rows {
+		if row.Name != "" {
+			columns = append(columns, row.Name)
+		}
+	}
+
+	return columns, nil
+}
+
+func pickFAQCounterColumn(columns []string, candidates []string) string {
+	for _, candidate := range candidates {
+		for _, column := range columns {
+			if strings.EqualFold(column, candidate) {
+				return column
+			}
+		}
+	}
+
+	return ""
+}
+
+func incrementFAQCounter(db *gorm.DB, faqID int64, column string) error {
+	if column != "helpful_count" && column != "helpfulCount" && column != "helpful" && column != "helpul_count" && column != "helpulCount" &&
+		column != "not_helpful_count" && column != "notHelpfulCount" && column != "not_helpful" && column != "notHelpful" {
+		return fmt.Errorf("不支持的计数字段: %s", column)
+	}
+
+	updateSQL := fmt.Sprintf("UPDATE faq_items SET `%s` = COALESCE(`%s`, 0) + 1 WHERE id = ?", column, column)
+	result := db.Exec(updateSQL, faqID)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func queryFAQWithCounterAliases(db *gorm.DB, faqID int64, helpfulColumn string, notHelpfulColumn string) (*model.FAQItem, error) {
+	helpfulExpr := "0 AS helpful_count"
+	if helpfulColumn != "" {
+		helpfulExpr = fmt.Sprintf("`%s` AS helpful_count", helpfulColumn)
+	}
+
+	notHelpfulExpr := "0 AS not_helpful_count"
+	if notHelpfulColumn != "" {
+		notHelpfulExpr = fmt.Sprintf("`%s` AS not_helpful_count", notHelpfulColumn)
+	}
+
+	selectSQL := fmt.Sprintf("id, category, question, answer, sort_order, view_count, %s, %s", helpfulExpr, notHelpfulExpr)
+
+	var faq model.FAQItem
+	if err := db.Table("faq_items").Select(selectSQL).Where("id = ?", faqID).Take(&faq).Error; err != nil {
+		return nil, err
+	}
+
+	return &faq, nil
 }
 
 type RecordFeatureUsageLogic struct {

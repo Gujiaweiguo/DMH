@@ -109,15 +109,20 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Toast, Dialog } from 'vant'
 import axios from '@/utils/axios'
+import {
+  DISTRIBUTOR_DESCRIPTION,
+  getDefaultForm,
+  buildBrandOptions,
+  canSubmit,
+  buildApplyPayload,
+  TERMS_CONTENT
+} from './distributorApply.logic.js'
 
 export default {
   name: 'DistributorApply',
   setup() {
     const router = useRouter()
-    const form = ref({
-      brandId: null,
-      reason: ''
-    })
+    const form = ref(getDefaultForm())
     const selectedBrandId = ref(null)
     const selectedBrandName = ref('')
     const showBrandPicker = ref(false)
@@ -126,14 +131,9 @@ export default {
     const submitting = ref(false)
     const brands = ref([])
 
-    const distributorDescription = '成为分销商，分享推广链接，获得订单佣金奖励'
+    const distributorDescription = DISTRIBUTOR_DESCRIPTION
 
-    const brandOptions = computed(() => {
-      return brands.value.map(b => ({
-        text: b.name,
-        value: b.id
-      }))
-    })
+    const brandOptions = computed(() => buildBrandOptions(brands.value))
 
     // 加载品牌列表
     const loadBrands = async () => {
@@ -163,17 +163,14 @@ export default {
 
     // 提交申请
     const onSubmit = async () => {
-      if (!agreeTerms.value) {
+      if (!canSubmit(form.value, agreeTerms.value)) {
         Toast('请先同意分销商协议')
         return
       }
 
       submitting.value = true
       try {
-		const data = await axios.post('/distributor/apply', {
-          brandId: form.value.brandId,
-          reason: form.value.reason
-        })
+		const data = await axios.post('/distributor/apply', buildApplyPayload(form.value))
 
         if (data.code === 200) {
           Dialog.alert({

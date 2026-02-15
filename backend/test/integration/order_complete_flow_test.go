@@ -70,8 +70,8 @@ func (suite *OrderCompleteFlowIntegrationTestSuite) createTestCampaign() {
 		"name":        "订单流程测试活动",
 		"description": "用于测试完整订单流程",
 		"rewardRule":  10.0,
-		"startTime":   now.Add(-1 * time.Hour).Format(time.RFC3339),
-		"endTime":     now.Add(24 * time.Hour).Format(time.RFC3339),
+		"startTime":   now.Add(-24 * time.Hour).Format("2006-01-02T15:04:05"),
+		"endTime":     now.Add(48 * time.Hour).Format("2006-01-02T15:04:05"),
 		"formFields": []map[string]interface{}{
 			{
 				"type":     "text",

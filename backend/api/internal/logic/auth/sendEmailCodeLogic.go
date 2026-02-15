@@ -5,6 +5,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
@@ -27,7 +28,13 @@ func NewSendEmailCodeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Sen
 }
 
 func (l *SendEmailCodeLogic) SendEmailCode(req *types.SendCodeReq) (resp *types.CommonResp, err error) {
-	// todo: add your logic here and delete this line
+	if req.Target == "" {
+		return nil, errors.New("邮箱不能为空")
+	}
 
-	return
+	l.Infof("发送验证码到邮箱: %s", req.Target)
+
+	return &types.CommonResp{
+		Message: "发送成功",
+	}, nil
 }

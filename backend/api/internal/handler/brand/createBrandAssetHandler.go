@@ -20,6 +20,9 @@ func CreateBrandAssetHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
+		brandIdStr := r.PathValue("id")
+		req.BrandId = brandIdStr
+
 		l := brand.NewCreateBrandAssetLogic(r.Context(), svcCtx)
 		resp, err := l.CreateBrandAsset(&req)
 		if err != nil {

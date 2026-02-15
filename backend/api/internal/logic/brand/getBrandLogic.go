@@ -5,11 +5,14 @@ package brand
 
 import (
 	"context"
+	"errors"
 
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
+	"dmh/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"gorm.io/gorm"
 )
 
 type GetBrandLogic struct {
@@ -26,8 +29,29 @@ func NewGetBrandLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetBrand
 	}
 }
 
-func (l *GetBrandLogic) GetBrand() (resp *types.BrandResp, err error) {
-	// todo: add your logic here and delete this line
+func (l *GetBrandLogic) GetBrand(req *types.GetBrandReq) (resp *types.BrandResp, err error) {
+	if req.Id <= 0 {
+		return nil, errors.New("品牌ID无效")
+	}
 
-	return
+	var brand model.Brand
+	if err := l.svcCtx.DB.First(&brand, req.Id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("品牌不存在")
+		}
+		l.Errorf("查询品牌失败: %v", err)
+		return nil, errors.New("查询品牌失败")
+	}
+
+	resp = &types.BrandResp{
+		Id:          brand.Id,
+		Name:        brand.Name,
+		Logo:        brand.Logo,
+		Description: brand.Description,
+		Status:      brand.Status,
+		CreatedAt:   brand.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:   brand.UpdatedAt.Format("2006-01-02 15:04:05"),
+	}
+
+	return resp, nil
 }

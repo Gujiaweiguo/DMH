@@ -1,0 +1,74 @@
+import { describe, expect, it } from 'vitest'
+import {
+  applyOrderStatus,
+  buildExportOrderData,
+  calculateOrderStats,
+  filterAndSortOrders,
+  formatOrderDateTime,
+  getOrderStatusText,
+} from '../../src/views/brand/orders.logic.js'
+
+describe('orders logic', () => {
+  const orders = [
+    { id: 1, status: 'pending', amount: 10, rewardAmount: 0, referrerId: null, createdAt: '2026-02-13 10:00:00', campaignName: 'A', phone: '138', formData: { 姓名: '甲' } },
+    { id: 2, status: 'paid', amount: 20, rewardAmount: 4, referrerId: 8, createdAt: '2026-02-12 10:00:00', campaignName: 'B', phone: '139', formData: {} },
+    { id: 3, status: 'cancelled', amount: 30, rewardAmount: 0, referrerId: 9, createdAt: '2026-02-14 09:00:00', campaignName: 'C', phone: '137', formData: {} },
+  ]
+
+  it('maps order status text', () => {
+    expect(getOrderStatusText('pending')).toBe('待支付')
+    expect(getOrderStatusText('paid')).toBe('已支付')
+    expect(getOrderStatusText('cancelled')).toBe('已取消')
+    expect(getOrderStatusText('custom')).toBe('custom')
+  })
+
+  it('formats order datetime', () => {
+    expect(formatOrderDateTime('2026-02-13 10:00:00')).toContain('2')
+  })
+
+  it('filters by status, date and sorts desc', () => {
+    const byStatus = filterAndSortOrders(orders, 'paid', { start: '', end: '' })
+    expect(byStatus).toHaveLength(1)
+    expect(byStatus[0].id).toBe(2)
+
+    const byDate = filterAndSortOrders(orders, 'all', { start: '2026-02-13', end: '2026-02-14' })
+    expect(byDate.map((item) => item.id)).toEqual([3, 1])
+  })
+
+  it('calculates order stats', () => {
+    const stats = calculateOrderStats(orders, 'Fri Feb 13 2026')
+    expect(stats).toEqual({
+      total: 3,
+      totalAmount: 60,
+      totalRewards: 4,
+      todayOrders: 1,
+    })
+  })
+
+  it('applies paid status and reward for referrer', () => {
+    const next = applyOrderStatus({ id: 9, amount: 100, referrerId: 20, status: 'pending', rewardAmount: 0 }, 'paid')
+    expect(next.status).toBe('paid')
+    expect(next.rewardAmount).toBe(20)
+  })
+
+  it('builds export order data with mapped status', () => {
+    const row = buildExportOrderData({
+      id: 1,
+      campaignName: '活动A',
+      phone: '138****0000',
+      amount: 88,
+      status: 'paid',
+      createdAt: '2026-02-13 10:00:00',
+      formData: { 姓名: '李雷' },
+    })
+
+    expect(row).toMatchObject({
+      订单号: 1,
+      活动名称: '活动A',
+      用户手机: '138****0000',
+      订单金额: 88,
+      订单状态: '已支付',
+      姓名: '李雷',
+    })
+  })
+})

@@ -32,14 +32,21 @@
       @click="handleSubmit"
       :disabled="submitting"
     >
-      {{ submitting ? '提交中...' : '提交报名' }}
+      {{ submitButtonText }}
     </button>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {
+  validateForm,
+  loadSourceFromStorage,
+  buildOrderPayload,
+  initializeFormData,
+  getSubmitButtonText
+} from './campaignForm.logic.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,18 +60,6 @@ const formData = reactive({})
 const submitting = ref(false)
 const source = ref({ c_id: '', u_id: '' })
 
-// 读取来源信息
-const loadSource = () => {
-  try {
-    const saved = localStorage.getItem('dmh_source')
-    if (saved) {
-      source.value = JSON.parse(saved)
-    }
-  } catch (e) {
-    console.error('读取来源信息失败', e)
-  }
-}
-
 // 获取活动信息
 const fetchCampaign = async () => {
   try {
@@ -72,48 +67,27 @@ const fetchCampaign = async () => {
     if (response.ok) {
       const campaign = await response.json()
       formFields.value = campaign.formFields || []
-      formFields.value.forEach(field => {
-        formData[field] = ''
-      })
+      Object.assign(formData, initializeFormData(formFields.value))
     }
   } catch (error) {
     console.error('加载活动失败', error)
   }
 }
 
-// 表单校验
-const validate = () => {
-  if (!form.phone) {
-    alert('请输入手机号')
-    return false
-  }
-  if (!/^1[3-9]\d{9}$/.test(form.phone)) {
-    alert('请输入正确的手机号')
-    return false
-  }
-  for (const key of formFields.value) {
-    if (!formData[key] || !formData[key].trim()) {
-      alert(`请填写${key}`)
-      return false
-    }
-  }
-  return true
-}
-
 // 提交报名
 const handleSubmit = async () => {
   if (submitting.value) return
-  if (!validate()) return
+  
+  const validation = validateForm(form.phone, formData, formFields.value)
+  if (!validation.valid) {
+    alert(validation.errors[0])
+    return
+  }
 
   submitting.value = true
 
   try {
-    const payload = {
-      campaignId: Number(campaignId),
-      phone: form.phone,
-      formData: { ...formData },
-      referrerId: source.value.u_id ? Number(source.value.u_id) : 0
-    }
+    const payload = buildOrderPayload(campaignId, form.phone, formData, source.value)
 
     const response = await fetch('/api/v1/orders', {
       method: 'POST',
@@ -140,8 +114,10 @@ const handleSubmit = async () => {
   }
 }
 
+const submitButtonText = computed(() => getSubmitButtonText(submitting.value))
+
 onMounted(() => {
-  loadSource()
+  source.value = loadSourceFromStorage()
   fetchCampaign()
 })
 </script>
