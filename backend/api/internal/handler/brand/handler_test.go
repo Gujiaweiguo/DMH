@@ -843,3 +843,23 @@ func TestCreateBrandAssetHandler_Success_V2(t *testing.T) {
 
 	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
 }
+
+func TestUpdateBrandAssetHandler_ParseError(t *testing.T) {
+	db := setupBrandHandlerTestDB(t)
+	brand := createTestBrandForHandler(t, db, "Test Brand")
+	asset := &model.BrandAsset{BrandID: brand.Id, Type: "image", FileUrl: "https://example.com/image.png"}
+	db.Create(asset)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := UpdateBrandAssetHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/brands/%d/assets/%d", brand.Id, asset.ID), strings.NewReader("{invalid"))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("brandId", fmt.Sprintf("%d", brand.Id))
+	req.SetPathValue("id", fmt.Sprintf("%d", asset.ID))
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}

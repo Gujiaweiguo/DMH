@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -51,6 +52,8 @@ func TestGetDistributorLinksHandler_WithDB(t *testing.T) {
 	handler(resp, req)
 	assert.Equal(t, http.StatusOK, resp.Code)
 }
+
+// Test for GetDistributorSubordinatesHandler with DB is pending full integration wiring
 
 func TestGetDistributorApplicationsHandler_WithDB_New(t *testing.T) {
 	db := setupDistributorHandlerTestDB(t)
@@ -112,4 +115,36 @@ func TestGenerateDistributorLinkHandler_WithDB(t *testing.T) {
 	resp := httptest.NewRecorder()
 	handler(resp, req)
 	assert.Equal(t, http.StatusOK, resp.Code)
+}
+
+func TestApproveDistributorApplicationHandler_WithDB_Success(t *testing.T) {
+	db := setupDistributorHandlerTestDB(t)
+	brand := seedBrandAndDistributor(t, db)
+	user := createTestUser(t, db, "applicant_user")
+
+	application := &model.DistributorApplication{
+		UserId:  user.Id,
+		BrandId: brand.Id,
+		Reason:  "Need to become distributor",
+		Status:  "pending",
+	}
+	if err := db.Create(application).Error; err != nil {
+		t.Fatalf("failed to create distributor application: %v", err)
+	}
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := ApproveDistributorApplicationHandler(svcCtx)
+
+	reqBody := types.ApproveDistributorReq{Action: "approve"}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/distributors/applications/%d/approve", application.Id), bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), "applicationId", application.Id)
+	ctx = context.WithValue(ctx, "userId", user.Id)
+	req = req.WithContext(ctx)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
 }
