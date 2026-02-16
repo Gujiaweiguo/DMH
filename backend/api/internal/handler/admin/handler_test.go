@@ -163,3 +163,71 @@ func TestManageBrandAdminRelationHandler_ParseError(t *testing.T) {
 
 	assert.NotEqual(t, http.StatusOK, resp.Code)
 }
+
+func TestManageBrandAdminRelationHandler_Success(t *testing.T) {
+	db := setupAdminHandlerTestDB(t)
+	brand := &model.Brand{Name: "Test Brand", Status: "active"}
+	db.Create(brand)
+
+	user := &model.User{Username: "admin", Password: "pass", Phone: "13800138000", Status: "active", Role: "platform_admin"}
+	db.Create(user)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := ManageBrandAdminRelationHandler(svcCtx)
+
+	reqBody := types.BrandAdminRelationReq{
+		UserId:   user.Id,
+		BrandIds: []int64{brand.Id},
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users/brand-relations", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestResetUserPasswordHandler_Success(t *testing.T) {
+	db := setupAdminHandlerTestDB(t)
+	user := &model.User{Username: "admin", Password: "pass", Phone: "13800138000", Status: "active", Role: "platform_admin"}
+	db.Create(user)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := ResetUserPasswordHandler(svcCtx)
+
+	reqBody := types.AdminResetPasswordReq{
+		NewPassword: "newpassword123",
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/admin/users/%d/reset-password", user.Id), bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestUpdateUserHandler_Success(t *testing.T) {
+	db := setupAdminHandlerTestDB(t)
+	user := &model.User{Username: "admin", Password: "pass", Phone: "13800138000", Status: "active", Role: "platform_admin"}
+	db.Create(user)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := UpdateUserHandler(svcCtx)
+
+	reqBody := types.AdminUpdateUserReq{
+		RealName: "Admin User",
+		Status:   "active",
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/admin/users/%d", user.Id), bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}

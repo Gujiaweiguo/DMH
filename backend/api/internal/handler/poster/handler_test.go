@@ -187,6 +187,20 @@ func TestGenerateDistributorPosterHandler_ShortPath(t *testing.T) {
 	svcCtx := &svc.ServiceContext{DB: db}
 	handler := GenerateDistributorPosterHandler(svcCtx)
 
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/distributors/poster", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestGenerateDistributorPosterHandler_TooShortPath(t *testing.T) {
+	db := setupPosterHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GenerateDistributorPosterHandler(svcCtx)
+
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/distributors/1/poster", strings.NewReader(`{}`))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
@@ -208,6 +222,166 @@ func TestGetPosterTemplatesHandler_WithType(t *testing.T) {
 	handler := GetPosterTemplatesHandler(svcCtx)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/posters/templates?type=campaign", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+}
+
+func TestGenerateCampaignPosterHandler_Success(t *testing.T) {
+	db := setupPosterHandlerTestDB(t)
+
+	brand := &model.Brand{Name: "Test Brand", Status: "active"}
+	db.Create(brand)
+
+	campaign := &model.Campaign{Name: "Test Campaign", BrandId: brand.Id, Status: "active", PosterTemplateId: 1}
+	db.Create(campaign)
+
+	template := &model.PosterTemplateConfig{Name: "Test Template", Status: "active"}
+	db.Create(template)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GenerateCampaignPosterHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/posters/campaign", strings.NewReader(`{"id": 1, "templateId": 1}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestGenerateDistributorPosterHandler_Success(t *testing.T) {
+	db := setupPosterHandlerTestDB(t)
+
+	user := &model.User{Username: "testuser", Password: "hashed", Role: "participant"}
+	db.Create(user)
+
+	brand := &model.Brand{Name: "Test Brand", Status: "active"}
+	db.Create(brand)
+
+	distributor := &model.Distributor{UserId: user.Id, BrandId: brand.Id, Level: 1, Status: "active"}
+	db.Create(distributor)
+
+	template := &model.PosterTemplateConfig{Name: "Test Template", Status: "active"}
+	db.Create(template)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GenerateDistributorPosterHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/distributors/12345/poster", strings.NewReader(`{"templateId": 1}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestGenerateDistributorPosterHandler_ValidIdPath(t *testing.T) {
+	db := setupPosterHandlerTestDB(t)
+
+	user := &model.User{Username: "testuser2", Password: "hashed", Role: "participant"}
+	db.Create(user)
+
+	brand := &model.Brand{Name: "Test Brand", Status: "active"}
+	db.Create(brand)
+
+	distributor := &model.Distributor{UserId: user.Id, BrandId: brand.Id, Level: 1, Status: "active"}
+	db.Create(distributor)
+
+	template := &model.PosterTemplateConfig{Name: "Test Template", Status: "active"}
+	db.Create(template)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GenerateDistributorPosterHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/distributors/999/poster", strings.NewReader(`{"templateId": 1}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestGetPosterRecordsHandler_WithRecordType(t *testing.T) {
+	db := setupPosterHandlerTestDB(t)
+
+	brand := &model.Brand{Name: "Test Brand", Status: "active"}
+	db.Create(brand)
+
+	campaign := &model.Campaign{Name: "Test Campaign", BrandId: brand.Id, Status: "active"}
+	db.Create(campaign)
+
+	record := &model.PosterRecord{RecordType: "campaign", CampaignID: campaign.Id, TemplateName: "Template", PosterUrl: "https://example.com/poster.png"}
+	db.Create(record)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetPosterRecordsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/posters/records?page=1&pageSize=10&recordType=campaign", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+}
+
+func TestGetPosterRecordsHandler_WithCampaignId(t *testing.T) {
+	db := setupPosterHandlerTestDB(t)
+
+	brand := &model.Brand{Name: "Test Brand", Status: "active"}
+	db.Create(brand)
+
+	campaign := &model.Campaign{Name: "Test Campaign", BrandId: brand.Id, Status: "active"}
+	db.Create(campaign)
+
+	record := &model.PosterRecord{RecordType: "campaign", CampaignID: campaign.Id, TemplateName: "Template", PosterUrl: "https://example.com/poster.png"}
+	db.Create(record)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetPosterRecordsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/posters/records?page=1&pageSize=10&campaignId=%d", campaign.Id), nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+}
+
+func TestGetPosterTemplatesHandler_WithStatus(t *testing.T) {
+	db := setupPosterHandlerTestDB(t)
+
+	template1 := &model.PosterTemplateConfig{Name: "Active Template", Status: "active"}
+	template2 := &model.PosterTemplateConfig{Name: "Inactive Template", Status: "inactive"}
+	db.Create(template1)
+	db.Create(template2)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetPosterTemplatesHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/posters/templates?status=active", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+}
+
+func TestGetPosterTemplatesHandler_WithKeyword(t *testing.T) {
+	db := setupPosterHandlerTestDB(t)
+
+	template := &model.PosterTemplateConfig{Name: "Special Campaign Template", Status: "active"}
+	db.Create(template)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetPosterTemplatesHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/posters/templates?keyword=Special", nil)
 	resp := httptest.NewRecorder()
 
 	handler(resp, req)

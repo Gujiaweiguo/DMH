@@ -30,6 +30,9 @@ func setupDistributorHandlerTestDB(t *testing.T) *gorm.DB {
 		&model.Campaign{},
 		&model.DistributorApplication{},
 		&model.DistributorLink{},
+		&model.Distributor{},
+		&model.DistributorLevelReward{},
+		&model.DistributorReward{},
 		&model.User{},
 	)
 	if err != nil {

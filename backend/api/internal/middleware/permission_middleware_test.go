@@ -193,3 +193,59 @@ func TestValidatePermission(t *testing.T) {
 	assert.Error(t, ValidatePermission("orders-read"))
 	assert.Error(t, ValidatePermission("orders:"))
 }
+
+func TestPermissionMiddleware_ExtractResourceAction(t *testing.T) {
+	env := newPermissionTestEnv(t)
+
+	tests := []struct {
+		name    string
+		method  string
+		path    string
+		wantRes string
+		wantAct string
+	}{
+		{"GET orders", "GET", "/api/v1/orders", "orders", "read"},
+		{"POST brands", "POST", "/api/v1/brands", "brands", "create"},
+		{"GET campaigns", "GET", "/api/v1/campaigns", "campaigns", "read"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, nil)
+			resource, action := env.middleware.extractResourceAction(req)
+			assert.Equal(t, tt.wantRes, resource)
+			assert.Equal(t, tt.wantAct, action)
+		})
+	}
+}
+
+func TestIsPublicPath(t *testing.T) {
+	env := newPermissionTestEnv(t)
+
+	publicPaths := []string{
+		"/api/v1/auth/login",
+		"/api/v1/auth/register",
+		"/api/v1/auth/refresh",
+		"/health",
+		"/ping",
+	}
+
+	privatePaths := []string{
+		"/api/v1/admin",
+		"/api/v1/brands",
+		"/api/v1/users",
+		"/api/v1/posters/",
+	}
+
+	for _, path := range publicPaths {
+		t.Run("public_"+path, func(t *testing.T) {
+			assert.True(t, env.middleware.isPublicPath(path))
+		})
+	}
+
+	for _, path := range privatePaths {
+		t.Run("private_"+path, func(t *testing.T) {
+			assert.False(t, env.middleware.isPublicPath(path))
+		})
+	}
+}
