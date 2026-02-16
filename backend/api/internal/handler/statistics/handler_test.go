@@ -2,9 +2,12 @@ package statistics
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"dmh/api/internal/svc"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
@@ -31,6 +34,28 @@ func TestStatisticsHandlersConstruct(t *testing.T) {
 	assert.NotNil(t, GetDashboardStatsHandler(nil))
 }
 
-func TestGetDashboardStatsHandler_Success(t *testing.T) {
-	t.Skip("Skipping test due to SQL query compatibility issue - needs investigation")
+func TestGetDashboardStatsHandler_InvalidBrandId(t *testing.T) {
+	db := setupStatisticsHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetDashboardStatsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/statistics/dashboard?brandId=0", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestGetDashboardStatsHandler_MissingBrandId(t *testing.T) {
+	db := setupStatisticsHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetDashboardStatsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/statistics/dashboard", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusOK, resp.Code)
 }
