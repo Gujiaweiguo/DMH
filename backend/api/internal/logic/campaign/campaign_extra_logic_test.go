@@ -102,6 +102,246 @@ func TestUpdateCampaignLogic_UpdateCampaign_NotFound(t *testing.T) {
 	assert.Nil(t, resp)
 }
 
+func TestUpdateCampaignLogic_UpdateCampaign_WithTimeFormat(t *testing.T) {
+	db := setupCampaignTestDB(t)
+	defer cleanupCampaignTestDB(t, db)
+
+	campaign := &model.Campaign{
+		Name:        "原始活动",
+		Description: "原始描述",
+		FormFields:  `[]`,
+		RewardRule:  10.00,
+		StartTime:   time.Now().Add(-1 * time.Hour),
+		EndTime:     time.Now().Add(24 * time.Hour),
+		Status:      "active",
+		BrandId:     1,
+	}
+	db.Create(campaign)
+
+	ctx := context.Background()
+	svcCtx := &svc.ServiceContext{DB: db}
+	logic := NewUpdateCampaignLogic(ctx, svcCtx)
+
+	startTime := "2026-03-01T10:00:00"
+	endTime := "2026-03-31T23:59:59"
+
+	req := &types.UpdateCampaignReq{
+		Id:        campaign.Id,
+		StartTime: &startTime,
+		EndTime:   &endTime,
+	}
+
+	resp, err := logic.UpdateCampaign(req)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+}
+
+func TestUpdateCampaignLogic_UpdateCampaign_InvalidStartTime(t *testing.T) {
+	db := setupCampaignTestDB(t)
+	defer cleanupCampaignTestDB(t, db)
+
+	campaign := &model.Campaign{
+		Name:        "原始活动",
+		Description: "原始描述",
+		FormFields:  `[]`,
+		RewardRule:  10.00,
+		StartTime:   time.Now().Add(-1 * time.Hour),
+		EndTime:     time.Now().Add(24 * time.Hour),
+		Status:      "active",
+		BrandId:     1,
+	}
+	db.Create(campaign)
+
+	ctx := context.Background()
+	svcCtx := &svc.ServiceContext{DB: db}
+	logic := NewUpdateCampaignLogic(ctx, svcCtx)
+
+	startTime := "invalid-time"
+
+	req := &types.UpdateCampaignReq{
+		Id:        campaign.Id,
+		StartTime: &startTime,
+	}
+
+	resp, err := logic.UpdateCampaign(req)
+
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+}
+
+func TestUpdateCampaignLogic_UpdateCampaign_InvalidEndTime(t *testing.T) {
+	db := setupCampaignTestDB(t)
+	defer cleanupCampaignTestDB(t, db)
+
+	campaign := &model.Campaign{
+		Name:        "原始活动",
+		Description: "原始描述",
+		FormFields:  `[]`,
+		RewardRule:  10.00,
+		StartTime:   time.Now().Add(-1 * time.Hour),
+		EndTime:     time.Now().Add(24 * time.Hour),
+		Status:      "active",
+		BrandId:     1,
+	}
+	db.Create(campaign)
+
+	ctx := context.Background()
+	svcCtx := &svc.ServiceContext{DB: db}
+	logic := NewUpdateCampaignLogic(ctx, svcCtx)
+
+	endTime := "invalid-time"
+
+	req := &types.UpdateCampaignReq{
+		Id:      campaign.Id,
+		EndTime: &endTime,
+	}
+
+	resp, err := logic.UpdateCampaign(req)
+
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+}
+
+func TestUpdateCampaignLogic_UpdateCampaign_WithDistributionLevel(t *testing.T) {
+	db := setupCampaignTestDB(t)
+	defer cleanupCampaignTestDB(t, db)
+
+	campaign := &model.Campaign{
+		Name:        "原始活动",
+		Description: "原始描述",
+		FormFields:  `[]`,
+		RewardRule:  10.00,
+		StartTime:   time.Now().Add(-1 * time.Hour),
+		EndTime:     time.Now().Add(24 * time.Hour),
+		Status:      "active",
+		BrandId:     1,
+	}
+	db.Create(campaign)
+
+	ctx := context.Background()
+	svcCtx := &svc.ServiceContext{DB: db}
+	logic := NewUpdateCampaignLogic(ctx, svcCtx)
+
+	level := 2
+	enableDistribution := true
+
+	req := &types.UpdateCampaignReq{
+		Id:                 campaign.Id,
+		DistributionLevel:  &level,
+		EnableDistribution: &enableDistribution,
+	}
+
+	resp, err := logic.UpdateCampaign(req)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	assert.Equal(t, 2, resp.DistributionLevel)
+	assert.True(t, resp.EnableDistribution)
+}
+
+func TestUpdateCampaignLogic_UpdateCampaign_InvalidDistributionLevel(t *testing.T) {
+	db := setupCampaignTestDB(t)
+	defer cleanupCampaignTestDB(t, db)
+
+	campaign := &model.Campaign{
+		Name:        "原始活动",
+		Description: "原始描述",
+		FormFields:  `[]`,
+		RewardRule:  10.00,
+		StartTime:   time.Now().Add(-1 * time.Hour),
+		EndTime:     time.Now().Add(24 * time.Hour),
+		Status:      "active",
+		BrandId:     1,
+	}
+	db.Create(campaign)
+
+	ctx := context.Background()
+	svcCtx := &svc.ServiceContext{DB: db}
+	logic := NewUpdateCampaignLogic(ctx, svcCtx)
+
+	level := 5
+
+	req := &types.UpdateCampaignReq{
+		Id:                campaign.Id,
+		DistributionLevel: &level,
+	}
+
+	resp, err := logic.UpdateCampaign(req)
+
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+}
+
+func TestUpdateCampaignLogic_UpdateCampaign_WithFormFields(t *testing.T) {
+	db := setupCampaignTestDB(t)
+	defer cleanupCampaignTestDB(t, db)
+
+	campaign := &model.Campaign{
+		Name:        "原始活动",
+		Description: "原始描述",
+		FormFields:  `[]`,
+		RewardRule:  10.00,
+		StartTime:   time.Now().Add(-1 * time.Hour),
+		EndTime:     time.Now().Add(24 * time.Hour),
+		Status:      "active",
+		BrandId:     1,
+	}
+	db.Create(campaign)
+
+	ctx := context.Background()
+	svcCtx := &svc.ServiceContext{DB: db}
+	logic := NewUpdateCampaignLogic(ctx, svcCtx)
+
+	formFields := []types.FormField{
+		{Type: "text", Name: "name", Label: "姓名", Required: true},
+		{Type: "phone", Name: "phone", Label: "手机号", Required: true},
+	}
+
+	req := &types.UpdateCampaignReq{
+		Id:         campaign.Id,
+		FormFields: formFields,
+	}
+
+	resp, err := logic.UpdateCampaign(req)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+}
+
+func TestUpdateCampaignLogic_UpdateCampaign_WithPaymentConfig(t *testing.T) {
+	db := setupCampaignTestDB(t)
+	defer cleanupCampaignTestDB(t, db)
+
+	campaign := &model.Campaign{
+		Name:        "原始活动",
+		Description: "原始描述",
+		FormFields:  `[]`,
+		RewardRule:  10.00,
+		StartTime:   time.Now().Add(-1 * time.Hour),
+		EndTime:     time.Now().Add(24 * time.Hour),
+		Status:      "active",
+		BrandId:     1,
+	}
+	db.Create(campaign)
+
+	ctx := context.Background()
+	svcCtx := &svc.ServiceContext{DB: db}
+	logic := NewUpdateCampaignLogic(ctx, svcCtx)
+
+	paymentConfig := `{"amount":100,"type":"wechat"}`
+
+	req := &types.UpdateCampaignReq{
+		Id:            campaign.Id,
+		PaymentConfig: &paymentConfig,
+	}
+
+	resp, err := logic.UpdateCampaign(req)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+}
+
 func TestDeleteCampaignLogic_DeleteCampaign_Success(t *testing.T) {
 	db := setupCampaignTestDB(t)
 	defer cleanupCampaignTestDB(t, db)

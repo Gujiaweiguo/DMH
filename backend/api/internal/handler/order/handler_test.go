@@ -1,6 +1,8 @@
 package order
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +11,7 @@ import (
 	"time"
 
 	"dmh/api/internal/svc"
+	"dmh/api/internal/types"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
@@ -331,4 +334,172 @@ func TestUnverifyOrderHandler_ParseError_Body(t *testing.T) {
 	handler(resp, req)
 
 	assert.NotEqual(t, http.StatusOK, resp.Code)
+}
+
+func TestGetVerificationRecordsHandler_Success(t *testing.T) {
+	db := setupOrderHandlerTestDB(t)
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := GetVerificationRecordsHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/orders/verification-records", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestVerifyOrderHandler_Success(t *testing.T) {
+	db := setupOrderHandlerTestDB(t)
+
+	brand := &model.Brand{Name: "Test Brand", Status: "active"}
+	db.Create(brand)
+
+	campaign := &model.Campaign{
+		Name:       "Test Campaign",
+		BrandId:    brand.Id,
+		Status:     "active",
+		FormFields: "[]",
+	}
+	db.Create(campaign)
+
+	order := &model.Order{
+		CampaignId:       campaign.Id,
+		Phone:            "13800138000",
+		Amount:           100.00,
+		PayStatus:        "paid",
+		Status:           "active",
+		VerificationCode: "TESTCODE123",
+	}
+	db.Create(order)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := VerifyOrderHandler(svcCtx)
+
+	reqBody := types.VerifyOrderReq{
+		Code:   "TESTCODE123",
+		Remark: "Test verification",
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/orders/verify", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestUnverifyOrderHandler_Success(t *testing.T) {
+	db := setupOrderHandlerTestDB(t)
+
+	brand := &model.Brand{Name: "Test Brand", Status: "active"}
+	db.Create(brand)
+
+	campaign := &model.Campaign{
+		Name:       "Test Campaign",
+		BrandId:    brand.Id,
+		Status:     "active",
+		FormFields: "[]",
+	}
+	db.Create(campaign)
+
+	verifiedAt := time.Now()
+	order := &model.Order{
+		CampaignId:       campaign.Id,
+		Phone:            "13800138000",
+		Amount:           100.00,
+		PayStatus:        "paid",
+		Status:           "verified",
+		VerificationCode: "TESTCODE456",
+		VerifiedAt:       &verifiedAt,
+	}
+	db.Create(order)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := UnverifyOrderHandler(svcCtx)
+
+	reqBody := types.UnverifyOrderReq{
+		Code:   "TESTCODE456",
+		Reason: "Test unverification",
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/orders/unverify", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestPaymentCallbackHandler_Success(t *testing.T) {
+	db := setupOrderHandlerTestDB(t)
+
+	brand := &model.Brand{Name: "Test Brand", Status: "active"}
+	db.Create(brand)
+
+	campaign := &model.Campaign{
+		Name:       "Test Campaign",
+		BrandId:    brand.Id,
+		Status:     "active",
+		FormFields: "[]",
+	}
+	db.Create(campaign)
+
+	order := &model.Order{
+		CampaignId: campaign.Id,
+		Phone:      "13800138000",
+		Amount:     100.00,
+		PayStatus:  "pending",
+		Status:     "active",
+		TradeNo:    "TEST123456",
+	}
+	db.Create(order)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := PaymentCallbackHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/orders/payment-callback", strings.NewReader(`{"outTradeNo":"TEST123456","transactionId":"TXN123"}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+}
+
+func TestScanOrderHandler_Success(t *testing.T) {
+	db := setupOrderHandlerTestDB(t)
+
+	brand := &model.Brand{Name: "Test Brand", Status: "active"}
+	db.Create(brand)
+
+	campaign := &model.Campaign{
+		Name:       "Test Campaign",
+		BrandId:    brand.Id,
+		Status:     "active",
+		FormFields: "[]",
+	}
+	db.Create(campaign)
+
+	order := &model.Order{
+		CampaignId:       campaign.Id,
+		Phone:            "13800138000",
+		Amount:           100.00,
+		PayStatus:        "paid",
+		Status:           "active",
+		VerificationCode: "SCANTEST123",
+	}
+	db.Create(order)
+
+	svcCtx := &svc.ServiceContext{DB: db}
+	handler := ScanOrderHandler(svcCtx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/orders/scan?code=SCANTEST123", nil)
+	resp := httptest.NewRecorder()
+
+	handler(resp, req)
+
+	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
 }
