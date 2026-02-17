@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { WithdrawalApprovalView } from '../../views/WithdrawalApprovalView';
 
 vi.mock('../../services/distributorApi', () => ({
@@ -13,8 +13,15 @@ vi.mock('../../services/distributorApi', () => ({
 }));
 
 describe('WithdrawalApprovalView', () => {
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
   });
 
   it('should return view model with required properties', () => {
