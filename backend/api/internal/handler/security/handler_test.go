@@ -106,6 +106,14 @@ func TestGetLoginAttemptsHandler_Success(t *testing.T) {
 	handler(resp, req)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
+
+	var got types.LoginAttemptListResp
+	err := json.Unmarshal(resp.Body.Bytes(), &got)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), got.Total)
+	assert.Len(t, got.Attempts, 1)
+	assert.Equal(t, "testuser", got.Attempts[0].Username)
+	assert.Equal(t, "192.168.1.1", got.Attempts[0].ClientIp)
 }
 
 func TestGetSecurityEventsHandler_Success(t *testing.T) {
@@ -123,6 +131,14 @@ func TestGetSecurityEventsHandler_Success(t *testing.T) {
 	handler(resp, req)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
+
+	var got types.SecurityEventListResp
+	err := json.Unmarshal(resp.Body.Bytes(), &got)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), got.Total)
+	assert.Len(t, got.Events, 1)
+	assert.Equal(t, "login_failed", got.Events[0].EventType)
+	assert.Equal(t, "medium", got.Events[0].Severity)
 }
 
 func TestGetUserSessionsHandler_Success(t *testing.T) {
@@ -142,7 +158,15 @@ func TestGetUserSessionsHandler_Success(t *testing.T) {
 
 	handler(resp, req)
 
-	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	var got types.UserSessionListResp
+	err := json.Unmarshal(resp.Body.Bytes(), &got)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), got.Total)
+	assert.Len(t, got.Sessions, 1)
+	assert.Equal(t, "session-123", got.Sessions[0].Id)
+	assert.Equal(t, user.Id, got.Sessions[0].UserId)
 }
 
 func TestRevokeSessionHandler_Success(t *testing.T) {
