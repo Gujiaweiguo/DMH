@@ -44,7 +44,7 @@ describe('PermissionGuard', () => {
       expect(wrapper.find('[data-testid="result"]').text()).toBe('true')
     })
 
-    it('hasPermission returns false for null user', () => {
+    it('hasPermission returns false for anonymous user', () => {
       const Child = defineComponent({
         setup() {
           const { hasPermission } = usePermission()
@@ -54,7 +54,13 @@ describe('PermissionGuard', () => {
 
       const wrapper = mount(() => h(
         PermissionProvider,
-        { user: null },
+        {
+          user: {
+            username: 'guest',
+            roles: ['anonymous'],
+            token: ''
+          }
+        },
         () => h(Child)
       ))
 
@@ -315,6 +321,8 @@ describe('PermissionGuard', () => {
     })
 
     it('returns fallback when used outside provider', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
       const Child = defineComponent({
         setup() {
           const { hasPermission } = usePermission()
@@ -325,6 +333,8 @@ describe('PermissionGuard', () => {
       const wrapper = mount(() => h(Child))
 
       expect(wrapper.text()).toBe('false')
+      expect(warnSpy).toHaveBeenCalledWith('usePermission must be used within PermissionProvider')
+      warnSpy.mockRestore()
     })
   })
 })

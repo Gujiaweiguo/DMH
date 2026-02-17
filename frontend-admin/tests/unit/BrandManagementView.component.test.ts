@@ -4,13 +4,38 @@ import { BrandManagementView } from '../../views/BrandManagementView';
 
 vi.mock('../../components/PermissionGuard', () => ({
   PermissionGuard: {
-    setup: () => ({ slots: { default: () => null } }),
+    name: 'PermissionGuardStub',
+    props: {
+      permission: String,
+      role: String,
+      roles: Array,
+      brandId: Number,
+      fallback: {
+        type: [String, Object],
+        default: null,
+      },
+    },
+    render(this: any) {
+      return this.$slots.default ? this.$slots.default() : null;
+    },
   },
   usePermission: () => ({
     hasPermission: vi.fn().mockReturnValue(true),
     canAccessBrand: vi.fn().mockReturnValue(true),
     user: { value: { roles: ['platform_admin'] } },
   }),
+}));
+
+vi.mock('../../services/brandApi', () => ({
+  brandApi: {
+    getBrands: vi.fn().mockResolvedValue([]),
+  },
+}));
+
+vi.mock('../../services/userApi', () => ({
+  userApi: {
+    getUsers: vi.fn().mockResolvedValue({ users: [] }),
+  },
 }));
 
 describe('BrandManagementView Component', () => {

@@ -2,6 +2,24 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { UserManagementView } from '../../views/UserManagementView';
 
+vi.mock('../../services/userApi', () => ({
+  userApi: {
+    getUsers: vi.fn().mockResolvedValue({ users: [] }),
+  },
+}));
+
+vi.mock('../../services/brandApi', () => ({
+  brandApi: {
+    getBrands: vi.fn().mockResolvedValue([]),
+  },
+}));
+
+vi.mock('../../services/roleApi', () => ({
+  roleApi: {
+    getRoles: vi.fn().mockResolvedValue([]),
+  },
+}));
+
 describe('UserManagementView Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
