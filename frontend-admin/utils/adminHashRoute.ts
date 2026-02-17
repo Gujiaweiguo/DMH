@@ -10,6 +10,7 @@ const VALID_TABS = new Set([
   'dashboard',
   'users',
   'roles',
+  'security',
   'brands',
   'campaigns',
   'system',

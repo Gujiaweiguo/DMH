@@ -38,3 +38,22 @@ func parseEventIDFromPath(path string) (int64, error) {
 
 	return eventID, nil
 }
+
+func parseForceLogoutUserIDFromPath(path string) (int64, error) {
+	trimmed := strings.TrimPrefix(path, "/api/v1/security/force-logout/")
+	if trimmed == "" {
+		return 0, errors.New("userId is required")
+	}
+
+	idStr := strings.Split(trimmed, "/")[0]
+	if idStr == "" {
+		return 0, errors.New("userId is required")
+	}
+
+	userID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil || userID <= 0 {
+		return 0, errors.New("invalid user ID in path")
+	}
+
+	return userID, nil
+}

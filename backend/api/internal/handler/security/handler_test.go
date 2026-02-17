@@ -206,17 +206,26 @@ func TestForceLogoutUserHandler_Success(t *testing.T) {
 
 	user := &model.User{Username: "testuser", Password: "pass", Phone: "13800138000", Status: "active"}
 	db.Create(user)
+	session := &model.UserSession{ID: "force-logout-session", UserID: user.Id, UserAgent: "test-agent", ClientIP: "192.168.1.1", Status: "active"}
+	db.Create(session)
 
 	svcCtx := &svc.ServiceContext{DB: db}
 	handler := ForceLogoutUserHandler(svcCtx)
 
-	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/security/users/%d/logout", user.Id), nil)
-	req.SetPathValue("id", fmt.Sprintf("%d", user.Id))
+	reqBody := types.ForceLogoutReq{Reason: "admin operation"}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/security/force-logout/%d", user.Id), bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
 
 	handler(resp, req)
 
-	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	var updated model.UserSession
+	err := db.Where("id = ?", session.ID).First(&updated).Error
+	assert.NoError(t, err)
+	assert.Equal(t, "revoked", updated.Status)
 }
 
 func TestHandleSecurityEventHandler_Success(t *testing.T) {
@@ -257,15 +266,20 @@ func TestCheckPasswordStrengthHandler_Success(t *testing.T) {
 	svcCtx := &svc.ServiceContext{DB: db}
 	handler := CheckPasswordStrengthHandler(svcCtx)
 
-	reqBody := map[string]string{"password": "Test@123456"}
+	reqBody := map[string]string{"oldPassword": "Old@123456", "newPassword": "Test@123456"}
 	body, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/security/check-password", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/security/check-password-strength", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
 
 	handler(resp, req)
 
-	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	var got types.PasswordStrengthResp
+	err := json.Unmarshal(resp.Body.Bytes(), &got)
+	assert.NoError(t, err)
+	assert.Greater(t, got.Score, 0)
 }
 
 func TestUpdatePasswordPolicyHandler_Success(t *testing.T) {
@@ -278,15 +292,17 @@ func TestUpdatePasswordPolicyHandler_Success(t *testing.T) {
 	handler := UpdatePasswordPolicyHandler(svcCtx)
 
 	reqBody := types.UpdatePasswordPolicyReq{
-		MinLength:           10,
-		RequireUppercase:    true,
-		RequireLowercase:    true,
-		RequireNumbers:      true,
-		RequireSpecialChars: true,
-		MaxAge:              90,
-		HistoryCount:        5,
-		MaxLoginAttempts:    5,
-		LockoutDuration:     30,
+		MinLength:             10,
+		RequireUppercase:      true,
+		RequireLowercase:      true,
+		RequireNumbers:        true,
+		RequireSpecialChars:   true,
+		MaxAge:                90,
+		HistoryCount:          5,
+		MaxLoginAttempts:      5,
+		LockoutDuration:       30,
+		SessionTimeout:        120,
+		MaxConcurrentSessions: 3,
 	}
 	body, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/security/password-policy", bytes.NewReader(body))
@@ -295,7 +311,12 @@ func TestUpdatePasswordPolicyHandler_Success(t *testing.T) {
 
 	handler(resp, req)
 
-	assert.NotEqual(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	var got types.PasswordPolicyResp
+	err := json.Unmarshal(resp.Body.Bytes(), &got)
+	assert.NoError(t, err)
+	assert.Equal(t, 10, got.MinLength)
 }
 
 func TestUpdatePasswordPolicyHandler_ParseError(t *testing.T) {
@@ -311,7 +332,7 @@ func TestUpdatePasswordPolicyHandler_ParseError(t *testing.T) {
 
 func TestCheckPasswordStrengthHandler_ParseError(t *testing.T) {
 	handler := CheckPasswordStrengthHandler(nil)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/security/check-password", strings.NewReader("{invalid"))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/security/check-password-strength", strings.NewReader("{invalid"))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
 
@@ -345,7 +366,7 @@ func TestRevokeSessionHandler_ParseError(t *testing.T) {
 
 func TestForceLogoutUserHandler_ParseError(t *testing.T) {
 	handler := ForceLogoutUserHandler(nil)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/security/users/invalid/logout", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/security/force-logout/invalid", nil)
 	resp := httptest.NewRecorder()
 
 	handler(resp, req)

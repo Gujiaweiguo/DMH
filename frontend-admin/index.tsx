@@ -12,6 +12,7 @@ import PosterRecordsView from './views/PosterRecordsView.vue';
 import { resolveAdminHashRoute, type MemberRoute } from './utils/adminHashRoute';
 import { UserManagementView } from './views/UserManagementView';
 import { RolePermissionView } from './views/RolePermissionView';
+import { SecuritySettingsView } from './views/SecuritySettingsView';
 import { PermissionProvider } from './components/PermissionGuard';
 import type { CurrentUser, UserRole } from './types';
 import './src/index.css';
@@ -923,6 +924,7 @@ const AdminApp = defineComponent({
 	      { id: 'dashboard', label: '控制面板', icon: 'LayoutDashboard' },
       { id: 'users', label: '用户管理', icon: 'Users' },
       { id: 'roles', label: '角色权限', icon: 'Shield' },
+      { id: 'security', label: '安全管理', icon: 'Lock' },
       { id: 'brands', label: '品牌管理', icon: 'Shield' },
 	      { id: 'campaigns', label: '活动监控', icon: 'Monitor' },
 	      { id: 'members', label: '会员管理', icon: 'Users' },
@@ -1060,6 +1062,7 @@ const AdminApp = defineComponent({
 	                  if (activeTab.value === 'dashboard') return h(DashboardView);
 	                  if (activeTab.value === 'users') return h(UserManagementView);
 	                  if (activeTab.value === 'roles') return h(RolePermissionView);
+	                  if (activeTab.value === 'security') return h(SecuritySettingsView);
 	                  if (activeTab.value === 'brands') return h(BrandManagementView);
 	                  if (activeTab.value === 'campaigns') return h(CampaignManagementView);
 	                  if (activeTab.value === 'members') {

@@ -14,14 +14,22 @@ import (
 
 func ForceLogoutUserHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.ForceLogoutReq
-		if err := httpx.Parse(r, &req); err != nil {
+		userID, err := parseForceLogoutUserIDFromPath(r.URL.Path)
+		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
 
+		var req types.ForceLogoutReq
+		if r.ContentLength > 0 {
+			if err := httpx.Parse(r, &req); err != nil {
+				httpx.ErrorCtx(r.Context(), w, err)
+				return
+			}
+		}
+
 		l := security.NewForceLogoutUserLogic(r.Context(), svcCtx)
-		resp, err := l.ForceLogoutUser(&req)
+		resp, err := l.ForceLogoutUser(userID, &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
