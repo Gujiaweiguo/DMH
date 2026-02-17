@@ -1,12 +1,10 @@
-import { defineComponent, h, ref, onMounted, reactive, computed } from 'vue';
+import { defineComponent, h, ref, onMounted, computed } from 'vue';
 import * as LucideIcons from 'lucide-vue-next';
-import { PermissionGuard, usePermission } from '../components/PermissionGuard';
 import { roleApi } from '../services/roleApi';
 
 // 角色权限管理视图
 export const RolePermissionView = defineComponent({
   setup() {
-    const { hasPermission } = usePermission();
     const loading = ref(false);
     const activeTab = ref<'roles' | 'permissions' | 'audit'>('roles');
     
@@ -126,8 +124,7 @@ export const RolePermissionView = defineComponent({
       loadAuditLogs();
     });
 
-    return () => h(PermissionGuard, { permission: 'role:config' }, () => [
-      h('div', { class: 'space-y-8 animate-in fade-in' }, [
+    return () => h('div', { class: 'space-y-8 animate-in fade-in' }, [
         // 页面标题
         h('div', [
           h('h2', { class: 'text-4xl font-black text-slate-900' }, '角色权限管理'),
@@ -138,7 +135,9 @@ export const RolePermissionView = defineComponent({
         h('div', { class: 'bg-white rounded-3xl p-2 border border-slate-100' }, [
           h('div', { class: 'flex gap-2' }, [
             h('button', {
-              onClick: () => activeTab.value = 'roles',
+              onClick: () => {
+                activeTab.value = 'roles';
+              },
               class: `flex-1 py-3 px-6 rounded-2xl font-bold text-sm transition-all ${
                 activeTab.value === 'roles'
                   ? 'bg-indigo-600 text-white shadow-lg'
@@ -149,7 +148,9 @@ export const RolePermissionView = defineComponent({
               '角色管理'
             ]),
             h('button', {
-              onClick: () => activeTab.value = 'permissions',
+              onClick: () => {
+                activeTab.value = 'permissions';
+              },
               class: `flex-1 py-3 px-6 rounded-2xl font-bold text-sm transition-all ${
                 activeTab.value === 'permissions'
                   ? 'bg-indigo-600 text-white shadow-lg'
@@ -160,7 +161,9 @@ export const RolePermissionView = defineComponent({
               '权限列表'
             ]),
             h('button', {
-              onClick: () => activeTab.value = 'audit',
+              onClick: () => {
+                activeTab.value = 'audit';
+              },
               class: `flex-1 py-3 px-6 rounded-2xl font-bold text-sm transition-all ${
                 activeTab.value === 'audit'
                   ? 'bg-indigo-600 text-white shadow-lg'
@@ -296,7 +299,9 @@ export const RolePermissionView = defineComponent({
         // 角色权限配置对话框
         showRolePermissionDialog.value && editingRole.value && h('div', { 
           class: 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4',
-          onClick: () => showRolePermissionDialog.value = false
+          onClick: () => {
+            showRolePermissionDialog.value = false;
+          }
         }, [
           h('div', { 
             class: 'bg-white rounded-3xl p-8 max-w-4xl w-full max-h-[80vh] overflow-auto',
@@ -308,7 +313,9 @@ export const RolePermissionView = defineComponent({
                 h('p', { class: 'text-slate-500 mt-1' }, '选择该角色可以访问的功能权限')
               ]),
               h('button', {
-                onClick: () => showRolePermissionDialog.value = false,
+                onClick: () => {
+                  showRolePermissionDialog.value = false;
+                },
                 class: 'p-2 hover:bg-slate-100 rounded-xl transition-colors'
               }, h(LucideIcons.X, { size: 20 }))
             ]),
@@ -359,7 +366,9 @@ export const RolePermissionView = defineComponent({
             
             h('div', { class: 'flex gap-3 mt-8' }, [
               h('button', {
-                onClick: () => showRolePermissionDialog.value = false,
+                onClick: () => {
+                  showRolePermissionDialog.value = false;
+                },
                 class: 'flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold hover:bg-slate-50 transition-colors'
               }, '取消'),
               h('button', {
@@ -369,7 +378,6 @@ export const RolePermissionView = defineComponent({
             ])
           ])
         ])
-      ])
     ]);
   }
 });

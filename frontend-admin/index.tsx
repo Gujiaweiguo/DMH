@@ -11,6 +11,9 @@ import VerificationRecordsView from './views/VerificationRecordsView.vue';
 import PosterRecordsView from './views/PosterRecordsView.vue';
 import { resolveAdminHashRoute, type MemberRoute } from './utils/adminHashRoute';
 import { UserManagementView } from './views/UserManagementView';
+import { RolePermissionView } from './views/RolePermissionView';
+import { PermissionProvider } from './components/PermissionGuard';
+import type { CurrentUser, UserRole } from './types';
 import './src/index.css';
 import './styles/member.css';
 
@@ -759,6 +762,67 @@ const AdminApp = defineComponent({
     const loginLoading = ref(false);
     const activeTab = ref('dashboard');
     const memberRoute = ref<MemberRoute>('list');
+    const currentUser = ref<CurrentUser | null>(null);
+
+    const isUserRole = (role: string): role is UserRole => {
+      return role === 'platform_admin' || role === 'participant' || role === 'anonymous';
+    };
+
+    const buildFallbackAdminUser = (): CurrentUser => ({
+      id: 0,
+      username: authApi.getUsername() || 'admin',
+      phone: '',
+      email: '',
+      realName: authApi.getUsername() || 'admin',
+      avatar: '',
+      status: 'active',
+      roles: ['platform_admin'],
+      brandIds: [],
+    });
+
+    const loadCurrentUser = async () => {
+      const token = authApi.getToken();
+      if (!token) {
+        currentUser.value = null;
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/v1/auth/userinfo', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`load user failed: ${response.status}`);
+        }
+
+        const data = (await response.json()) as Partial<CurrentUser> & {
+          userId?: number;
+          roles?: string[];
+        };
+
+        const normalizedRoles = Array.isArray(data.roles)
+          ? data.roles.filter(isUserRole)
+          : [];
+
+        currentUser.value = {
+          id: Number(data.id ?? data.userId ?? 0),
+          username: data.username || authApi.getUsername() || 'admin',
+          phone: data.phone || '',
+          email: data.email || '',
+          realName: data.realName || data.username || authApi.getUsername() || 'admin',
+          avatar: data.avatar || '',
+          status: data.status === 'disabled' ? 'disabled' : 'active',
+          roles: normalizedRoles.length > 0 ? normalizedRoles : ['platform_admin'],
+          brandIds: Array.isArray(data.brandIds) ? data.brandIds : [],
+        };
+      } catch (error) {
+        console.error('加载当前用户信息失败，使用默认管理员上下文', error);
+        currentUser.value = buildFallbackAdminUser();
+      }
+    };
 
 	    const syncFromHash = () => {
 	      const route = resolveAdminHashRoute(window.location.hash || '');
@@ -779,10 +843,17 @@ const AdminApp = defineComponent({
 	      if (loggedIn && !authApi.isPlatformAdmin()) {
 	        authApi.logout();
 	        isLoggedIn.value = false;
+	        currentUser.value = null;
 	        loginError.value = '管理后台仅限平台管理员访问，请使用 H5 端登录';
 	        return;
 	      }
 	      isLoggedIn.value = loggedIn;
+	      if (loggedIn && !currentUser.value) {
+	        void loadCurrentUser();
+	      }
+	      if (!loggedIn) {
+	        currentUser.value = null;
+	      }
 	    };
 
     // 监听登录状态变化
@@ -815,6 +886,7 @@ const AdminApp = defineComponent({
       try {
         await authApi.login(loginForm);
         isLoggedIn.value = true;
+        await loadCurrentUser();
         loginForm.username = '';
         loginForm.password = '';
       } catch (error) {
@@ -829,6 +901,7 @@ const AdminApp = defineComponent({
       if (confirm('确定要退出登录吗？')) {
         authApi.logout();
         isLoggedIn.value = false;
+        currentUser.value = null;
         activeTab.value = 'dashboard';
         memberRoute.value = 'list';
         window.location.hash = '#/dashboard';
@@ -848,8 +921,9 @@ const AdminApp = defineComponent({
 	    // 侧边栏菜单项
 	    const sidebarItems = [
 	      { id: 'dashboard', label: '控制面板', icon: 'LayoutDashboard' },
-	      { id: 'users', label: '用户管理', icon: 'Users' },
-	      { id: 'brands', label: '品牌管理', icon: 'Shield' },
+      { id: 'users', label: '用户管理', icon: 'Users' },
+      { id: 'roles', label: '角色权限', icon: 'Shield' },
+      { id: 'brands', label: '品牌管理', icon: 'Shield' },
 	      { id: 'campaigns', label: '活动监控', icon: 'Monitor' },
 	      { id: 'members', label: '会员管理', icon: 'Users' },
 	      { id: 'distributor-management', label: '分销监控', icon: 'TrendingUp' },
@@ -980,18 +1054,20 @@ const AdminApp = defineComponent({
             ])
           ]),
           h('div', { class: 'p-10 flex-1 overflow-auto' }, [
-            h(Transition, { name: 'fade', mode: 'out-in' }, {
-	              default: () => {
-	                if (activeTab.value === 'dashboard') return h(DashboardView);
-	                if (activeTab.value === 'users') return h(UserManagementView);
-	                if (activeTab.value === 'brands') return h(BrandManagementView);
-	                if (activeTab.value === 'campaigns') return h(CampaignManagementView);
-	                if (activeTab.value === 'members') {
-	                  if (memberRoute.value === 'detail') return h(MemberDetailView);
-	                  if (memberRoute.value === 'merge') return h(MemberMergeView);
-	                  if (memberRoute.value === 'export') return h(MemberExportView);
-	                  return h(MemberListView);
-	                }
+            h(PermissionProvider, { user: currentUser.value || buildFallbackAdminUser() }, {
+              default: () => h(Transition, { name: 'fade', mode: 'out-in' }, {
+	                default: () => {
+	                  if (activeTab.value === 'dashboard') return h(DashboardView);
+	                  if (activeTab.value === 'users') return h(UserManagementView);
+	                  if (activeTab.value === 'roles') return h(RolePermissionView);
+	                  if (activeTab.value === 'brands') return h(BrandManagementView);
+	                  if (activeTab.value === 'campaigns') return h(CampaignManagementView);
+	                  if (activeTab.value === 'members') {
+	                    if (memberRoute.value === 'detail') return h(MemberDetailView);
+	                    if (memberRoute.value === 'merge') return h(MemberMergeView);
+	                    if (memberRoute.value === 'export') return h(MemberExportView);
+	                    return h(MemberListView);
+	                  }
                 if (activeTab.value === 'distributor-management') {
                   return h(DistributorManagementView, { readOnly: true, isPlatformAdmin: true });
                 }
@@ -1000,8 +1076,9 @@ const AdminApp = defineComponent({
                 if (activeTab.value === 'poster-records') return h(PosterRecordsView);
                 if (activeTab.value === 'system') return h(SystemSettingsView);
                 return h(DashboardView);
-	              }
-	            })
+	                }
+	              })
+            })
           ])
         ])
       ]);

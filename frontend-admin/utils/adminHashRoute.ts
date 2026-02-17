@@ -9,6 +9,7 @@ export interface AdminRouteResolution {
 const VALID_TABS = new Set([
   'dashboard',
   'users',
+  'roles',
   'brands',
   'campaigns',
   'system',
