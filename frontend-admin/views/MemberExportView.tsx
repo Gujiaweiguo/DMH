@@ -1,6 +1,37 @@
 import { ref, onMounted } from 'vue';
 import { memberApi } from '../services/memberApi';
 
+// 公开接口类型定义 (Vue component instance 自动解包 Ref)
+export interface MemberExportViewInstance {
+  loading: boolean;
+  exportRequests: any[];
+  total: number;
+  currentPage: number;
+  pageSize: number;
+  showCreateDialog: boolean;
+  createForm: {
+    brandId: number | null;
+    reason: string;
+    filters: string;
+  };
+  showApproveDialog: boolean;
+  approveForm: {
+    requestId: number;
+    approve: boolean;
+    reason: string;
+  };
+  loadExportRequests: () => Promise<void>;
+  handleCreate: () => Promise<void>;
+  openApproveDialog: (request: any, approve: boolean) => void;
+  handleApprove: () => Promise<void>;
+  handleDownload: (fileUrl: string) => void;
+  handlePageChange: (page: number) => void;
+  formatDate: (date: string) => string;
+  statusColor: (status: string) => string;
+  statusText: (status: string) => string;
+  goBack: () => void;
+}
+
 export default {
   name: 'MemberExportView',
   setup() {

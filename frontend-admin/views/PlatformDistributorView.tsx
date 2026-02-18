@@ -1,6 +1,35 @@
 import { ref, onMounted } from 'vue';
 import axios from '../services/axios';
 
+// 公开接口类型定义 (Vue component instance 自动解包 Ref)
+export interface PlatformDistributorViewInstance {
+  distributors: any[];
+  loading: boolean;
+  total: number;
+  currentPage: number;
+  pageSize: number;
+  filters: {
+    keyword: string;
+    brandId: number | null;
+    level: number | null;
+    status: string;
+  };
+  brands: any[];
+  loadDistributors: () => Promise<void>;
+  loadBrands: () => Promise<void>;
+  handleSearch: () => void;
+  handleReset: () => void;
+  handlePageChange: (page: number) => void;
+  viewDetail: (distributorId: number) => void;
+  adjustLevel: (distributorId: number, currentLevel: number) => Promise<void>;
+  toggleStatus: (distributorId: number, currentStatus: string) => Promise<void>;
+  formatAmount: (amount: number) => string;
+  formatDate: (date: string) => string;
+  statusText: (status: string) => string;
+  levelText: (level: number) => string;
+  statusColor: (status: string) => string;
+}
+
 export default {
   name: 'PlatformDistributorView',
   setup() {
@@ -99,7 +128,7 @@ export default {
 
     // 调整级别
     const adjustLevel = async (distributorId: number, currentLevel: number) => {
-      const newLevel = prompt('请输入新的级别 (1-3):', currentLevel);
+      const newLevel = prompt('请输入新的级别 (1-3):', String(currentLevel));
       if (newLevel && !isNaN(Number(newLevel))) {
         const level = Number(newLevel);
         if (level < 1 || level > 3) {
@@ -187,6 +216,7 @@ export default {
       filters,
       brands,
       loadDistributors,
+      loadBrands,
       handleSearch,
       handleReset,
       handlePageChange,

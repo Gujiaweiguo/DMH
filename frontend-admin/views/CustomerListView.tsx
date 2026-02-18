@@ -1,6 +1,36 @@
 import { ref, onMounted, computed } from 'vue';
 import axios from '../services/axios';
 
+// 公开接口类型定义 (Vue component instance 自动解包 Ref)
+export interface CustomerListViewInstance {
+  customers: any[];
+  loading: boolean;
+  total: number;
+  currentPage: number;
+  pageSize: number;
+  filters: {
+    keyword: string;
+    brandId: number | null;
+    campaignId: number | null;
+    status: string;
+    startDate: string;
+    endDate: string;
+  };
+  brands: any[];
+  campaigns: any[];
+  loadCustomers: () => Promise<void>;
+  loadBrands: () => Promise<void>;
+  loadCampaigns: () => Promise<void>;
+  handleSearch: () => void;
+  handleReset: () => void;
+  handlePageChange: (page: number) => void;
+  viewDetail: (customerId: number) => void;
+  formatAmount: (amount: number) => string;
+  formatDate: (date: string | null) => string;
+  paymentStatusText: (status: string) => string;
+  paymentStatusColor: (status: string) => string;
+}
+
 export default {
   name: 'CustomerListView',
   setup() {
@@ -169,6 +199,8 @@ export default {
       brands,
       campaigns,
       loadCustomers,
+      loadBrands,
+      loadCampaigns,
       handleSearch,
       handleReset,
       handlePageChange,

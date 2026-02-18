@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { distributorApi } from '../../services/distributorApi';
+import { distributorApi, type LevelReward } from '../../services/distributorApi';
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -170,8 +170,8 @@ describe('distributorApi', () => {
         json: () => Promise.resolve({ code: 200 }),
       });
 
-      const rewards = [{ level: 1, rate: 10 }];
-      await distributorApi.setLevelRewards(1, rewards as any);
+      const rewards: LevelReward[] = [{ level: 1, rate: 10 }];
+      await distributorApi.setLevelRewards(1, rewards);
 
       expect(mockFetch).toHaveBeenCalledWith(
         '/api/v1/brands/1/distributor/level-rewards',

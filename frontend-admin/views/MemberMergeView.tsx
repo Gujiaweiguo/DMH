@@ -1,6 +1,20 @@
 import { ref, onMounted } from 'vue';
 import { memberApi } from '../services/memberApi';
 
+// 公开接口类型定义 (Vue component instance 自动解包 Ref)
+export interface MemberMergeViewInstance {
+  loading: boolean;
+  sourceMemberId: number;
+  targetMemberId: number;
+  reason: string;
+  preview: any;
+  showPreview: boolean;
+  handlePreview: () => Promise<void>;
+  handleMerge: () => Promise<void>;
+  goBack: () => void;
+  formatAmount: (amount: number) => string;
+}
+
 export default {
   name: 'MemberMergeView',
   setup() {

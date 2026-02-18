@@ -3,6 +3,20 @@ import * as LucideIcons from 'lucide-vue-next';
 import { authApi } from '../services/authApi';
 import { LoginRequest, RegisterRequest } from '../types';
 
+// 公开接口类型定义 (Vue component instance 自动解包 Ref/Reactive)
+export interface LoginViewInstance {
+  isLogin: boolean;
+  loading: boolean;
+  error: string;
+  loginForm: LoginRequest;
+  registerForm: RegisterRequest;
+  loginValid: boolean;
+  registerValid: boolean;
+  handleLogin: () => Promise<void>;
+  handleRegister: () => Promise<void>;
+  toggleMode: () => void;
+}
+
 export const LoginView = defineComponent({
   emits: ['login-success'],
   setup(props, { emit }) {

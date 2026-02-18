@@ -1,6 +1,37 @@
 import { ref, onMounted } from 'vue';
 import axios from '../services/axios';
 
+// 公开接口类型定义 (Vue component instance 自动解包 Ref)
+export interface PlatformRewardViewInstance {
+  rewards: any[];
+  loading: boolean;
+  total: number;
+  currentPage: number;
+  pageSize: number;
+  filters: {
+    keyword: string;
+    brandId: number | null;
+    campaignId: number | null;
+    level: number | null;
+    status: string;
+    startDate: string;
+    endDate: string;
+  };
+  brands: any[];
+  campaigns: any[];
+  loadRewards: () => Promise<void>;
+  handleSearch: () => void;
+  handleReset: () => void;
+  handlePageChange: (page: number) => void;
+  viewDetail: (rewardId: number) => void;
+  formatAmount: (amount: number) => string;
+  formatDate: (date: string) => string;
+  rewardStatusText: (status: string) => string;
+  rewardStatusColor: (status: string) => string;
+  levelText: (level: number) => string;
+  handleExport: () => void;
+}
+
 export default {
   name: 'PlatformRewardView',
   setup() {

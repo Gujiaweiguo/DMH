@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { DynamicMenu, Breadcrumb, PageHeader } from '../../components/DynamicMenu';
+import { DynamicMenu, Breadcrumb, PageHeader, type ComponentWithProps } from '../../components/DynamicMenu';
 import { defineComponent, h } from 'vue';
 
 vi.mock('./PermissionGuard', () => ({
@@ -27,14 +27,14 @@ describe('DynamicMenu Component', () => {
   });
 
   it('should have props defined', () => {
-    const props = (DynamicMenu as any).props;
+    const props = (DynamicMenu as unknown as ComponentWithProps).props;
     expect(props).toBeDefined();
     expect(props.platform).toBeDefined();
     expect(props.currentPath).toBeDefined();
   });
 
   it('should have emits defined', () => {
-    const emits = (DynamicMenu as any).emits;
+    const emits = (DynamicMenu as unknown as ComponentWithProps).emits;
     expect(emits).toBeDefined();
     expect(emits).toContain('navigate');
   });
@@ -47,14 +47,14 @@ describe('Breadcrumb Component', () => {
   });
 
   it('should have props defined', () => {
-    const props = (Breadcrumb as any).props;
+    const props = (Breadcrumb as unknown as ComponentWithProps).props;
     expect(props).toBeDefined();
     expect(props.items).toBeDefined();
     expect(props.items.required).toBe(true);
   });
 
   it('should have emits defined', () => {
-    const emits = (Breadcrumb as any).emits;
+    const emits = (Breadcrumb as unknown as ComponentWithProps).emits;
     expect(emits).toBeDefined();
     expect(emits).toContain('navigate');
   });
@@ -67,7 +67,7 @@ describe('PageHeader Component', () => {
   });
 
   it('should have props defined', () => {
-    const props = (PageHeader as any).props;
+    const props = (PageHeader as unknown as ComponentWithProps).props;
     expect(props).toBeDefined();
     expect(props.title).toBeDefined();
     expect(props.description).toBeDefined();
@@ -75,7 +75,7 @@ describe('PageHeader Component', () => {
   });
 
   it('should have emits defined', () => {
-    const emits = (PageHeader as any).emits;
+    const emits = (PageHeader as unknown as ComponentWithProps).emits;
     expect(emits).toBeDefined();
     expect(emits).toContain('navigate');
   });

@@ -1,5 +1,7 @@
 import { describe, expect, it, vi, beforeEach, beforeAll } from 'vitest';
 import { api } from '../../services/mockApi';
+import type { ContentLibraryItem, MarketingTask } from '../../types';
+import { TaskType } from '../../types';
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
@@ -69,7 +71,8 @@ describe('MockApiService', () => {
 
   describe('saveContent', () => {
     it('should save new content item', async () => {
-      const newItem = {
+      const newItem: ContentLibraryItem = {
+        id: '',
         brandId: 'br-1',
         title: 'Test Content',
         description: 'Test Description',
@@ -78,7 +81,7 @@ describe('MockApiService', () => {
         formSchema: [],
       };
       
-      const result = await api.saveContent(newItem as any);
+      const result = await api.saveContent(newItem);
       expect(result).toBeDefined();
       expect(result.id).toBeDefined();
       expect(result.title).toBe('Test Content');
@@ -98,18 +101,20 @@ describe('MockApiService', () => {
 
   describe('saveTask', () => {
     it('should save new task', async () => {
-      const newTask = {
+      const newTask: MarketingTask = {
+        id: '',
         contentId: 'c-1',
         title: 'Test Task',
-        type: 'PAYMENT' as const,
+        type: TaskType.PAYMENT,
         rewardAmount: 10.0,
         entryFee: 5.0,
         status: 'ACTIVE',
         description: 'Test task description',
         socialPost: 'Test social post',
+        createdAt: '',
       };
       
-      const result = await api.saveTask(newTask as any);
+      const result = await api.saveTask(newTask);
       expect(result).toBeDefined();
       expect(result.id).toBeDefined();
       expect(result.title).toBe('Test Task');

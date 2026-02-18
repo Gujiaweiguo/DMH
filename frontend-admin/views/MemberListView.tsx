@@ -1,6 +1,35 @@
 import { ref, onMounted, computed } from 'vue';
 import { memberApi } from '../services/memberApi';
 
+// 公开接口类型定义 (Vue component instance 自动解包 Ref)
+export interface MemberListViewInstance {
+  members: any[];
+  loading: boolean;
+  total: number;
+  currentPage: number;
+  pageSize: number;
+  filters: {
+    keyword: string;
+    brandId: number | null;
+    source: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+  };
+  selectedMembers: number[];
+  loadMembers: () => Promise<void>;
+  handleSearch: () => void;
+  handleReset: () => void;
+  handlePageChange: (page: number) => void;
+  viewDetail: (memberId: number) => void;
+  handleExport: () => void;
+  handleMerge: () => void;
+  formatAmount: (amount: number) => string;
+  formatDate: (date: string) => string;
+  genderText: (gender: number) => string;
+  statusColor: (status: string) => string;
+}
+
 export default {
   name: 'MemberListView',
   setup() {

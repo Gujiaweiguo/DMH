@@ -1,6 +1,22 @@
 import { ref, onMounted } from 'vue';
 import { memberApi } from '../services/memberApi';
 
+// 公开接口类型定义 (Vue component instance 自动解包 Ref)
+export interface MemberDetailViewInstance {
+  member: any;
+  loading: boolean;
+  showTagDialog: boolean;
+  availableTags: any[];
+  selectedTags: number[];
+  handleAddTags: () => Promise<void>;
+  formatAmount: (amount: number) => string;
+  formatDate: (date: string) => string;
+  genderText: (gender: number) => string;
+  formatFormData: (formData: Record<string, string>) => string;
+  orderStatusText: (status: string) => string;
+  goBack: () => void;
+}
+
 export default {
   name: 'MemberDetailView',
   setup() {
