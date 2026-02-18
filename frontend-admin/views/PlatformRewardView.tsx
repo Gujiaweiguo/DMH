@@ -1,5 +1,36 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, type Ref } from 'vue';
 import axios from '../services/axios';
+
+// 公开接口类型定义
+export interface PlatformRewardViewInstance {
+  rewards: Ref<any[]>;
+  loading: Ref<boolean>;
+  total: Ref<number>;
+  currentPage: Ref<number>;
+  pageSize: Ref<number>;
+  filters: Ref<{
+    keyword: string;
+    brandId: number | null;
+    campaignId: number | null;
+    level: number | null;
+    status: string;
+    startDate: string;
+    endDate: string;
+  }>;
+  brands: Ref<any[]>;
+  campaigns: Ref<any[]>;
+  loadRewards: () => Promise<void>;
+  handleSearch: () => void;
+  handleReset: () => void;
+  handlePageChange: (page: number) => void;
+  viewDetail: (rewardId: number) => void;
+  formatAmount: (amount: number) => string;
+  formatDate: (date: string) => string;
+  rewardStatusText: (status: string) => string;
+  rewardStatusColor: (status: string) => string;
+  levelText: (level: number) => string;
+  handleExport: () => void;
+}
 
 export default {
   name: 'PlatformRewardView',

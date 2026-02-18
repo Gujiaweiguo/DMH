@@ -1,5 +1,33 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, type Ref } from 'vue';
 import axios from '../services/axios';
+
+// 公开接口类型定义
+export interface PlatformDistributorViewInstance {
+  distributors: Ref<any[]>;
+  loading: Ref<boolean>;
+  total: Ref<number>;
+  currentPage: Ref<number>;
+  pageSize: Ref<number>;
+  filters: Ref<{
+    keyword: string;
+    brandId: number | null;
+    level: number | null;
+    status: string;
+  }>;
+  brands: Ref<any[]>;
+  loadDistributors: () => Promise<void>;
+  handleSearch: () => void;
+  handleReset: () => void;
+  handlePageChange: (page: number) => void;
+  viewDetail: (distributorId: number) => void;
+  adjustLevel: (distributorId: number, currentLevel: number) => Promise<void>;
+  toggleStatus: (distributorId: number, currentStatus: string) => Promise<void>;
+  formatAmount: (amount: number) => string;
+  formatDate: (date: string) => string;
+  statusText: (status: string) => string;
+  levelText: (level: number) => string;
+  statusColor: (status: string) => string;
+}
 
 export default {
   name: 'PlatformDistributorView',

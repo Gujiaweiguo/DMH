@@ -1,7 +1,21 @@
-import { defineComponent, h, ref, reactive, computed } from 'vue';
+import { defineComponent, h, ref, reactive, computed, type Ref, type Reactive } from 'vue';
 import * as LucideIcons from 'lucide-vue-next';
 import { authApi } from '../services/authApi';
 import { LoginRequest, RegisterRequest } from '../types';
+
+// 公开接口类型定义
+export interface LoginViewInstance {
+  isLogin: Ref<boolean>;
+  loading: Ref<boolean>;
+  error: Ref<string>;
+  loginForm: Reactive<LoginRequest>;
+  registerForm: Reactive<RegisterRequest>;
+  loginValid: Ref<boolean>;
+  registerValid: Ref<boolean>;
+  handleLogin: () => Promise<void>;
+  handleRegister: () => Promise<void>;
+  toggleMode: () => void;
+}
 
 export const LoginView = defineComponent({
   emits: ['login-success'],

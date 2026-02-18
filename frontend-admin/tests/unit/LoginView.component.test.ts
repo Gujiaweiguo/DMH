@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { LoginView } from '../../views/LoginView';
+import { LoginView, type LoginViewInstance } from '../../views/LoginView';
 
 vi.mock('../../services/authApi', () => ({
   authApi: {
@@ -55,7 +55,7 @@ describe('LoginView Component', () => {
         },
       },
     });
-    const vm = wrapper.vm as any;
+    const vm = wrapper.vm as LoginViewInstance;
     if (vm.toggleMode) {
       const initialMode = vm.isLogin;
       vm.toggleMode();

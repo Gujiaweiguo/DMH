@@ -1,5 +1,19 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, type Ref } from 'vue';
 import { memberApi } from '../services/memberApi';
+
+// 公开接口类型定义
+export interface MemberMergeViewInstance {
+  loading: Ref<boolean>;
+  sourceMemberId: Ref<number>;
+  targetMemberId: Ref<number>;
+  reason: Ref<string>;
+  preview: Ref<any>;
+  showPreview: Ref<boolean>;
+  handlePreview: () => Promise<void>;
+  handleMerge: () => Promise<void>;
+  goBack: () => void;
+  formatAmount: (amount: number) => string;
+}
 
 export default {
   name: 'MemberMergeView',

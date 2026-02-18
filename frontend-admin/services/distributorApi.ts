@@ -1,6 +1,12 @@
 // 分销商 API 服务
 const API_BASE = '/api/v1';
 
+// 级别奖励类型
+export interface LevelReward {
+  level: number;
+  rate: number;
+}
+
 // 获取 token
 const getToken = () => localStorage.getItem('dmh_token');
 
@@ -76,7 +82,7 @@ export const distributorApi = {
   },
 
   // 设置级别奖励配置
-  setLevelRewards: async (brandId: number, rewards: any[]) => {
+  setLevelRewards: async (brandId: number, rewards: LevelReward[]) => {
     return request<any>(`${API_BASE}/brands/${brandId}/distributor/level-rewards`, {
       method: 'PUT',
       body: JSON.stringify({ rewards }),

@@ -1,5 +1,36 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, type Ref } from 'vue';
 import { memberApi } from '../services/memberApi';
+
+// 公开接口类型定义
+export interface MemberExportViewInstance {
+  loading: Ref<boolean>;
+  exportRequests: Ref<any[]>;
+  total: Ref<number>;
+  currentPage: Ref<number>;
+  pageSize: Ref<number>;
+  showCreateDialog: Ref<boolean>;
+  createForm: Ref<{
+    brandId: number | null;
+    reason: string;
+    filters: string;
+  }>;
+  showApproveDialog: Ref<boolean>;
+  approveForm: Ref<{
+    requestId: number;
+    approve: boolean;
+    reason: string;
+  }>;
+  loadExportRequests: () => Promise<void>;
+  handleCreate: () => Promise<void>;
+  openApproveDialog: (request: any, approve: boolean) => void;
+  handleApprove: () => Promise<void>;
+  handleDownload: (fileUrl: string) => void;
+  handlePageChange: (page: number) => void;
+  formatDate: (date: string) => string;
+  statusColor: (status: string) => string;
+  statusText: (status: string) => string;
+  goBack: () => void;
+}
 
 export default {
   name: 'MemberExportView',

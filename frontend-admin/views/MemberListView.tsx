@@ -1,5 +1,34 @@
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, type Ref } from 'vue';
 import { memberApi } from '../services/memberApi';
+
+// 公开接口类型定义
+export interface MemberListViewInstance {
+  members: Ref<any[]>;
+  loading: Ref<boolean>;
+  total: Ref<number>;
+  currentPage: Ref<number>;
+  pageSize: Ref<number>;
+  filters: Ref<{
+    keyword: string;
+    brandId: number | null;
+    source: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+  }>;
+  selectedMembers: Ref<number[]>;
+  loadMembers: () => Promise<void>;
+  handleSearch: () => void;
+  handleReset: () => void;
+  handlePageChange: (page: number) => void;
+  viewDetail: (memberId: number) => void;
+  handleExport: () => void;
+  handleMerge: () => void;
+  formatAmount: (amount: number) => string;
+  formatDate: (date: string) => string;
+  genderText: (gender: number) => string;
+  statusColor: (status: string) => string;
+}
 
 export default {
   name: 'MemberListView',

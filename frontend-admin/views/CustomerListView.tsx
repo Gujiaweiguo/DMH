@@ -1,5 +1,33 @@
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, type Ref } from 'vue';
 import axios from '../services/axios';
+
+// 公开接口类型定义
+export interface CustomerListViewInstance {
+  customers: Ref<any[]>;
+  loading: Ref<boolean>;
+  total: Ref<number>;
+  currentPage: Ref<number>;
+  pageSize: Ref<number>;
+  filters: Ref<{
+    keyword: string;
+    brandId: number | null;
+    campaignId: number | null;
+    status: string;
+    startDate: string;
+    endDate: string;
+  }>;
+  brands: Ref<any[]>;
+  campaigns: Ref<any[]>;
+  loadCustomers: () => Promise<void>;
+  handleSearch: () => void;
+  handleReset: () => void;
+  handlePageChange: (page: number) => void;
+  viewDetail: (customerId: number) => void;
+  formatAmount: (amount: number) => string;
+  formatDate: (date: string) => string;
+  paymentStatusText: (status: string) => string;
+  paymentStatusColor: (status: string) => string;
+}
 
 export default {
   name: 'CustomerListView',

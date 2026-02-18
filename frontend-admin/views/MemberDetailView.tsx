@@ -1,5 +1,21 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, type Ref } from 'vue';
 import { memberApi } from '../services/memberApi';
+
+// 公开接口类型定义
+export interface MemberDetailViewInstance {
+  member: Ref<any>;
+  loading: Ref<boolean>;
+  showTagDialog: Ref<boolean>;
+  availableTags: Ref<any[]>;
+  selectedTags: Ref<number[]>;
+  handleAddTags: () => Promise<void>;
+  formatAmount: (amount: number) => string;
+  formatDate: (date: string) => string;
+  genderText: (gender: number) => string;
+  formatFormData: (formData: Record<string, string>) => string;
+  orderStatusText: (status: string) => string;
+  goBack: () => void;
+}
 
 export default {
   name: 'MemberDetailView',

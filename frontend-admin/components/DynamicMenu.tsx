@@ -1,7 +1,13 @@
-import { defineComponent, h, ref, onMounted, computed } from 'vue';
+import { defineComponent, h, ref, onMounted, computed, type DefineComponent } from 'vue';
 import * as LucideIcons from 'lucide-vue-next';
 import { PermissionGuard, usePermission } from './PermissionGuard';
 import { menuApi } from '../services/menuApi';
+
+// 组件元数据类型
+interface ComponentWithProps {
+  props: Record<string, any>;
+  emits?: string[];
+}
 
 // 菜单项接口
 interface MenuItem {

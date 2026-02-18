@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent, h } from 'vue'
 import { PermissionProvider, PermissionGuard, PermissionButton, usePermission } from '../../../components/PermissionGuard'
+import type { UserRole } from '../../../types'
 
 describe('PermissionGuard', () => {
   const mockUser = {
@@ -219,7 +220,7 @@ describe('PermissionGuard', () => {
         { user: userParticipant },
         () => h(
           PermissionGuard,
-          { roles: ['participant', 'brand_admin'] as any },
+          { roles: ['participant', 'platform_admin'] as UserRole[] },
           () => h('div', { 'data-testid': 'content' }, 'Has Role')
         )
       ))
