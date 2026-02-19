@@ -91,10 +91,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		RefundNotifyURL: c.WeChatPay.RefundNotifyURL,
 		Sandbox:         c.WeChatPay.Sandbox,
 		CacheTTL:        c.WeChatPay.CacheTTL,
+		MockEnabled:     c.WeChatPay.MockEnabled,
+		UnifiedOrderURL: c.WeChatPay.UnifiedOrderURL,
+		HTTPTimeoutMs:   c.WeChatPay.HTTPTimeoutMs,
 	}
 	wechatPayService := wechatpay.NewService(wechatPayConfig)
-	logx.Infof("微信支付配置: AppID=%s, MchID=%s, Sandbox=%v, CacheTTL=%ds",
-		c.WeChatPay.AppID, c.WeChatPay.MchID, c.WeChatPay.Sandbox, c.WeChatPay.CacheTTL)
+	logx.Infof("微信支付配置: AppID=%s, MchID=%s, Sandbox=%v, MockEnabled=%v, CacheTTL=%ds",
+		c.WeChatPay.AppID, c.WeChatPay.MchID, c.WeChatPay.Sandbox, c.WeChatPay.MockEnabled, c.WeChatPay.CacheTTL)
 
 	ctx := context.Background()
 	var redisAdapterClient middleware.RedisClient

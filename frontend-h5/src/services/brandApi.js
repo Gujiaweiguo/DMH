@@ -216,33 +216,70 @@ export const materialApi = {
 
 // 品牌设置API
 export const settingsApi = {
-  // 获取品牌信息
-  getBrandInfo: () => {
-    return api.get('/brand/info')
+  getBrandInfo: (brandId) => {
+    return api.get(`/brands/${brandId}`)
   },
 
-  // 更新品牌信息
-  updateBrandInfo: (data) => {
-    return api.put('/brand/info', data)
+  updateBrandInfo: (brandId, data) => {
+    return api.put(`/brands/${brandId}`, data)
   },
 
-  // 获取奖励设置
   getRewardSettings: () => {
-    return api.get('/brand/reward-settings')
+    const raw = localStorage.getItem('dmh_brand_reward_settings')
+    if (!raw) return Promise.resolve({})
+
+    try {
+      return Promise.resolve(JSON.parse(raw))
+    } catch (error) {
+      console.error('奖励设置解析失败:', error)
+      return Promise.resolve({})
+    }
   },
 
-  // 更新奖励设置
   updateRewardSettings: (data) => {
-    return api.put('/brand/reward-settings', data)
+    localStorage.setItem('dmh_brand_reward_settings', JSON.stringify(data || {}))
+    return Promise.resolve({ success: true })
   },
 
-  // 获取通知设置
   getNotificationSettings: () => {
-    return api.get('/brand/notification-settings')
+    const raw = localStorage.getItem('dmh_brand_notification_settings')
+    if (!raw) return Promise.resolve({})
+
+    try {
+      return Promise.resolve(JSON.parse(raw))
+    } catch (error) {
+      console.error('通知设置解析失败:', error)
+      return Promise.resolve({})
+    }
   },
 
-  // 更新通知设置
   updateNotificationSettings: (data) => {
-    return api.put('/brand/notification-settings', data)
+    localStorage.setItem('dmh_brand_notification_settings', JSON.stringify(data || {}))
+    return Promise.resolve({ success: true })
+  },
+
+  getSyncSettings: () => {
+    const raw = localStorage.getItem('dmh_brand_sync_settings')
+    if (!raw) return Promise.resolve({})
+
+    try {
+      return Promise.resolve(JSON.parse(raw))
+    } catch (error) {
+      console.error('同步设置解析失败:', error)
+      return Promise.resolve({})
+    }
+  },
+
+  updateSyncSettings: (data) => {
+    localStorage.setItem('dmh_brand_sync_settings', JSON.stringify(data || {}))
+    return Promise.resolve({ success: true })
+  },
+
+  changePassword: (data) => {
+    return api.post('/users/change-password', data)
+  },
+
+  getSyncHealth: () => {
+    return api.get('/sync/health')
   }
 }

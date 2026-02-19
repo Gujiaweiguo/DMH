@@ -383,22 +383,24 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { settingsApi } from '../../services/brandApi.js'
 import {
+  getCurrentBrandId,
   getDefaultBrandInfo,
   getDefaultNotificationSettings,
   getDefaultPasswordForm,
   getDefaultRewardSettings,
   getDefaultSyncSettings,
   getSyncStatusText as mapSyncStatusText,
+  resolveSyncStatus,
+  unwrapApiResponse,
   validatePasswordForm,
 } from './settings.logic.js'
-
-const router = useRouter()
 
 const saving = ref(false)
 const showChangePassword = ref(false)
 const showDeleteAccount = ref(false)
+const currentBrandId = ref(0)
 
 const brandInfo = reactive(getDefaultBrandInfo())
 
@@ -414,16 +416,40 @@ const getSyncStatusText = (status) => {
   return mapSyncStatusText(status)
 }
 
+const mergeReactiveState = (target, source) => {
+  if (!source || typeof source !== 'object') return
+
+  Object.keys(target).forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(source, key) && source[key] !== undefined && source[key] !== null) {
+      target[key] = source[key]
+    }
+  })
+}
+
 const uploadLogo = () => {
   // TODO: 实现Logo上传功能
   alert('Logo上传功能开发中...')
 }
 
 const saveBrandInfo = async () => {
+  if (!brandInfo.name.trim()) {
+    alert('请输入品牌名称')
+    return
+  }
+
+  if (!currentBrandId.value) {
+    alert('未找到品牌信息，请重新登录')
+    return
+  }
+
   saving.value = true
   try {
-    // TODO: 调用API保存品牌信息
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const response = await settingsApi.updateBrandInfo(currentBrandId.value, {
+      name: brandInfo.name,
+      logo: brandInfo.logo,
+      description: brandInfo.description,
+    })
+    mergeReactiveState(brandInfo, unwrapApiResponse(response))
     alert('品牌信息保存成功')
   } catch (error) {
     console.error('保存失败:', error)
@@ -436,8 +462,9 @@ const saveBrandInfo = async () => {
 const saveRewardSettings = async () => {
   saving.value = true
   try {
-    // TODO: 调用API保存奖励设置
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await settingsApi.updateRewardSettings({
+      ...rewardSettings,
+    })
     alert('奖励设置保存成功')
   } catch (error) {
     console.error('保存失败:', error)
@@ -450,8 +477,9 @@ const saveRewardSettings = async () => {
 const saveNotificationSettings = async () => {
   saving.value = true
   try {
-    // TODO: 调用API保存通知设置
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await settingsApi.updateNotificationSettings({
+      ...notificationSettings,
+    })
     alert('通知设置保存成功')
   } catch (error) {
     console.error('保存失败:', error)
@@ -464,8 +492,10 @@ const saveNotificationSettings = async () => {
 const saveSyncSettings = async () => {
   saving.value = true
   try {
-    // TODO: 调用API保存同步设置
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await settingsApi.updateSyncSettings({
+      ...syncSettings,
+      dataTypes: Array.isArray(syncSettings.dataTypes) ? [...syncSettings.dataTypes] : [],
+    })
     alert('同步设置保存成功')
   } catch (error) {
     console.error('保存失败:', error)
@@ -477,24 +507,18 @@ const saveSyncSettings = async () => {
 
 const testSync = async () => {
   try {
-    // TODO: 测试同步连接
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    alert('连接测试成功')
+    const health = await settingsApi.getSyncHealth()
+    syncSettings.status = resolveSyncStatus(unwrapApiResponse(health))
+    alert(syncSettings.status === 'connected' ? '连接测试成功' : '连接测试失败')
   } catch (error) {
+    syncSettings.status = 'error'
     console.error('测试失败:', error)
     alert('连接测试失败')
   }
 }
 
 const manualSync = async () => {
-  try {
-    // TODO: 手动同步数据
-    await new Promise(resolve => setTimeout(resolve, 3000))
-    alert('数据同步完成')
-  } catch (error) {
-    console.error('同步失败:', error)
-    alert('数据同步失败')
-  }
+  alert('当前版本暂不支持手动同步，请使用自动同步')
 }
 
 const changePassword = async () => {
@@ -505,8 +529,10 @@ const changePassword = async () => {
   }
   
   try {
-    // TODO: 调用API修改密码
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await settingsApi.changePassword({
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword,
+    })
     alert('密码修改成功')
     showChangePassword.value = false
 
@@ -523,11 +549,34 @@ const exportAllData = () => {
 }
 
 const loadSettings = async () => {
+  currentBrandId.value = getCurrentBrandId(
+    localStorage.getItem('dmh_current_brand_id'),
+    localStorage.getItem('dmh_user_info'),
+  )
+
+  if (!currentBrandId.value) {
+    alert('未找到品牌信息，请重新登录')
+    return
+  }
+
   try {
-    // TODO: 从API加载设置数据
-    console.log('加载设置数据')
+    const [brandResponse, rewardResponse, notificationResponse, syncResponse] = await Promise.all([
+      settingsApi.getBrandInfo(currentBrandId.value),
+      settingsApi.getRewardSettings(),
+      settingsApi.getNotificationSettings(),
+      settingsApi.getSyncSettings(),
+    ])
+
+    mergeReactiveState(brandInfo, unwrapApiResponse(brandResponse))
+    mergeReactiveState(rewardSettings, unwrapApiResponse(rewardResponse))
+    mergeReactiveState(notificationSettings, unwrapApiResponse(notificationResponse))
+    mergeReactiveState(syncSettings, unwrapApiResponse(syncResponse))
+
+    const health = await settingsApi.getSyncHealth()
+    syncSettings.status = resolveSyncStatus(unwrapApiResponse(health))
   } catch (error) {
     console.error('加载设置失败:', error)
+    alert('加载设置失败，请稍后重试')
   }
 }
 

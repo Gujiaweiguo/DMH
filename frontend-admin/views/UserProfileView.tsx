@@ -1,114 +1,116 @@
-import { defineComponent, h, ref, reactive, onMounted } from 'vue';
+import { defineComponent, h, ref, reactive, onBeforeUnmount, onMounted } from 'vue';
 import * as LucideIcons from 'lucide-vue-next';
+import { profileApi, type UserProfile } from '../services/profileApi';
 
-// 用户个人设置视图
 export const UserProfileView = defineComponent({
   setup() {
-    // 当前用户信息
-    const currentUser = ref<any>(null);
+    const currentUser = ref<UserProfile | null>(null);
     const loading = ref(false);
     const saving = ref(false);
-    
-    // 编辑状态
+
     const isEditingProfile = ref(false);
     const isEditingPhone = ref(false);
     const isEditingEmail = ref(false);
     const isChangingPassword = ref(false);
-    
-    // 表单数据
+
     const profileForm = reactive({
       realName: '',
       username: '',
     });
-    
+
     const phoneForm = reactive({
       newPhone: '',
       verifyCode: '',
     });
-    
+
     const emailForm = reactive({
       newEmail: '',
       verifyCode: '',
     });
-    
+
     const passwordForm = reactive({
       oldPassword: '',
       newPassword: '',
       confirmPassword: '',
     });
-    
-    // 验证码倒计时
+
     const phoneCodeCountdown = ref(0);
     const emailCodeCountdown = ref(0);
-    
-    let phoneTimer: any = null;
-    let emailTimer: any = null;
 
-    // 加载当前用户信息
+    let phoneTimer: ReturnType<typeof setInterval> | null = null;
+    let emailTimer: ReturnType<typeof setInterval> | null = null;
+
+    const getErrorMessage = (error: unknown, fallback: string) => {
+      if (error instanceof Error && error.message) {
+        return error.message;
+      }
+      return fallback;
+    };
+
+    const startCountdown = (key: 'phone' | 'email') => {
+      if (key === 'phone') {
+        if (phoneTimer) {
+          clearInterval(phoneTimer);
+        }
+        phoneCodeCountdown.value = 60;
+        phoneTimer = setInterval(() => {
+          phoneCodeCountdown.value -= 1;
+          if (phoneCodeCountdown.value <= 0 && phoneTimer) {
+            clearInterval(phoneTimer);
+            phoneTimer = null;
+          }
+        }, 1000);
+        return;
+      }
+
+      if (emailTimer) {
+        clearInterval(emailTimer);
+      }
+      emailCodeCountdown.value = 60;
+      emailTimer = setInterval(() => {
+        emailCodeCountdown.value -= 1;
+        if (emailCodeCountdown.value <= 0 && emailTimer) {
+          clearInterval(emailTimer);
+          emailTimer = null;
+        }
+      }, 1000);
+    };
+
     const loadUserProfile = async () => {
       loading.value = true;
       try {
-        // TODO: 调用真实API
-        // const token = localStorage.getItem('dmh_token');
-        // const response = await fetch('/api/v1/auth/userinfo', {
-        //   headers: { 'Authorization': `Bearer ${token}` }
-        // });
-        // currentUser.value = await response.json();
-        
-        // 模拟数据
-        currentUser.value = {
-          id: 1,
-          username: 'demo_user',
-          realName: '张三',
-          phone: '138****0001',
-          email: 'demo@example.com',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=demo',
-          roles: ['participant'],
-          createdAt: '2025-01-01 10:00:00',
-        };
-        
-        // 初始化表单
+        currentUser.value = await profileApi.getUserInfo();
         profileForm.realName = currentUser.value.realName;
         profileForm.username = currentUser.value.username;
       } catch (error) {
         console.error('加载用户信息失败', error);
-        alert('加载用户信息失败');
+        alert(getErrorMessage(error, '加载用户信息失败'));
       } finally {
         loading.value = false;
       }
     };
 
-    // 保存个人资料
     const saveProfile = async () => {
       if (!profileForm.realName.trim()) {
         alert('请输入姓名');
         return;
       }
-      
+
       saving.value = true;
       try {
-        // TODO: 调用真实API
-        // await fetch('/api/v1/users/profile', {
-        //   method: 'PUT',
-        //   headers: {
-        //     'Authorization': `Bearer ${localStorage.getItem('dmh_token')}`,
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: JSON.stringify({ realName: profileForm.realName }),
-        // });
-        
-        currentUser.value.realName = profileForm.realName;
+        const user = await profileApi.updateProfile(profileForm.realName.trim());
+        currentUser.value = user;
+        profileForm.realName = user.realName;
         isEditingProfile.value = false;
         alert('保存成功');
       } catch (error) {
         console.error('保存失败', error);
-        alert('保存失败，请重试');
+        alert(getErrorMessage(error, '保存失败，请重试'));
       } finally {
         saving.value = false;
       }
     };
 
-    // 发送手机验证码
     const sendPhoneCode = async () => {
       if (!phoneForm.newPhone) {
         alert('请输入手机号');
@@ -119,70 +121,39 @@ export const UserProfileView = defineComponent({
         alert('请输入正确的手机号');
         return;
       }
-      
+
       try {
-        // TODO: 调用真实API
-        // await fetch('/api/v1/auth/send-phone-code', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Authorization': `Bearer ${localStorage.getItem('dmh_token')}`,
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: JSON.stringify({ phone: phoneForm.newPhone }),
-        // });
-        
-        // 开始倒计时
-        phoneCodeCountdown.value = 60;
-        phoneTimer = setInterval(() => {
-          phoneCodeCountdown.value--;
-          if (phoneCodeCountdown.value <= 0) {
-            clearInterval(phoneTimer);
-          }
-        }, 1000);
-        
+        await profileApi.sendPhoneCode(phoneForm.newPhone);
+        startCountdown('phone');
         alert('验证码已发送');
       } catch (error) {
         console.error('发送验证码失败', error);
-        alert('发送失败，请重试');
+        alert(getErrorMessage(error, '发送失败，请重试'));
       }
     };
 
-    // 绑定/换绑手机
     const bindPhone = async () => {
       if (!phoneForm.newPhone || !phoneForm.verifyCode) {
         alert('请填写完整信息');
         return;
       }
-      
+
       saving.value = true;
       try {
-        // TODO: 调用真实API
-        // await fetch('/api/v1/users/bind-phone', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Authorization': `Bearer ${localStorage.getItem('dmh_token')}`,
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: JSON.stringify({
-        //     phone: phoneForm.newPhone,
-        //     code: phoneForm.verifyCode,
-        //   }),
-        // });
-        
-        currentUser.value.phone = phoneForm.newPhone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+        const user = await profileApi.bindPhone(phoneForm.newPhone, phoneForm.verifyCode);
+        currentUser.value = user;
         isEditingPhone.value = false;
         phoneForm.newPhone = '';
         phoneForm.verifyCode = '';
         alert('绑定成功');
       } catch (error) {
         console.error('绑定失败', error);
-        alert('绑定失败，请检查验证码是否正确');
+        alert(getErrorMessage(error, '绑定失败，请检查验证码是否正确'));
       } finally {
         saving.value = false;
       }
     };
 
-    // 发送邮箱验证码
     const sendEmailCode = async () => {
       if (!emailForm.newEmail) {
         alert('请输入邮箱');
@@ -193,70 +164,39 @@ export const UserProfileView = defineComponent({
         alert('请输入正确的邮箱地址');
         return;
       }
-      
+
       try {
-        // TODO: 调用真实API
-        // await fetch('/api/v1/auth/send-email-code', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Authorization': `Bearer ${localStorage.getItem('dmh_token')}`,
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: JSON.stringify({ email: emailForm.newEmail }),
-        // });
-        
-        // 开始倒计时
-        emailCodeCountdown.value = 60;
-        emailTimer = setInterval(() => {
-          emailCodeCountdown.value--;
-          if (emailCodeCountdown.value <= 0) {
-            clearInterval(emailTimer);
-          }
-        }, 1000);
-        
+        await profileApi.sendEmailCode(emailForm.newEmail);
+        startCountdown('email');
         alert('验证码已发送到邮箱');
       } catch (error) {
         console.error('发送验证码失败', error);
-        alert('发送失败，请重试');
+        alert(getErrorMessage(error, '发送失败，请重试'));
       }
     };
 
-    // 绑定/换绑邮箱
     const bindEmail = async () => {
       if (!emailForm.newEmail || !emailForm.verifyCode) {
         alert('请填写完整信息');
         return;
       }
-      
+
       saving.value = true;
       try {
-        // TODO: 调用真实API
-        // await fetch('/api/v1/users/bind-email', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Authorization': `Bearer ${localStorage.getItem('dmh_token')}`,
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: JSON.stringify({
-        //     email: emailForm.newEmail,
-        //     code: emailForm.verifyCode,
-        //   }),
-        // });
-        
-        currentUser.value.email = emailForm.newEmail;
+        const user = await profileApi.bindEmail(emailForm.newEmail, emailForm.verifyCode);
+        currentUser.value = user;
         isEditingEmail.value = false;
         emailForm.newEmail = '';
         emailForm.verifyCode = '';
         alert('绑定成功');
       } catch (error) {
         console.error('绑定失败', error);
-        alert('绑定失败，请检查验证码是否正确');
+        alert(getErrorMessage(error, '绑定失败，请检查验证码是否正确'));
       } finally {
         saving.value = false;
       }
     };
 
-    // 修改密码
     const changePassword = async () => {
       if (!passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
         alert('请填写完整信息');
@@ -272,38 +212,86 @@ export const UserProfileView = defineComponent({
         alert('两次输入的密码不一致');
         return;
       }
-      
+
       saving.value = true;
       try {
-        // TODO: 调用真实API
-        // await fetch('/api/v1/users/change-password', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Authorization': `Bearer ${localStorage.getItem('dmh_token')}`,
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: JSON.stringify({
-        //     oldPassword: passwordForm.oldPassword,
-        //     newPassword: passwordForm.newPassword,
-        //   }),
-        // });
-        
+        await profileApi.changePassword(passwordForm.oldPassword, passwordForm.newPassword);
         isChangingPassword.value = false;
         passwordForm.oldPassword = '';
         passwordForm.newPassword = '';
         passwordForm.confirmPassword = '';
         alert('密码修改成功，请重新登录');
-        // 可以在这里跳转到登录页
       } catch (error) {
         console.error('修改密码失败', error);
-        alert('修改失败，请检查原密码是否正确');
+        alert(getErrorMessage(error, '修改失败，请检查原密码是否正确'));
       } finally {
         saving.value = false;
       }
     };
 
+    const getInputValue = (event: Event) => {
+      return (event.target as HTMLInputElement).value;
+    };
+
+    const handleRealNameInput = (event: Event) => {
+      profileForm.realName = getInputValue(event);
+    };
+
+    const handlePhoneInput = (event: Event) => {
+      phoneForm.newPhone = getInputValue(event);
+    };
+
+    const handlePhoneCodeInput = (event: Event) => {
+      phoneForm.verifyCode = getInputValue(event);
+    };
+
+    const handleEmailInput = (event: Event) => {
+      emailForm.newEmail = getInputValue(event);
+    };
+
+    const handleEmailCodeInput = (event: Event) => {
+      emailForm.verifyCode = getInputValue(event);
+    };
+
+    const handleOldPasswordInput = (event: Event) => {
+      passwordForm.oldPassword = getInputValue(event);
+    };
+
+    const handleNewPasswordInput = (event: Event) => {
+      passwordForm.newPassword = getInputValue(event);
+    };
+
+    const handleConfirmPasswordInput = (event: Event) => {
+      passwordForm.confirmPassword = getInputValue(event);
+    };
+
+    const startEditProfile = () => {
+      isEditingProfile.value = true;
+    };
+
+    const startEditPhone = () => {
+      isEditingPhone.value = true;
+    };
+
+    const startEditEmail = () => {
+      isEditingEmail.value = true;
+    };
+
+    const startChangePassword = () => {
+      isChangingPassword.value = true;
+    };
+
+    onBeforeUnmount(() => {
+      if (phoneTimer) {
+        clearInterval(phoneTimer);
+      }
+      if (emailTimer) {
+        clearInterval(emailTimer);
+      }
+    });
+
     onMounted(() => {
-      loadUserProfile();
+      void loadUserProfile();
     });
 
     return () => {
@@ -361,7 +349,7 @@ export const UserProfileView = defineComponent({
               '个人资料'
             ]),
             !isEditingProfile.value && h('button', {
-              onClick: () => isEditingProfile.value = true,
+              onClick: startEditProfile,
               class: 'text-sm font-bold text-indigo-600 hover:text-indigo-500 flex items-center gap-1'
             }, [h(LucideIcons.Edit, { size: 16 }), '编辑'])
           ]),
@@ -373,7 +361,7 @@ export const UserProfileView = defineComponent({
                   h('input', {
                     type: 'text',
                     value: profileForm.realName,
-                    onInput: (e: any) => profileForm.realName = e.target.value,
+                    onInput: handleRealNameInput,
                     placeholder: '请输入真实姓名',
                     class: 'w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-indigo-500 transition-colors'
                   })
@@ -423,7 +411,7 @@ export const UserProfileView = defineComponent({
               '手机号'
             ]),
             !isEditingPhone.value && h('button', {
-              onClick: () => isEditingPhone.value = true,
+              onClick: startEditPhone,
               class: 'text-sm font-bold text-indigo-600 hover:text-indigo-500 flex items-center gap-1'
             }, [h(LucideIcons.Edit, { size: 16 }), currentUser.value.phone ? '换绑' : '绑定'])
           ]),
@@ -444,7 +432,7 @@ export const UserProfileView = defineComponent({
                   h('input', {
                     type: 'tel',
                     value: phoneForm.newPhone,
-                    onInput: (e: any) => phoneForm.newPhone = e.target.value,
+                    onInput: handlePhoneInput,
                     placeholder: '请输入新手机号',
                     class: 'w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-indigo-500 transition-colors'
                   })
@@ -455,7 +443,7 @@ export const UserProfileView = defineComponent({
                     h('input', {
                       type: 'text',
                       value: phoneForm.verifyCode,
-                      onInput: (e: any) => phoneForm.verifyCode = e.target.value,
+                      onInput: handlePhoneCodeInput,
                       placeholder: '请输入验证码',
                       class: 'flex-1 px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-indigo-500 transition-colors'
                     }),
@@ -496,7 +484,7 @@ export const UserProfileView = defineComponent({
               '邮箱'
             ]),
             !isEditingEmail.value && h('button', {
-              onClick: () => isEditingEmail.value = true,
+              onClick: startEditEmail,
               class: 'text-sm font-bold text-indigo-600 hover:text-indigo-500 flex items-center gap-1'
             }, [h(LucideIcons.Edit, { size: 16 }), currentUser.value.email ? '换绑' : '绑定'])
           ]),
@@ -517,7 +505,7 @@ export const UserProfileView = defineComponent({
                   h('input', {
                     type: 'email',
                     value: emailForm.newEmail,
-                    onInput: (e: any) => emailForm.newEmail = e.target.value,
+                    onInput: handleEmailInput,
                     placeholder: '请输入新邮箱',
                     class: 'w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-indigo-500 transition-colors'
                   })
@@ -528,7 +516,7 @@ export const UserProfileView = defineComponent({
                     h('input', {
                       type: 'text',
                       value: emailForm.verifyCode,
-                      onInput: (e: any) => emailForm.verifyCode = e.target.value,
+                      onInput: handleEmailCodeInput,
                       placeholder: '请输入验证码',
                       class: 'flex-1 px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-indigo-500 transition-colors'
                     }),
@@ -569,7 +557,7 @@ export const UserProfileView = defineComponent({
               '登录密码'
             ]),
             !isChangingPassword.value && h('button', {
-              onClick: () => isChangingPassword.value = true,
+              onClick: startChangePassword,
               class: 'text-sm font-bold text-indigo-600 hover:text-indigo-500 flex items-center gap-1'
             }, [h(LucideIcons.Key, { size: 16 }), '修改密码'])
           ]),
@@ -590,7 +578,7 @@ export const UserProfileView = defineComponent({
                   h('input', {
                     type: 'password',
                     value: passwordForm.oldPassword,
-                    onInput: (e: any) => passwordForm.oldPassword = e.target.value,
+                    onInput: handleOldPasswordInput,
                     placeholder: '请输入原密码',
                     class: 'w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-indigo-500 transition-colors'
                   })
@@ -600,7 +588,7 @@ export const UserProfileView = defineComponent({
                   h('input', {
                     type: 'password',
                     value: passwordForm.newPassword,
-                    onInput: (e: any) => passwordForm.newPassword = e.target.value,
+                    onInput: handleNewPasswordInput,
                     placeholder: '请输入新密码（至少6位）',
                     class: 'w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-indigo-500 transition-colors'
                   })
@@ -610,7 +598,7 @@ export const UserProfileView = defineComponent({
                   h('input', {
                     type: 'password',
                     value: passwordForm.confirmPassword,
-                    onInput: (e: any) => passwordForm.confirmPassword = e.target.value,
+                    onInput: handleConfirmPasswordInput,
                     placeholder: '请再次输入新密码',
                     class: 'w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-indigo-500 transition-colors'
                   })

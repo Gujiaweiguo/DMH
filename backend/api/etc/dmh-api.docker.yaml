@@ -58,6 +58,9 @@ WeChatPay:
   RefundNotifyURL: "https://your-domain.com/api/v1/payment/wechat/refund/notify"
   Sandbox: true
   CacheTTL: 7200
+  MockEnabled: true
+  UnifiedOrderURL: ""
+  HTTPTimeoutMs: 5000
 
 # 外部同步配置
 ExternalSync:

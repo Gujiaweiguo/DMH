@@ -44,6 +44,9 @@ type Config struct {
 		RefundNotifyURL string `json:",optional"`
 		Sandbox         bool   `json:",default=true"`
 		CacheTTL        int    `json:",default=7200"`
+		MockEnabled     bool   `json:",default=true"`
+		UnifiedOrderURL string `json:",optional"`
+		HTTPTimeoutMs   int    `json:",default=5000"`
 	}
 
 	ExternalSync struct {

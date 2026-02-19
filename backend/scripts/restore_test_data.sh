@@ -11,7 +11,7 @@ MYSQL_USER="root"
 MYSQL_PASSWORD="Admin168"
 DATABASE="dmh"
 BACKUP_DIR="/tmp"
-TEST_DATA_SQL="/opt/code/DMH/backend/scripts/dmh_test_data_20260131_final.sql"
+TEST_DATA_SQL="/opt/code/dmh/backend/scripts/dmh_test_data_20260131_final.sql"
 
 # 颜色输出
 RED='\033[0;31m'

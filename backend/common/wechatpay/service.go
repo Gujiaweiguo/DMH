@@ -1,11 +1,14 @@
 package wechatpay
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
@@ -23,6 +26,9 @@ type Config struct {
 	RefundNotifyURL string
 	Sandbox         bool
 	CacheTTL        int
+	MockEnabled     bool
+	UnifiedOrderURL string
+	HTTPTimeoutMs   int
 }
 
 // NativePayRequest Native支付请求
@@ -72,14 +78,50 @@ type NotifyRequest struct {
 
 // Service 微信支付服务
 type Service struct {
-	config *Config
+	config          *Config
+	httpClient      *http.Client
+	unifiedOrderURL string
 }
 
 // NewService 创建微信支付服务
 func NewService(config *Config) *Service {
-	return &Service{
-		config: config,
+	if config == nil {
+		config = &Config{}
 	}
+
+	timeout := time.Duration(config.HTTPTimeoutMs) * time.Millisecond
+	if timeout <= 0 {
+		timeout = 5 * time.Second
+	}
+
+	endpoint := strings.TrimSpace(config.UnifiedOrderURL)
+	if endpoint == "" {
+		if config.Sandbox {
+			endpoint = "https://api.mch.weixin.qq.com/sandboxnew/pay/unifiedorder"
+		} else {
+			endpoint = "https://api.mch.weixin.qq.com/pay/unifiedorder"
+		}
+	}
+
+	return &Service{
+		config:          config,
+		httpClient:      &http.Client{Timeout: timeout},
+		unifiedOrderURL: endpoint,
+	}
+}
+
+type unifiedOrderResponse struct {
+	ReturnCode string `xml:"return_code"`
+	ReturnMsg  string `xml:"return_msg"`
+	ResultCode string `xml:"result_code"`
+	ErrCode    string `xml:"err_code"`
+	ErrCodeDes string `xml:"err_code_des"`
+	AppID      string `xml:"appid"`
+	MchID      string `xml:"mch_id"`
+	NonceStr   string `xml:"nonce_str"`
+	Sign       string `xml:"sign"`
+	PrepayID   string `xml:"prepay_id"`
+	CodeURL    string `xml:"code_url"`
 }
 
 // GenerateMD5Sign 生成MD5签名
@@ -115,6 +157,22 @@ func (s *Service) VerifyMD5Sign(params map[string]string, sign string) bool {
 
 // CreateNativePay 创建Native支付订单
 func (s *Service) CreateNativePay(orderNo string, amount int64, body string) (*NativePayResponse, error) {
+	if strings.TrimSpace(orderNo) == "" {
+		return nil, errors.New("订单号不能为空")
+	}
+	if amount <= 0 {
+		return nil, errors.New("支付金额必须大于0")
+	}
+	if strings.TrimSpace(body) == "" {
+		return nil, errors.New("支付描述不能为空")
+	}
+
+	if !s.config.MockEnabled {
+		if strings.TrimSpace(s.config.AppID) == "" || strings.TrimSpace(s.config.MchID) == "" || strings.TrimSpace(s.config.APIKey) == "" {
+			return nil, errors.New("微信支付配置不完整")
+		}
+	}
+
 	nonce := generateNonce()
 	attach := fmt.Sprintf("order=%s&time=%d", orderNo, time.Now().Unix())
 
@@ -131,22 +189,141 @@ func (s *Service) CreateNativePay(orderNo string, amount int64, body string) (*N
 		"attach":           attach,
 		"time_expire":      time.Now().Add(2 * time.Hour).Format("20060102150405"),
 	}
+	if strings.TrimSpace(s.config.NotifyURL) != "" {
+		params["notify_url"] = strings.TrimSpace(s.config.NotifyURL)
+	}
 
 	// 生成签名
 	sign := s.GenerateMD5Sign(params)
 	params["sign"] = sign
 
-	// TODO: 实际调用微信支付API
-	// 这里返回模拟响应
+	if s.config.MockEnabled {
+		return &NativePayResponse{
+			ReturnCode: "SUCCESS",
+			AppID:      s.config.AppID,
+			MchID:      s.config.MchID,
+			NonceStr:   nonce,
+			Sign:       sign,
+			PrepayID:   fmt.Sprintf("prepay_%s", nonce),
+			CodeURL:    fmt.Sprintf("weixin://wxpay/bizpayurl?pr=%s", orderNo),
+		}, nil
+	}
+
+	resp, err := s.unifiedOrder(params)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.ReturnCode != "SUCCESS" {
+		return nil, fmt.Errorf("微信支付通信失败: %s", strings.TrimSpace(resp.ReturnMsg))
+	}
+	if resp.ResultCode != "SUCCESS" {
+		return nil, fmt.Errorf("微信支付下单失败: %s %s", strings.TrimSpace(resp.ErrCode), strings.TrimSpace(resp.ErrCodeDes))
+	}
+
+	verifyParams := map[string]string{
+		"return_code":  resp.ReturnCode,
+		"return_msg":   resp.ReturnMsg,
+		"result_code":  resp.ResultCode,
+		"err_code":     resp.ErrCode,
+		"err_code_des": resp.ErrCodeDes,
+		"appid":        resp.AppID,
+		"mch_id":       resp.MchID,
+		"nonce_str":    resp.NonceStr,
+		"prepay_id":    resp.PrepayID,
+		"code_url":     resp.CodeURL,
+	}
+	if strings.TrimSpace(resp.Sign) == "" {
+		return nil, errors.New("微信支付响应缺少签名")
+	}
+	if !s.VerifyMD5Sign(verifyParams, resp.Sign) {
+		return nil, errors.New("微信支付响应签名校验失败")
+	}
+
 	return &NativePayResponse{
-		ReturnCode: "SUCCESS",
-		AppID:      s.config.AppID,
-		MchID:      s.config.MchID,
-		NonceStr:   nonce,
-		Sign:       sign,
-		PrepayID:   fmt.Sprintf("prepay_%s", nonce),
-		CodeURL:    fmt.Sprintf("weixin://wxpay/bizpayurl?pr=%s", orderNo),
+		ReturnCode: resp.ReturnCode,
+		ReturnMsg:  resp.ReturnMsg,
+		AppID:      resp.AppID,
+		MchID:      resp.MchID,
+		NonceStr:   resp.NonceStr,
+		Sign:       resp.Sign,
+		PrepayID:   resp.PrepayID,
+		CodeURL:    resp.CodeURL,
 	}, nil
+}
+
+type xmlPayload struct {
+	XMLName xml.Name      `xml:"xml"`
+	Items   []payloadItem `xml:",any"`
+}
+
+type payloadItem struct {
+	XMLName xml.Name
+	Value   string `xml:",chardata"`
+}
+
+func (s *Service) unifiedOrder(params map[string]string) (*unifiedOrderResponse, error) {
+	if strings.TrimSpace(s.unifiedOrderURL) == "" {
+		return nil, errors.New("微信支付统一下单地址未配置")
+	}
+
+	xmlBody, err := buildXMLPayload(params)
+	if err != nil {
+		return nil, fmt.Errorf("构造微信支付请求失败: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, s.unifiedOrderURL, bytes.NewReader(xmlBody))
+	if err != nil {
+		return nil, fmt.Errorf("创建微信支付请求失败: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/xml; charset=utf-8")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("调用微信支付失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("读取微信支付响应失败: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("微信支付HTTP状态异常: %d %s", resp.StatusCode, strings.TrimSpace(string(bodyBytes)))
+	}
+
+	var parsed unifiedOrderResponse
+	if err := xml.Unmarshal(bodyBytes, &parsed); err != nil {
+		return nil, fmt.Errorf("解析微信支付响应失败: %w", err)
+	}
+
+	return &parsed, nil
+}
+
+func buildXMLPayload(params map[string]string) ([]byte, error) {
+	keys := make([]string, 0, len(params))
+	for key, value := range params {
+		if strings.TrimSpace(value) == "" {
+			continue
+		}
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	items := make([]payloadItem, 0, len(keys))
+	for _, key := range keys {
+		items = append(items, payloadItem{
+			XMLName: xml.Name{Local: key},
+			Value:   params[key],
+		})
+	}
+
+	xmlData, err := xml.Marshal(xmlPayload{Items: items})
+	if err != nil {
+		return nil, err
+	}
+	return xmlData, nil
 }
 
 // ParseNotifyRequest 解析支付通知请求

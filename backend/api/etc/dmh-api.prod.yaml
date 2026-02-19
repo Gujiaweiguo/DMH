@@ -34,6 +34,21 @@ Auth:
   AccessSecret: change-me-in-production
   AccessExpire: 86400
 
+WeChatPay:
+  AppID: ""
+  MchID: ""
+  APIKey: ""
+  APIKeyV3: ""
+  APIClientCert: ""
+  APIClientKey: ""
+  NotifyURL: ""
+  RefundNotifyURL: ""
+  Sandbox: false
+  CacheTTL: 7200
+  MockEnabled: false
+  UnifiedOrderURL: ""
+  HTTPTimeoutMs: 5000
+
 # 外部同步配置（未接入时建议关闭）
 ExternalSync:
   Enabled: false

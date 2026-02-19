@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
+  getCurrentBrandId,
   getDefaultBrandInfo,
   getDefaultNotificationSettings,
   getDefaultPasswordForm,
   getDefaultRewardSettings,
   getDefaultSyncSettings,
   getSyncStatusText,
+  resolveSyncStatus,
+  unwrapApiResponse,
   validatePasswordForm,
 } from '../../src/views/brand/settings.logic.js'
 
@@ -57,5 +60,25 @@ describe('settings logic', () => {
     expect(
       validatePasswordForm({ oldPassword: 'old', newPassword: '123456', confirmPassword: '123456' }),
     ).toBe('')
+  })
+
+  it('resolves current brand id from storage and user info', () => {
+    expect(getCurrentBrandId('12', '')).toBe(12)
+    expect(getCurrentBrandId('invalid', JSON.stringify({ brandIds: [22] }))).toBe(22)
+    expect(getCurrentBrandId('', JSON.stringify({ brandIds: [] }))).toBe(0)
+    expect(getCurrentBrandId('', 'invalid-json')).toBe(0)
+  })
+
+  it('unwraps api payload', () => {
+    expect(unwrapApiResponse({ data: { id: 1, name: 'A' } })).toEqual({ id: 1, name: 'A' })
+    expect(unwrapApiResponse({ id: 2 })).toEqual({ id: 2 })
+    expect(unwrapApiResponse(null)).toEqual({})
+  })
+
+  it('maps sync health status to ui status', () => {
+    expect(resolveSyncStatus({ status: 'healthy' })).toBe('connected')
+    expect(resolveSyncStatus({ status: 'ok' })).toBe('connected')
+    expect(resolveSyncStatus({ status: 'error' })).toBe('error')
+    expect(resolveSyncStatus({})).toBe('error')
   })
 })

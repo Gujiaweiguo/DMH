@@ -130,13 +130,13 @@
 docker exec mysql8 mysqldump -uroot -p"Admin168" dmh > /tmp/dmh_backup_$(date +%Y%m%d_%H%M%S).sql
 
 # 恢复测试数据
-docker exec -i mysql8 mysql -uroot -p"Admin168" --default-character-set=utf8mb4 dmh < /opt/code/DMH/backend/scripts/dmh_test_data_20260131.sql
+docker exec -i mysql8 mysql -uroot -p"Admin168" --default-character-set=utf8mb4 dmh < /opt/code/dmh/backend/scripts/dmh_test_data_20260131.sql
 ```
 
 ### 方法2: 仅恢复数据（保留表结构）
 ```bash
 # 创建临时SQL文件
-grep -E "^INSERT INTO" /opt/code/DMH/backend/scripts/dmh_test_data_20260131.sql > /tmp/insert_data_only.sql
+grep -E "^INSERT INTO" /opt/code/dmh/backend/scripts/dmh_test_data_20260131.sql > /tmp/insert_data_only.sql
 
 # 清空并重新插入数据
 docker exec -i mysql8 mysql -uroot -p"Admin168" --default-character-set=utf8mb4 dmh < /tmp/insert_data_only.sql
@@ -148,10 +148,10 @@ docker exec -i mysql8 mysql -uroot -p"Admin168" --default-character-set=utf8mb4 
 docker exec mysql8 mysql -uroot -p"Admin168" -e "DROP DATABASE IF EXISTS dmh; CREATE DATABASE dmh DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 # 运行初始化脚本
-docker exec -i mysql8 mysql -uroot -p"Admin168" --default-character-set=utf8mb4 dmh < /opt/code/DMH/backend/scripts/init.sql
+docker exec -i mysql8 mysql -uroot -p"Admin168" --default-character-set=utf8mb4 dmh < /opt/code/dmh/backend/scripts/init.sql
 
 # 导入测试数据
-docker exec -i mysql8 mysql -uroot -p"Admin168" --default-character-set=utf8mb4 dmh < /opt/code/DMH/backend/scripts/dmh_test_data_20260131.sql
+docker exec -i mysql8 mysql -uroot -p"Admin168" --default-character-set=utf8mb4 dmh < /opt/code/dmh/backend/scripts/dmh_test_data_20260131.sql
 ```
 
 ## ✅ 验证数据

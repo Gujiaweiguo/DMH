@@ -167,7 +167,7 @@ const goToOrderVerify = () => {
 
 ## 📁 创建的文件
 
-1. **OrderVerification.vue** - `/opt/code/DMH/frontend-h5/src/views/order/OrderVerification.vue`
+1. **OrderVerification.vue** - `/opt/code/dmh/frontend-h5/src/views/order/OrderVerification.vue`
    - 348行代码
    - 完整的订单核销功能
 

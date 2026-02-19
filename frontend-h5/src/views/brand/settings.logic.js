@@ -51,3 +51,37 @@ export const validatePasswordForm = (passwordForm) => {
 
   return ''
 }
+
+export const getCurrentBrandId = (storedBrandId, userInfoRaw) => {
+  if (storedBrandId) {
+    const parsed = Number.parseInt(storedBrandId, 10)
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      return parsed
+    }
+  }
+
+  if (!userInfoRaw) return 0
+
+  try {
+    const userInfo = JSON.parse(userInfoRaw)
+    const firstBrandId = Array.isArray(userInfo.brandIds) ? Number(userInfo.brandIds[0]) : 0
+    return Number.isFinite(firstBrandId) && firstBrandId > 0 ? firstBrandId : 0
+  } catch {
+    return 0
+  }
+}
+
+export const unwrapApiResponse = (payload) => {
+  if (payload && typeof payload === 'object' && payload.data && typeof payload.data === 'object') {
+    return payload.data
+  }
+  return payload || {}
+}
+
+export const resolveSyncStatus = (syncHealthPayload) => {
+  const status = String(syncHealthPayload?.status || '').toLowerCase()
+  if (status === 'healthy' || status === 'connected' || status === 'ok') {
+    return 'connected'
+  }
+  return 'error'
+}

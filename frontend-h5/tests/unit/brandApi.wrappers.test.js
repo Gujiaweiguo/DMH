@@ -28,6 +28,7 @@ import {
 describe('brandApi wrappers', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     global.FormData = class {
       append(key, value) {
         mockState.appendSpy(key, value)
@@ -148,22 +149,34 @@ describe('brandApi wrappers', () => {
   })
 
   it('settings api wrappers use expected routes', async () => {
-    await settingsApi.getBrandInfo()
-    expect(mockState.api.get).toHaveBeenCalledWith('/brand/info')
+    await settingsApi.getBrandInfo(9)
+    expect(mockState.api.get).toHaveBeenCalledWith('/brands/9')
 
-    await settingsApi.updateBrandInfo({ name: 'brand' })
-    expect(mockState.api.put).toHaveBeenCalledWith('/brand/info', { name: 'brand' })
-
-    await settingsApi.getRewardSettings()
-    expect(mockState.api.get).toHaveBeenCalledWith('/brand/reward-settings')
+    await settingsApi.updateBrandInfo(9, { name: 'brand' })
+    expect(mockState.api.put).toHaveBeenCalledWith('/brands/9', { name: 'brand' })
 
     await settingsApi.updateRewardSettings({ level: 2 })
-    expect(mockState.api.put).toHaveBeenCalledWith('/brand/reward-settings', { level: 2 })
+    expect(localStorage.getItem('dmh_brand_reward_settings')).toBe(JSON.stringify({ level: 2 }))
 
-    await settingsApi.getNotificationSettings()
-    expect(mockState.api.get).toHaveBeenCalledWith('/brand/notification-settings')
+    expect(await settingsApi.getRewardSettings()).toEqual({ level: 2 })
 
     await settingsApi.updateNotificationSettings({ sms: true })
-    expect(mockState.api.put).toHaveBeenCalledWith('/brand/notification-settings', { sms: true })
+    expect(localStorage.getItem('dmh_brand_notification_settings')).toBe(JSON.stringify({ sms: true }))
+
+    expect(await settingsApi.getNotificationSettings()).toEqual({ sms: true })
+
+    await settingsApi.updateSyncSettings({ frequency: 'daily' })
+    expect(localStorage.getItem('dmh_brand_sync_settings')).toBe(JSON.stringify({ frequency: 'daily' }))
+
+    expect(await settingsApi.getSyncSettings()).toEqual({ frequency: 'daily' })
+
+    await settingsApi.changePassword({ oldPassword: 'old', newPassword: 'new' })
+    expect(mockState.api.post).toHaveBeenCalledWith('/users/change-password', {
+      oldPassword: 'old',
+      newPassword: 'new',
+    })
+
+    await settingsApi.getSyncHealth()
+    expect(mockState.api.get).toHaveBeenCalledWith('/sync/health')
   })
 })

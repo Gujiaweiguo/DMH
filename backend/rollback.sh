@@ -13,7 +13,7 @@ NC='\033[0m'
 
 # 配置
 PROJECT_NAME="dmh"
-BACKUP_ROOT="/opt/code/DMH/backups"
+BACKUP_ROOT="/opt/code/dmh/backups"
 SERVICE_NAME="dmh-api"
 CURRENT_BACKUP="$BACKUP_ROOT/current"
 LOG_FILE="/var/log/${SERVICE_NAME}/rollback_$(date +%Y%m%d_%H%M%S).log"
@@ -207,7 +207,7 @@ rollback_to_backup() {
     # 恢复配置文件
     if [ -f "$backup_dir/${CONFIG_FILE:-etc/dmh-api.yaml}" ]; then
         log "恢复配置文件..."
-        cp "$backup_dir/${CONFIG_FILE:-etc/dmh-api.yaml}" "/opt/code/DMH/backend/api/${CONFIG_FILE:-etc/dmh-api.yaml}"
+        cp "$backup_dir/${CONFIG_FILE:-etc/dmh-api.yaml}" "/opt/code/dmh/backend/api/${CONFIG_FILE:-etc/dmh-api.yaml}"
     fi
 
     # 更新当前备份链接
@@ -219,7 +219,7 @@ rollback_to_backup() {
 
     # 重启服务
     log "重启服务..."
-    cd /opt/code/DMH/backend/api
+    cd /opt/code/dmh/backend/api
     nohup "/tmp/$PROJECT_NAME" -f "${CONFIG_FILE:-etc/dmh-api.yaml}" >> "$LOG_FILE" 2>&1 &
     local new_pid=$!
     echo "$new_pid" > "/tmp/${SERVICE_NAME}.pid"

@@ -198,11 +198,11 @@ export H5_DEV_URL="http://localhost:3100"
 
 ```bash
 # 方式1：直接运行
-cd /opt/code/DMH/backend/api
+cd /opt/code/dmh/backend/api
 go run dmh.go -f etc/dmh-api.yaml
 
 # 方式2：编译后运行
-cd /opt/code/DMH/backend
+cd /opt/code/dmh/backend
 go build -o dmh-api ./api/dmh.go
 ./dmh-api -f api/etc/dmh-api.yaml
 ```
@@ -210,7 +210,7 @@ go build -o dmh-api ./api/dmh.go
 ### 前端开发服务器启动
 
 ```bash
-cd /opt/code/DMH/frontend-h5
+cd /opt/code/dmh/frontend-h5
 npm run dev
 
 # 访问地址
@@ -290,11 +290,11 @@ npm run dev
 
 ```bash
 # 1. 启动后端服务
-cd /opt/code/DMH/backend/api
+cd /opt/code/dmh/backend/api
 go run dmh.go -f etc/dmh-api.yaml
 
 # 2. 启动前端开发服务器
-cd /opt/code/DMH/frontend-h5
+cd /opt/code/dmh/frontend-h5
 npm run dev
 
 # 3. 测试海报生成

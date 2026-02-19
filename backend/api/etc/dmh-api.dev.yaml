@@ -30,6 +30,21 @@ Auth:
   AccessSecret: dmh-dev-access-secret-key
   AccessExpire: 86400
 
+WeChatPay:
+  AppID: ""
+  MchID: ""
+  APIKey: ""
+  APIKeyV3: ""
+  APIClientCert: ""
+  APIClientKey: ""
+  NotifyURL: ""
+  RefundNotifyURL: ""
+  Sandbox: true
+  CacheTTL: 7200
+  MockEnabled: true
+  UnifiedOrderURL: ""
+  HTTPTimeoutMs: 5000
+
 # 外部同步配置 (开发环境禁用)
 ExternalSync:
   Enabled: false

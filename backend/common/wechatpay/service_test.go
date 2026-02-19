@@ -1,15 +1,19 @@
 package wechatpay
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
 
 func newTestService() *Service {
 	return NewService(&Config{
-		AppID:  "wx-app",
-		MchID:  "mch-1",
-		APIKey: "key123",
+		AppID:       "wx-app",
+		MchID:       "mch-1",
+		APIKey:      "key123",
+		MockEnabled: true,
 	})
 }
 
@@ -45,6 +49,74 @@ func TestCreateNativePay(t *testing.T) {
 	}
 	if !strings.Contains(resp.CodeURL, "weixin://wxpay") {
 		t.Fatalf("unexpected code_url: %s", resp.CodeURL)
+	}
+}
+
+func TestCreateNativePayRealModeSuccess(t *testing.T) {
+	cfg := &Config{
+		AppID:       "wx-app",
+		MchID:       "mch-1",
+		APIKey:      "key123",
+		MockEnabled: false,
+	}
+	s := NewService(cfg)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+
+		nonce := "resp_nonce"
+		prepayID := "prepay123"
+		codeURL := "weixin://wxpay/bizpayurl?pr=order-1"
+		sign := s.GenerateMD5Sign(map[string]string{
+			"return_code":  "SUCCESS",
+			"return_msg":   "OK",
+			"result_code":  "SUCCESS",
+			"appid":        cfg.AppID,
+			"mch_id":       cfg.MchID,
+			"nonce_str":    nonce,
+			"prepay_id":    prepayID,
+			"code_url":     codeURL,
+			"err_code":     "",
+			"err_code_des": "",
+		})
+
+		xml := fmt.Sprintf("<xml><return_code>SUCCESS</return_code><return_msg>OK</return_msg><result_code>SUCCESS</result_code><appid>%s</appid><mch_id>%s</mch_id><nonce_str>%s</nonce_str><sign>%s</sign><prepay_id>%s</prepay_id><code_url>%s</code_url></xml>", cfg.AppID, cfg.MchID, nonce, sign, prepayID, codeURL)
+		_, _ = w.Write([]byte(xml))
+	}))
+	defer server.Close()
+
+	s.unifiedOrderURL = server.URL
+
+	resp, err := s.CreateNativePay("order-1", 520, "body")
+	if err != nil {
+		t.Fatalf("create native pay error: %v", err)
+	}
+	if resp == nil || resp.ReturnCode != "SUCCESS" || resp.PrepayID != "prepay123" {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+}
+
+func TestCreateNativePayRealModeInvalidConfig(t *testing.T) {
+	s := NewService(&Config{MockEnabled: false})
+	_, err := s.CreateNativePay("order-1", 520, "body")
+	if err == nil || !strings.Contains(err.Error(), "微信支付配置不完整") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestCreateNativePayInvalidInput(t *testing.T) {
+	s := newTestService()
+
+	if _, err := s.CreateNativePay("", 520, "body"); err == nil {
+		t.Fatalf("expected empty order error")
+	}
+	if _, err := s.CreateNativePay("order-1", 0, "body"); err == nil {
+		t.Fatalf("expected amount error")
+	}
+	if _, err := s.CreateNativePay("order-1", 520, ""); err == nil {
+		t.Fatalf("expected body error")
 	}
 }
 

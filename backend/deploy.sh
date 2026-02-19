@@ -13,13 +13,13 @@ NC='\033[0m' # No Color
 
 # 配置
 PROJECT_NAME="dmh"
-BACKEND_DIR="/opt/code/DMH/backend/api"
+BACKEND_DIR="/opt/code/dmh/backend/api"
 BINARY_NAME="dmh"
 CONFIG_FILE="etc/dmh-api.yaml"
 SERVICE_NAME="dmh-api"
 PID_FILE="/tmp/${SERVICE_NAME}.pid"
 LOG_FILE="/tmp/log/${SERVICE_NAME}/deploy_$(date +%Y%m%d_%H%M%S).log"
-BACKUP_DIR="/opt/code/DMH/backups/$(date +%Y%m%d_%H%M%S)"
+BACKUP_DIR="/opt/code/dmh/backups/$(date +%Y%m%d_%H%M%S)"
 BUILD_DIR="/tmp/${SERVICE_NAME}_build"
 
 # 日志函数
