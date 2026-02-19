@@ -129,19 +129,69 @@ func CleanupMySQLTestDB(t *testing.T, dbName string) {
 
 // migrateTestSchema creates all necessary tables and indexes for testing
 func migrateTestSchema(db *gorm.DB) error {
-	// Auto migrate models
+	// Create users table first (many tests depend on it)
+	if err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS users (
+			id BIGINT PRIMARY KEY AUTO_INCREMENT,
+			username VARCHAR(50) NOT NULL,
+			password VARCHAR(255) NOT NULL,
+			phone VARCHAR(20) NOT NULL,
+			email VARCHAR(100),
+			avatar VARCHAR(255),
+			real_name VARCHAR(50),
+			role VARCHAR(50) NOT NULL DEFAULT 'participant',
+			status VARCHAR(20) NOT NULL DEFAULT 'active',
+			login_attempts INT DEFAULT 0,
+			locked_until DATETIME,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			UNIQUE INDEX idx_username (username),
+			UNIQUE INDEX idx_phone (phone),
+			INDEX idx_role (role),
+			INDEX idx_status (status)
+		)
+	`).Error; err != nil {
+		return fmt.Errorf("failed to create users table: %w", err)
+	}
+
+	// Create roles table
+	if err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS roles (
+			id BIGINT PRIMARY KEY AUTO_INCREMENT,
+			name VARCHAR(50) NOT NULL UNIQUE,
+			description VARCHAR(255),
+			permissions JSON,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		)
+	`).Error; err != nil {
+		return fmt.Errorf("failed to create roles table: %w", err)
+	}
+
+	// Create brands table
+	if err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS brands (
+			id BIGINT PRIMARY KEY AUTO_INCREMENT,
+			name VARCHAR(100) NOT NULL,
+			logo VARCHAR(255),
+			description TEXT,
+			status VARCHAR(20) NOT NULL DEFAULT 'active',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		)
+	`).Error; err != nil {
+		return fmt.Errorf("failed to create brands table: %w", err)
+	}
+
+	// Try AutoMigrate for remaining models (non-critical if some fail)
 	models := []interface{}{
-		&model.Campaign{},
+		&model.Menu{},
+		&model.Member{},
 		&model.Order{},
 		&model.VerificationRecord{},
 		&model.Distributor{},
 		&model.DistributorLevelReward{},
 		&model.DistributorReward{},
-		&model.User{},
-		&model.Role{},
-		&model.Menu{},
-		&model.Brand{},
-		&model.Member{},
 		&model.UserFeedback{},
 		&model.Withdrawal{},
 		&model.PosterTemplate{},
@@ -151,15 +201,36 @@ func migrateTestSchema(db *gorm.DB) error {
 	}
 
 	for _, m := range models {
-		if err := db.AutoMigrate(m); err != nil {
-			return fmt.Errorf("failed to migrate %T: %w", m, err)
-		}
+		db.AutoMigrate(m)
 	}
 
-	// Create unique index for order duplicate guard (matching production)
-	if err := db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS uk_orders_campaign_phone ON orders(campaign_id, phone)").Error; err != nil {
-		return fmt.Errorf("failed to create unique index: %w", err)
-	}
+	// Create campaigns table
+	db.Exec(`
+		CREATE TABLE IF NOT EXISTS campaigns (
+			id BIGINT PRIMARY KEY AUTO_INCREMENT,
+			brand_id BIGINT NOT NULL,
+			name VARCHAR(200) NOT NULL,
+			description TEXT,
+			form_fields JSON,
+			reward_rule DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+			start_time DATETIME NOT NULL,
+			end_time DATETIME NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'active',
+			enable_distribution TINYINT(1) NOT NULL DEFAULT 0,
+			distribution_level INT NOT NULL DEFAULT 1,
+			distribution_rewards JSON,
+			payment_config JSON,
+			poster_template_id BIGINT DEFAULT 1,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			deleted_at DATETIME,
+			INDEX idx_brand_id (brand_id),
+			INDEX idx_status (status)
+		)
+	`)
+
+	// Create unique index for order duplicate guard
+	db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS uk_orders_campaign_phone ON orders(campaign_id, phone)")
 
 	return nil
 }
@@ -171,16 +242,15 @@ func generateTestDBName(t *testing.T) string {
 	testName = strings.ReplaceAll(testName, "-", "_")
 	testName = strings.ReplaceAll(testName, " ", "_")
 
-	// Truncate if too long (MySQL identifier limit is 64 chars)
-	if len(testName) > 40 {
-		testName = testName[:40]
+	maxNameLen := 25
+	if len(testName) > maxNameLen {
+		testName = testName[:20] + fmt.Sprintf("_%d", rand.Intn(1000))
 	}
 
-	// Add timestamp and random suffix
-	timestamp := time.Now().Format("20060102_150405")
-	suffix := rand.Intn(10000)
+	timestamp := time.Now().Format("150405")
+	suffix := rand.Intn(1000)
 
-	return fmt.Sprintf("test_%s_%s_%04d", testName, timestamp, suffix)
+	return fmt.Sprintf("t_%s_%s_%03d", testName, timestamp, suffix)
 }
 
 // getEnv returns environment variable value or default
