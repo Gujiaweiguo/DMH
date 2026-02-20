@@ -788,8 +788,12 @@ func (l *GetFeedbackStatisticsLogic) GetFeedbackStatistics(req *types.GetFeedbac
 		ResolutionHours float64
 	}
 	var resolutionTime ResolutionTime
+	resolutionHoursExpr := "AVG(ROUND((julianday(resolved_at) - julianday(created_at)) * 24, 2)) as resolution_hours"
+	if l.svcCtx.DB.Dialector.Name() != "sqlite" {
+		resolutionHoursExpr = "AVG(ROUND(TIMESTAMPDIFF(SECOND, created_at, resolved_at) / 3600, 2)) as resolution_hours"
+	}
 	err = baseQuery.Model(&model.UserFeedback{}).
-		Select("AVG(ROUND((julianday(resolved_at) - julianday(created_at)) * 24, 2)) as resolution_hours").
+		Select(resolutionHoursExpr).
 		Where("status = ? AND resolved_at IS NOT NULL", "resolved").
 		Scan(&resolutionTime).Error
 	avgResolutionTime := 0.0

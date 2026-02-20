@@ -26,8 +26,14 @@ func (suite *FeedbackLogicTestSuite) SetupSuite() {
 	db, err := gorm.Open(mysql.Open("root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"), &gorm.Config{})
 	suite.Require().NoError(err)
 
+	err = db.Exec("DROP TABLE IF EXISTS faq_items").Error
+	suite.Require().NoError(err)
+
 	err = db.AutoMigrate(
 		&model.User{},
+		&model.Brand{},
+		&model.Campaign{},
+		&model.DistributorApplication{},
 		&model.UserFeedback{},
 		&model.FeatureSatisfactionSurvey{},
 		&model.FAQItem{},
@@ -47,13 +53,18 @@ func (suite *FeedbackLogicTestSuite) TearDownSuite() {
 }
 
 func (suite *FeedbackLogicTestSuite) SetupTest() {
-	suite.db.Exec("DELETE FROM user_feedback")
-	suite.db.Exec("DELETE FROM feature_satisfaction_surveys")
-	suite.db.Exec("DELETE FROM faq_items")
-	suite.db.Exec("DELETE FROM feature_usage_stats")
-	suite.db.Exec("DELETE FROM feedback_tags")
-	suite.db.Exec("DELETE FROM feedback_tag_relations")
-	suite.db.Exec("DELETE FROM users")
+	suite.db.Exec("SET FOREIGN_KEY_CHECKS = 0")
+	suite.db.Exec("TRUNCATE TABLE feedback_tag_relations")
+	suite.db.Exec("TRUNCATE TABLE feature_usage_stats")
+	suite.db.Exec("TRUNCATE TABLE feature_satisfaction_surveys")
+	suite.db.Exec("TRUNCATE TABLE user_feedback")
+	suite.db.Exec("TRUNCATE TABLE faq_items")
+	suite.db.Exec("TRUNCATE TABLE feedback_tags")
+	suite.db.Exec("TRUNCATE TABLE distributor_applications")
+	suite.db.Exec("TRUNCATE TABLE campaigns")
+	suite.db.Exec("TRUNCATE TABLE brands")
+	suite.db.Exec("TRUNCATE TABLE users")
+	suite.db.Exec("SET FOREIGN_KEY_CHECKS = 1")
 }
 
 func (suite *FeedbackLogicTestSuite) createTestUser(id int64, username string) *model.User {
@@ -189,6 +200,7 @@ func (suite *FeedbackLogicTestSuite) TestCreateFeedback_DefaultPriority() {
 func (suite *FeedbackLogicTestSuite) TestListFeedback_UserViewOwnFeedbacks() {
 	ctx := context.Background()
 	suite.createTestUser(1, "testuser")
+	suite.createTestUser(2, "testuser_other")
 
 	feedback1 := &model.UserFeedback{UserID: 1, Category: "poster", Title: "Feedback 1", Content: "Content 1", Status: "pending"}
 	feedback2 := &model.UserFeedback{UserID: 2, Category: "payment", Title: "Feedback 2", Content: "Content 2", Status: "pending"}
@@ -209,6 +221,8 @@ func (suite *FeedbackLogicTestSuite) TestListFeedback_UserViewOwnFeedbacks() {
 func (suite *FeedbackLogicTestSuite) TestListFeedback_AdminViewAllFeedbacks() {
 	ctx := context.Background()
 	suite.createTestUser(1, "testuser")
+	suite.createTestUser(2, "testuser2")
+	suite.createTestUser(3, "testuser3")
 
 	for i := 1; i <= 3; i++ {
 		feedback := &model.UserFeedback{UserID: int64(i), Category: "poster", Title: "Feedback", Content: "Content", Status: "pending"}
@@ -525,6 +539,8 @@ func (suite *FeedbackLogicTestSuite) TestMarkFAQHelpful_NotHelpful() {
 func (suite *FeedbackLogicTestSuite) TestRecordFeatureUsage_Success() {
 	ctx := context.Background()
 	suite.createTestUser(1, "testuser")
+	suite.db.Create(&model.Brand{Id: 1, Name: "Brand1", Status: "active"})
+	suite.db.Create(&model.Campaign{Id: 100, BrandId: 1, Name: "Campaign100", Status: "active", StartTime: time.Now().Add(-time.Hour), EndTime: time.Now().Add(time.Hour), RewardRule: 10})
 	campaignId := int64(100)
 	durationMs := 1500
 
@@ -666,16 +682,19 @@ func TestMarkFAQHelpful_LegacyColumnCompatibility(t *testing.T) {
 	db, err := gorm.Open(mysql.Open("root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"), &gorm.Config{})
 	assert.NoError(t, err)
 
+	err = db.Exec(`DROP TABLE IF EXISTS faq_items`).Error
+	assert.NoError(t, err)
+
 	err = db.Exec(`
 		CREATE TABLE faq_items (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			category TEXT NOT NULL,
+			id BIGINT PRIMARY KEY AUTO_INCREMENT,
+			category VARCHAR(100) NOT NULL,
 			question TEXT NOT NULL,
 			answer TEXT NOT NULL,
-			sort_order INTEGER DEFAULT 0,
-			view_count INTEGER DEFAULT 0,
-			helpfulCount INTEGER DEFAULT 0,
-			notHelpfulCount INTEGER DEFAULT 0
+			sort_order INT DEFAULT 0,
+			view_count INT DEFAULT 0,
+			helpfulCount INT DEFAULT 0,
+			notHelpfulCount INT DEFAULT 0
 		)
 	`).Error
 	assert.NoError(t, err)
