@@ -40,13 +40,6 @@ jobs:
             sleep 2
           done
           mysql -h 127.0.0.1 -uroot -p'Admin168' -e "CREATE DATABASE IF NOT EXISTS dmh_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-      - name: Initialize dmh_test schema
-        run: |
-          mysql -h 127.0.0.1 -uroot -p'Admin168' dmh_test < backend/scripts/init.sql
-          mysql -h 127.0.0.1 -uroot -p'Admin168' dmh_test < backend/scripts/create_member_system_tables.sql
-          mysql -h 127.0.0.1 -uroot -p'Admin168' dmh_test < backend/migrations/20250120_create_distributor_tables_final.sql
-          mysql -h 127.0.0.1 -uroot -p'Admin168' dmh_test < backend/migrations/20250124_add_advanced_features.sql
-          mysql -h 127.0.0.1 -uroot -p'Admin168' dmh_test < backend/migrations/2026_01_29_add_record_tables.sql
       - name: Run tests with coverage
         working-directory: backend
         run: |
