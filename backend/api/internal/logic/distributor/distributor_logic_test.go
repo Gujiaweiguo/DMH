@@ -112,6 +112,24 @@ func createTestUser(t *testing.T, db *gorm.DB, username string) *model.User {
 }
 
 func createTestDistributorApplication(t *testing.T, db *gorm.DB, userId, brandId int64) *model.DistributorApplication {
+	// Ensure user exists before creating application
+	var user model.User
+	if err := db.Where("id = ?", userId).First(&user).Error; err != nil {
+		user = model.User{Id: userId, Username: fmt.Sprintf("user_%d", userId), Password: "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17zhU", Phone: fmt.Sprintf("139%08d", userId%100000000), Status: "active"}
+		if err := db.Create(&user).Error; err != nil {
+			t.Fatalf("Failed to create dependent user for application: %v", err)
+		}
+	}
+
+	// Ensure brand exists
+	var brand model.Brand
+	if err := db.Where("id = ?", brandId).First(&brand).Error; err != nil {
+		brand = model.Brand{Id: brandId, Name: fmt.Sprintf("Brand_%d", brandId), Status: "active"}
+		if err := db.Create(&brand).Error; err != nil {
+			t.Fatalf("Failed to create dependent brand for application: %v", err)
+		}
+	}
+
 	app := &model.DistributorApplication{
 		UserId:  userId,
 		BrandId: brandId,
