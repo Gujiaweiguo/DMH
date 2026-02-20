@@ -21,6 +21,7 @@ import (
 )
 
 func setupDistributorHandlerTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
 	db := testutil.SetupGormTestDB(t)
 
 	err := db.AutoMigrate(
@@ -36,6 +37,8 @@ func setupDistributorHandlerTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
+
+	testutil.ClearTables(db, "distributors", "distributor_applications", "distributor_links", "distributor_rewards", "distributor_level_rewards", "brands", "campaigns", "users")
 
 	return db
 }

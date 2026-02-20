@@ -20,6 +20,7 @@ import (
 )
 
 func setupOrderHandlerTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
 	db := testutil.SetupGormTestDB(t)
 
 	err := db.AutoMigrate(&model.Order{}, &model.Campaign{}, &model.Brand{})
@@ -27,6 +28,8 @@ func setupOrderHandlerTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
 
+
+	testutil.ClearTables(db, "orders", "campaigns", "brands")
 	return db
 }
 
@@ -61,6 +64,7 @@ func TestGetOrdersHandler_Success(t *testing.T) {
 		Amount:     100.00,
 		PayStatus:  "paid",
 		Status:     "active",
+		FormData:   "{}",
 	}
 	db.Create(order)
 
@@ -187,6 +191,7 @@ func TestGetOrderHandler_Success(t *testing.T) {
 		Amount:     100.00,
 		PayStatus:  "paid",
 		Status:     "active",
+		FormData:   "{}",
 	}
 	db.Create(order)
 
@@ -247,6 +252,7 @@ func TestGetOrdersHandler_WithFilters(t *testing.T) {
 		Amount:     100.00,
 		PayStatus:  "paid",
 		Status:     "active",
+		FormData:   "{}",
 	}
 	db.Create(order)
 

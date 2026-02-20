@@ -115,3 +115,13 @@ func WithTransaction(t *testing.T, db *gorm.DB, fn func(tx *gorm.DB)) {
 		t.Logf("warning: rollback error: %v", err)
 	}
 }
+
+// ClearTables truncates the specified tables, handling foreign key constraints.
+func ClearTables(db *gorm.DB, tables ...string) error {
+	db.Exec("SET FOREIGN_KEY_CHECKS = 0")
+	for _, table := range tables {
+		db.Exec("TRUNCATE TABLE " + table)
+	}
+	db.Exec("SET FOREIGN_KEY_CHECKS = 1")
+	return nil
+}

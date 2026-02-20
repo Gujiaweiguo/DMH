@@ -5,6 +5,7 @@ package security
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -61,10 +62,17 @@ func (l *HandleSecurityEventLogic) HandleSecurityEvent(eventID int64, req *types
 	if req != nil {
 		note := strings.TrimSpace(req.Note)
 		if note != "" {
-			if strings.TrimSpace(event.Details) == "" {
-				updates["details"] = note
+			var detailsObj map[string]interface{}
+			if strings.TrimSpace(event.Details) == "" || event.Details == "{}" {
+				detailsObj = make(map[string]interface{})
 			} else {
-				updates["details"] = event.Details + "\n" + note
+				if err := json.Unmarshal([]byte(event.Details), &detailsObj); err != nil {
+					detailsObj = make(map[string]interface{})
+				}
+			}
+			detailsObj["note"] = note
+			if newDetails, err := json.Marshal(detailsObj); err == nil {
+				updates["details"] = string(newDetails)
 			}
 		}
 	}

@@ -28,7 +28,7 @@ func setupBrandHandlerTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
 
-	db.Exec("DELETE FROM brands")
+	testutil.ClearTables(db, "brands")
 
 	return db
 }

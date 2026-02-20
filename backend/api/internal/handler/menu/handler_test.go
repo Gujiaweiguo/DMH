@@ -1,9 +1,9 @@
 package menu
 
 import (
-	"dmh/api/internal/handler/testutil"
 	"bytes"
 	"context"
+	"dmh/api/internal/handler/testutil"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -20,12 +20,15 @@ import (
 )
 
 func setupMenuHandlerTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
 	db := testutil.SetupGormTestDB(t)
 
 	err := db.AutoMigrate(&model.Menu{}, &model.Role{}, &model.RoleMenu{}, &model.User{}, &model.UserRole{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
+
+	testutil.ClearTables(db, "menus", "roles", "role_menus", "users", "user_roles")
 
 	return db
 }

@@ -2,6 +2,7 @@ package role
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -17,6 +18,7 @@ import (
 )
 
 func setupRoleHandlerTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
 	db := testutil.SetupGormTestDB(t)
 
 	err := db.AutoMigrate(&model.Role{}, &model.Permission{}, &model.RolePermission{}, &model.User{}, &model.UserRole{})
@@ -24,6 +26,7 @@ func setupRoleHandlerTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
 
+	testutil.ClearTables(db, "roles", "permissions", "role_permissions", "users", "user_roles", "user_brands", "brands")
 	return db
 }
 
@@ -235,39 +238,40 @@ func TestGetUserPermissionsHandler_NoPermissions_Success(t *testing.T) {
 }
 
 func TestGetUserPermissionsHandler_Success_MultiRolesAndPerms(t *testing.T) {
-	db := testutil.SetupGormTestDB(t)
-	if err := db.AutoMigrate(&model.Role{}, &model.Permission{}, &model.RolePermission{}, &model.User{}, &model.UserRole{}, &model.UserBrand{}, &model.Brand{}); err != nil {
-		t.Fatalf("Failed to migrate test tables: %v", err)
-	}
+	db := setupRoleHandlerTestDB(t)
 
-	role1 := &model.Role{ID: 1, Name: "Role One", Code: "role_one"}
-	role2 := &model.Role{ID: 2, Name: "Role Two", Code: "role_two"}
-	perm1 := &model.Permission{ID: 1, Name: "View Campaign", Code: "campaign:read", Resource: "campaign", Action: "read"}
-	perm2 := &model.Permission{ID: 2, Name: "Create Campaign", Code: "campaign:create", Resource: "campaign", Action: "create"}
+	role1 := &model.Role{Name: "Role One", Code: testutil.GenUniqueCode("role")}
+	role2 := &model.Role{Name: "Role Two", Code: testutil.GenUniqueCode("role")}
+	perm1 := &model.Permission{Name: "View Campaign", Code: testutil.GenUniqueCode("perm"), Resource: "campaign", Action: "read"}
+	perm2 := &model.Permission{Name: "Create Campaign", Code: testutil.GenUniqueCode("perm"), Resource: "campaign", Action: "create"}
 	db.Create(role1)
 	db.Create(role2)
 	db.Create(perm1)
 	db.Create(perm2)
 
-	user := &model.User{Id: 3, Username: testutil.GenUniqueUsername("multirole"), Phone: testutil.GenUniquePhone()}
+	user := &model.User{Username: testutil.GenUniqueUsername("multirole"), Phone: testutil.GenUniquePhone()}
 	db.Create(user)
-	ur1 := &model.UserRole{UserID: 3, RoleID: 1}
-	ur2 := &model.UserRole{UserID: 3, RoleID: 2}
+	ur1 := &model.UserRole{UserID: user.Id, RoleID: role1.ID}
+	ur2 := &model.UserRole{UserID: user.Id, RoleID: role2.ID}
 	db.Create(ur1)
 	db.Create(ur2)
-	pr1 := &model.RolePermission{RoleID: 1, PermissionID: 1}
-	pr2 := &model.RolePermission{RoleID: 2, PermissionID: 2}
+	pr1 := &model.RolePermission{RoleID: role1.ID, PermissionID: perm1.ID}
+	pr2 := &model.RolePermission{RoleID: role2.ID, PermissionID: perm2.ID}
 	db.Create(pr1)
 	db.Create(pr2)
-	b1 := &model.UserBrand{UserId: 3, BrandId: 1}
-	b2 := &model.UserBrand{UserId: 3, BrandId: 2}
+	b1 := &model.Brand{Name: testutil.GenUniqueCode("brand"), Status: "active"}
+	b2 := &model.Brand{Name: testutil.GenUniqueCode("brand"), Status: "active"}
 	db.Create(b1)
 	db.Create(b2)
+	ub1 := &model.UserBrand{UserId: user.Id, BrandId: b1.Id}
+	ub2 := &model.UserBrand{UserId: user.Id, BrandId: b2.Id}
+	db.Create(ub1)
+	db.Create(ub2)
 
 	svcCtx := &svc.ServiceContext{DB: db}
 	handler := GetUserPermissionsHandler(svcCtx)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/3/permissions", nil)
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/users/%d/permissions", user.Id), nil)
 	resp := httptest.NewRecorder()
 	handler(resp, req)
 
@@ -277,14 +281,14 @@ func TestGetUserPermissionsHandler_Success_MultiRolesAndPerms(t *testing.T) {
 	if err := json.Unmarshal(resp.Body.Bytes(), &result); err != nil {
 		t.Fatalf("Failed to unmarshal response: %v", err)
 	}
-	assert.Equal(t, int64(3), result.UserId)
+	assert.Equal(t, user.Id, result.UserId)
 
-	assert.Contains(t, result.Roles, "role_one")
-	assert.Contains(t, result.Roles, "role_two")
+	assert.Contains(t, result.Roles, role1.Code)
+	assert.Contains(t, result.Roles, role2.Code)
 
-	assert.Contains(t, result.Permissions, "campaign:read")
-	assert.Contains(t, result.Permissions, "campaign:create")
+	assert.Contains(t, result.Permissions, perm1.Code)
+	assert.Contains(t, result.Permissions, perm2.Code)
 
-	assert.Contains(t, result.BrandIds, int64(1))
-	assert.Contains(t, result.BrandIds, int64(2))
+	assert.Contains(t, result.BrandIds, b1.Id)
+	assert.Contains(t, result.BrandIds, b2.Id)
 }

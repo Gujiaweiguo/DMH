@@ -15,6 +15,7 @@ import (
 )
 
 func setupRewardHandlerTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
 	db := testutil.SetupGormTestDB(t)
 
 	err := db.AutoMigrate(&model.Reward{}, &model.DistributorReward{}, &model.UserBalance{}, &model.User{}, &model.Order{}, &model.Campaign{}, &model.Brand{})
@@ -22,6 +23,8 @@ func setupRewardHandlerTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
 
+
+	testutil.ClearTables(db, "rewards", "users", "user_balances", "orders")
 	return db
 }
 

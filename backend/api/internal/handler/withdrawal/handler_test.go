@@ -29,6 +29,8 @@ func setupWithdrawalHandlerTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
 
+
+	testutil.ClearTables(db, "withdrawals", "users", "brands", "distributors", "user_balances")
 	return db
 }
 
