@@ -2,8 +2,6 @@ package security
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"testing"
 
 	"dmh/api/internal/svc"

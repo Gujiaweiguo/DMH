@@ -2,7 +2,6 @@ package brand
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"dmh/api/internal/svc"
