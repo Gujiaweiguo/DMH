@@ -28,8 +28,7 @@ func setupAdminHandlerTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
 
-
-	testutil.ClearTables(db, "users", "roles", "user_roles", "user_brands", "brands")
+	testutil.ClearTables(db, "user_feedback", "users", "roles", "user_roles", "user_brands", "brands")
 	return db
 }
 

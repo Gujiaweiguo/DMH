@@ -41,10 +41,12 @@ func (suite *PasswordServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *PasswordServiceTestSuite) SetupTest() {
-	// 清理测试数据
-	suite.db.Exec("DELETE FROM password_policies")
-	suite.db.Exec("DELETE FROM password_histories")
-	suite.db.Exec("DELETE FROM users")
+	suite.Require().NoError(suite.db.Exec("SET FOREIGN_KEY_CHECKS = 0").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE password_histories").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE password_policies").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE user_feedback").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE users").Error)
+	suite.Require().NoError(suite.db.Exec("SET FOREIGN_KEY_CHECKS = 1").Error)
 }
 
 func (suite *PasswordServiceTestSuite) TestGetPasswordPolicy() {
@@ -59,6 +61,7 @@ func (suite *PasswordServiceTestSuite) TestGetPasswordPolicy() {
 	assert.True(suite.T(), policy.RequireSpecialChars)
 
 	// 测试获取自定义密码策略
+	now := time.Now()
 	customPolicy := map[string]interface{}{
 		"min_length":              10,
 		"require_uppercase":       true,
@@ -71,6 +74,8 @@ func (suite *PasswordServiceTestSuite) TestGetPasswordPolicy() {
 		"lockout_duration":        15,
 		"session_timeout":         240,
 		"max_concurrent_sessions": 2,
+		"created_at":              now,
+		"updated_at":              now,
 	}
 	err = suite.db.Model(&model.PasswordPolicy{}).Create(customPolicy).Error
 	assert.NoError(suite.T(), err)

@@ -34,6 +34,7 @@ func newPermissionTestEnv(t *testing.T) *permissionTestEnv {
 		&model.RolePermission{},
 	))
 
+	clearPermissionData(t, db)
 	seedPermissionData(t, db)
 
 	sqlDB, err := db.DB()
@@ -47,6 +48,16 @@ func newPermissionTestEnv(t *testing.T) *permissionTestEnv {
 		db:         db,
 		middleware: NewPermissionMiddleware(sqlDB),
 	}
+}
+
+func clearPermissionData(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	require.NoError(t, db.Exec("SET FOREIGN_KEY_CHECKS = 0").Error)
+	require.NoError(t, db.Exec("TRUNCATE TABLE role_permissions").Error)
+	require.NoError(t, db.Exec("TRUNCATE TABLE user_roles").Error)
+	require.NoError(t, db.Exec("TRUNCATE TABLE permissions").Error)
+	require.NoError(t, db.Exec("TRUNCATE TABLE roles").Error)
+	require.NoError(t, db.Exec("SET FOREIGN_KEY_CHECKS = 1").Error)
 }
 
 func seedPermissionData(t *testing.T, db *gorm.DB) {

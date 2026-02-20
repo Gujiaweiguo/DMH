@@ -43,10 +43,13 @@ func (suite *SessionServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *SessionServiceTestSuite) SetupTest() {
-	// 清理测试数据
-	suite.db.Exec("DELETE FROM user_sessions")
-	suite.db.Exec("DELETE FROM password_policies")
-	suite.db.Exec("DELETE FROM users")
+	suite.Require().NoError(suite.db.Exec("SET FOREIGN_KEY_CHECKS = 0").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE user_sessions").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE password_histories").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE password_policies").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE user_feedback").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE users").Error)
+	suite.Require().NoError(suite.db.Exec("SET FOREIGN_KEY_CHECKS = 1").Error)
 
 	// 创建默认密码策略
 	policy := &model.PasswordPolicy{
@@ -62,7 +65,7 @@ func (suite *SessionServiceTestSuite) SetupTest() {
 		SessionTimeout:        480,
 		MaxConcurrentSessions: 3,
 	}
-	suite.db.Create(policy)
+	suite.Require().NoError(suite.db.Create(policy).Error)
 }
 
 func (suite *SessionServiceTestSuite) TestCreateSession() {

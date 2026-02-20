@@ -41,11 +41,13 @@ func (suite *AuditServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *AuditServiceTestSuite) SetupTest() {
-	// 清理测试数据
-	suite.db.Exec("DELETE FROM audit_logs")
-	suite.db.Exec("DELETE FROM login_attempts")
-	suite.db.Exec("DELETE FROM security_events")
-	suite.db.Exec("DELETE FROM users")
+	suite.Require().NoError(suite.db.Exec("SET FOREIGN_KEY_CHECKS = 0").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE audit_logs").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE login_attempts").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE security_events").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE user_feedback").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE users").Error)
+	suite.Require().NoError(suite.db.Exec("SET FOREIGN_KEY_CHECKS = 1").Error)
 }
 
 func (suite *AuditServiceTestSuite) TestLogUserAction() {

@@ -157,6 +157,7 @@ func (s *PasswordService) SavePasswordHistory(userID int64, passwordHash string)
 		err := s.db.Where("user_id = ?", userID).
 			Order("created_at DESC").
 			Offset(policy.HistoryCount).
+			Limit(1000).
 			Find(&oldHistories).Error
 
 		if err == nil && len(oldHistories) > 0 {

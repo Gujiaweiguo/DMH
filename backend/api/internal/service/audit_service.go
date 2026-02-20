@@ -89,7 +89,7 @@ func (s *AuditService) LogLoginAttempt(userID *int64, username, clientIP, userAg
 
 // LogSecurityEvent 记录安全事件
 func (s *AuditService) LogSecurityEvent(eventType, severity string, userID *int64, username, clientIP, userAgent, description string, details interface{}) error {
-	detailsJSON := ""
+	detailsJSON := "{}"
 	if details != nil {
 		if detailsBytes, err := json.Marshal(details); err == nil {
 			detailsJSON = string(detailsBytes)
