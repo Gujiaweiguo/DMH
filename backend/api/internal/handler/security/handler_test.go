@@ -1,6 +1,7 @@
 package security
 
 import (
+	"dmh/api/internal/handler/testutil"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -14,18 +15,13 @@ import (
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupSecurityHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.PasswordPolicy{}, &model.LoginAttempt{}, &model.UserSession{}, &model.SecurityEvent{}, &model.AuditLog{}, &model.User{})
+	err := db.AutoMigrate(&model.PasswordPolicy{}, &model.LoginAttempt{}, &model.UserSession{}, &model.SecurityEvent{}, &model.AuditLog{}, &model.User{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -72,7 +68,7 @@ func TestGetPasswordPolicyHandler_Success(t *testing.T) {
 func TestGetAuditLogsHandler_Success(t *testing.T) {
 	db := setupSecurityHandlerTestDB(t)
 
-	user := &model.User{Username: "admin", Password: "pass", Phone: "13800138000", Status: "active"}
+	user := &model.User{Username: "admin", Password: "pass", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(user)
 
 	auditLog := &model.AuditLog{UserID: &user.Id, Username: "admin", Action: "login", Resource: "auth", Status: "success"}
@@ -150,7 +146,7 @@ func TestGetSecurityEventsHandler_Success(t *testing.T) {
 func TestGetUserSessionsHandler_Success(t *testing.T) {
 	db := setupSecurityHandlerTestDB(t)
 
-	user := &model.User{Username: "testuser", Password: "pass", Phone: "13800138000", Status: "active"}
+	user := &model.User{Username: "testuser", Password: "pass", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(user)
 
 	session := &model.UserSession{ID: "session-123", UserID: user.Id, UserAgent: "test-agent", ClientIP: "192.168.1.1", Status: "active"}
@@ -178,7 +174,7 @@ func TestGetUserSessionsHandler_Success(t *testing.T) {
 func TestRevokeSessionHandler_Success(t *testing.T) {
 	db := setupSecurityHandlerTestDB(t)
 
-	user := &model.User{Username: "testuser", Password: "pass", Phone: "13800138000", Status: "active"}
+	user := &model.User{Username: "testuser", Password: "pass", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(user)
 
 	session := &model.UserSession{ID: "session-456", UserID: user.Id, UserAgent: "test-agent", ClientIP: "192.168.1.1", Status: "active"}
@@ -204,7 +200,7 @@ func TestRevokeSessionHandler_Success(t *testing.T) {
 func TestForceLogoutUserHandler_Success(t *testing.T) {
 	db := setupSecurityHandlerTestDB(t)
 
-	user := &model.User{Username: "testuser", Password: "pass", Phone: "13800138000", Status: "active"}
+	user := &model.User{Username: "testuser", Password: "pass", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(user)
 	session := &model.UserSession{ID: "force-logout-session", UserID: user.Id, UserAgent: "test-agent", ClientIP: "192.168.1.1", Status: "active"}
 	db.Create(session)

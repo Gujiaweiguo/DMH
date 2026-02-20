@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -25,8 +25,8 @@ type permissionTestEnv struct {
 func newPermissionTestEnv(t *testing.T) *permissionTestEnv {
 	t.Helper()
 
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	dsn := "root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	require.NoError(t, err)
 
 	require.NoError(t, db.AutoMigrate(

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"github.com/stretchr/testify/assert"
@@ -98,7 +99,7 @@ func TestSendPhoneCodeHandler_Success(t *testing.T) {
 	svcCtx := &svc.ServiceContext{}
 	handler := SendPhoneCodeHandler(svcCtx)
 
-	reqBody := types.SendCodeReq{Target: "13800138000", Type: "phone"}
+	reqBody := types.SendCodeReq{Target: testutil.GenUniquePhone(), Type: "phone"}
 	body, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/send-code", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

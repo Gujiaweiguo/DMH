@@ -2,6 +2,7 @@ package admin
 
 import (
 	"bytes"
+	"dmh/api/internal/handler/testutil"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,18 +16,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupAdminHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	t.Helper()
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.User{}, &model.Role{}, &model.UserRole{}, &model.UserBrand{}, &model.Brand{})
+	err := db.AutoMigrate(&model.User{}, &model.Role{}, &model.UserRole{}, &model.UserBrand{}, &model.Brand{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -47,7 +44,7 @@ func TestAdminHandlersConstruct(t *testing.T) {
 func TestGetUsersHandler_Success(t *testing.T) {
 	db := setupAdminHandlerTestDB(t)
 
-	user := &model.User{Username: "admin", Password: "pass", Phone: "13800138000", Status: "active", Role: "platform_admin"}
+	user := &model.User{Username: "admin", Password: "pass", Phone: testutil.GenUniquePhone(), Status: "active", Role: "platform_admin"}
 	db.Create(user)
 
 	svcCtx := &svc.ServiceContext{DB: db}
@@ -170,7 +167,7 @@ func TestManageBrandAdminRelationHandler_Success(t *testing.T) {
 	brand := &model.Brand{Name: "Test Brand", Status: "active"}
 	db.Create(brand)
 
-	user := &model.User{Username: "admin", Password: "pass", Phone: "13800138000", Status: "active", Role: "platform_admin"}
+	user := &model.User{Username: "admin", Password: "pass", Phone: testutil.GenUniquePhone(), Status: "active", Role: "platform_admin"}
 	db.Create(user)
 
 	svcCtx := &svc.ServiceContext{DB: db}
@@ -192,7 +189,7 @@ func TestManageBrandAdminRelationHandler_Success(t *testing.T) {
 
 func TestResetUserPasswordHandler_Success(t *testing.T) {
 	db := setupAdminHandlerTestDB(t)
-	user := &model.User{Username: "admin", Password: "pass", Phone: "13800138000", Status: "active", Role: "platform_admin"}
+	user := &model.User{Username: "admin", Password: "pass", Phone: testutil.GenUniquePhone(), Status: "active", Role: "platform_admin"}
 	db.Create(user)
 
 	svcCtx := &svc.ServiceContext{DB: db}
@@ -213,7 +210,7 @@ func TestResetUserPasswordHandler_Success(t *testing.T) {
 
 func TestUpdateUserHandler_Success(t *testing.T) {
 	db := setupAdminHandlerTestDB(t)
-	user := &model.User{Username: "admin", Password: "pass", Phone: "13800138000", Status: "active", Role: "platform_admin"}
+	user := &model.User{Username: "admin", Password: "pass", Phone: testutil.GenUniquePhone(), Status: "active", Role: "platform_admin"}
 	db.Create(user)
 
 	svcCtx := &svc.ServiceContext{DB: db}

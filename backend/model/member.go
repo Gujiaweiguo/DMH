@@ -12,8 +12,8 @@ type Member struct {
 	Gender    int        `gorm:"column:gender;default:0" json:"gender"` // 0:未知 1:男 2:女
 	Source    string     `gorm:"column:source;type:varchar(50);index" json:"source"` // 首次来源渠道
 	Status    string     `gorm:"column:status;type:varchar(20);not null;default:active;index" json:"status"` // active/disabled
-	CreatedAt time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
-	UpdatedAt time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt time.Time  `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`
+	UpdatedAt time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 	DeletedAt *time.Time `gorm:"column:deleted_at;index" json:"deletedAt,omitempty"`
 }
 
@@ -33,8 +33,8 @@ type MemberProfile struct {
 	FirstPaymentAt    *time.Time `gorm:"column:first_payment_at" json:"firstPaymentAt"`
 	LastPaymentAt     *time.Time `gorm:"column:last_payment_at" json:"lastPaymentAt"`
 	ParticipatedCampaigns int   `gorm:"column:participated_campaigns;default:0" json:"participatedCampaigns"` // 参与活动数
-	CreatedAt         time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt         time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt         time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt         time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (MemberProfile) TableName() string {
@@ -48,8 +48,8 @@ type MemberTag struct {
 	Category  string    `gorm:"column:category;type:varchar(50);index" json:"category"` // 标签分类
 	Color     string    `gorm:"column:color;type:varchar(20)" json:"color"`
 	Description string  `gorm:"column:description;type:varchar(200)" json:"description"`
-	CreatedAt time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (MemberTag) TableName() string {
@@ -62,7 +62,7 @@ type MemberTagLink struct {
 	MemberID  int64     `gorm:"column:member_id;not null;uniqueIndex:uk_member_tag;index" json:"memberId"`
 	TagID     int64     `gorm:"column:tag_id;not null;uniqueIndex:uk_member_tag;index" json:"tagId"`
 	CreatedBy int64     `gorm:"column:created_by;not null" json:"createdBy"` // 操作人 user_id
-	CreatedAt time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
+	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
 }
 
 func (MemberTagLink) TableName() string {
@@ -75,7 +75,7 @@ type MemberBrandLink struct {
 	MemberID  int64     `gorm:"column:member_id;not null;uniqueIndex:uk_member_brand;index" json:"memberId"`
 	BrandID   int64     `gorm:"column:brand_id;not null;uniqueIndex:uk_member_brand;index" json:"brandId"`
 	FirstCampaignID int64 `gorm:"column:first_campaign_id;not null" json:"firstCampaignId"` // 首次参与的活动ID
-	CreatedAt time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
+	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
 }
 
 func (MemberBrandLink) TableName() string {
@@ -93,8 +93,8 @@ type MemberMergeRequest struct {
 	CreatedBy       int64      `gorm:"column:created_by;not null" json:"createdBy"` // 操作人 user_id
 	ExecutedAt      *time.Time `gorm:"column:executed_at" json:"executedAt"`
 	ErrorMsg        string     `gorm:"column:error_msg;type:text" json:"errorMsg"`
-	CreatedAt       time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt       time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt       time.Time  `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt       time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (MemberMergeRequest) TableName() string {
@@ -114,8 +114,8 @@ type ExportRequest struct {
 	RejectReason string    `gorm:"column:reject_reason;type:text" json:"rejectReason"`
 	FileUrl     string     `gorm:"column:file_url;type:varchar(500)" json:"fileUrl"` // 导出文件URL
 	RecordCount int        `gorm:"column:record_count;default:0" json:"recordCount"` // 导出记录数
-	CreatedAt   time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
-	UpdatedAt   time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt   time.Time  `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`
+	UpdatedAt   time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (ExportRequest) TableName() string {

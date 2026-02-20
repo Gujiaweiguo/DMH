@@ -6,13 +6,13 @@ import (
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 func setupSyncWorkerTestDB(t *testing.T) *gorm.DB {
-	dsn := "file:sync_worker_test?mode=memory&cache=shared"
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	dsn := "root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}

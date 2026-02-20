@@ -1,6 +1,7 @@
 package brand
 
 import (
+	"dmh/api/internal/handler/testutil"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -14,18 +15,13 @@ import (
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupBrandHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.Brand{}, &model.BrandAsset{}, &model.Campaign{}, &model.Order{})
+	err := db.AutoMigrate(&model.Brand{}, &model.BrandAsset{}, &model.Campaign{}, &model.Order{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}

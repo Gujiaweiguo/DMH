@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -23,7 +23,7 @@ type FeedbackLogicTestSuite struct {
 }
 
 func (suite *FeedbackLogicTestSuite) SetupSuite() {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open("root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"), &gorm.Config{})
 	suite.Require().NoError(err)
 
 	err = db.AutoMigrate(
@@ -663,7 +663,7 @@ func intPtr(i int) *int {
 }
 
 func TestMarkFAQHelpful_LegacyColumnCompatibility(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open("root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"), &gorm.Config{})
 	assert.NoError(t, err)
 
 	err = db.Exec(`

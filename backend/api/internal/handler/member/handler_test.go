@@ -2,6 +2,7 @@ package member
 
 import (
 	"bytes"
+	"dmh/api/internal/handler/testutil"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,18 +15,13 @@ import (
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupMemberHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.Member{}, &model.MemberProfile{}, &model.MemberTag{}, &model.Brand{}, &model.Campaign{}, &model.Order{})
+	err := db.AutoMigrate(&model.Member{}, &model.MemberProfile{}, &model.MemberTag{}, &model.Brand{}, &model.Campaign{}, &model.Order{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -44,7 +40,7 @@ func TestMemberHandlersConstruct(t *testing.T) {
 func TestGetMembersHandler_Success(t *testing.T) {
 	db := setupMemberHandlerTestDB(t)
 
-	member := &model.Member{UnionID: "union123", Nickname: "Test Member", Phone: "13800138000", Status: "active"}
+	member := &model.Member{UnionID: "union123", Nickname: "Test Member", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(member)
 
 	svcCtx := &svc.ServiceContext{DB: db}
@@ -115,7 +111,7 @@ func TestUpdateMemberStatusHandler_ParseError(t *testing.T) {
 func TestGetMemberHandler_Success(t *testing.T) {
 	db := setupMemberHandlerTestDB(t)
 
-	member := &model.Member{UnionID: "union123", Nickname: "Test Member", Phone: "13800138000", Status: "active"}
+	member := &model.Member{UnionID: "union123", Nickname: "Test Member", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(member)
 
 	svcCtx := &svc.ServiceContext{DB: db}
@@ -145,7 +141,7 @@ func TestGetMemberHandler_NotFound(t *testing.T) {
 func TestGetMemberProfileHandler_Success(t *testing.T) {
 	db := setupMemberHandlerTestDB(t)
 
-	member := &model.Member{UnionID: "union123", Nickname: "Test Member", Phone: "13800138000", Status: "active"}
+	member := &model.Member{UnionID: "union123", Nickname: "Test Member", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(member)
 
 	profile := &model.MemberProfile{MemberID: member.ID, TotalOrders: 5, TotalPayment: 100.00}
@@ -178,13 +174,13 @@ func TestGetMembersHandler_EmptyList(t *testing.T) {
 func TestGetMembersHandler_WithFilters(t *testing.T) {
 	db := setupMemberHandlerTestDB(t)
 
-	member := &model.Member{UnionID: "union123", Nickname: "Test Member", Phone: "13800138000", Status: "active"}
+	member := &model.Member{UnionID: "union123", Nickname: "Test Member", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(member)
 
 	svcCtx := &svc.ServiceContext{DB: db}
 	handler := GetMembersHandler(svcCtx)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/members?page=1&pageSize=10&phone=13800138000", nil)
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/members?page=1&pageSize=10&phone=%s", member.Phone), nil)
 	resp := httptest.NewRecorder()
 
 	handler(resp, req)
@@ -195,7 +191,7 @@ func TestGetMembersHandler_WithFilters(t *testing.T) {
 func TestUpdateMemberHandler_Success(t *testing.T) {
 	db := setupMemberHandlerTestDB(t)
 
-	member := &model.Member{UnionID: "union123", Nickname: "Test Member", Phone: "13800138000", Status: "active"}
+	member := &model.Member{UnionID: "union123", Nickname: "Test Member", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(member)
 
 	svcCtx := &svc.ServiceContext{DB: db}
@@ -237,7 +233,7 @@ func TestUpdateMemberHandler_InvalidPath(t *testing.T) {
 func TestUpdateMemberStatusHandler_Success(t *testing.T) {
 	db := setupMemberHandlerTestDB(t)
 
-	member := &model.Member{UnionID: "union123", Nickname: "Test Member", Phone: "13800138000", Status: "active"}
+	member := &model.Member{UnionID: "union123", Nickname: "Test Member", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(member)
 
 	svcCtx := &svc.ServiceContext{DB: db}

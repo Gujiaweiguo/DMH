@@ -1,28 +1,23 @@
 package reward
 
 import (
+	"dmh/api/internal/handler/testutil"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"dmh/api/internal/svc"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupRewardHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.Reward{}, &model.DistributorReward{}, &model.UserBalance{}, &model.User{}, &model.Order{}, &model.Campaign{}, &model.Brand{})
+	err := db.AutoMigrate(&model.Reward{}, &model.DistributorReward{}, &model.UserBalance{}, &model.User{}, &model.Order{}, &model.Campaign{}, &model.Brand{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -44,10 +39,10 @@ func TestGetRewardsHandler_Success(t *testing.T) {
 	campaign := &model.Campaign{Name: "Test Campaign", BrandId: brand.Id, Status: "active"}
 	db.Create(campaign)
 
-	user := &model.User{Username: "testuser", Password: "pass", Phone: "13800138000", Status: "active"}
+	user := &model.User{Username: "testuser", Password: "pass", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(user)
 
-	order := &model.Order{CampaignId: campaign.Id, Phone: "13800138000", Amount: 100.00, PayStatus: "paid", Status: "active"}
+	order := &model.Order{CampaignId: campaign.Id, Phone: testutil.GenUniquePhone(), Amount: 100.00, PayStatus: "paid", Status: "active"}
 	db.Create(order)
 
 	reward := &model.Reward{UserId: user.Id, OrderId: order.Id, CampaignId: campaign.Id, Amount: 10.00, Status: "pending"}
@@ -67,7 +62,7 @@ func TestGetRewardsHandler_Success(t *testing.T) {
 func TestGetBalanceHandler_Success(t *testing.T) {
 	db := setupRewardHandlerTestDB(t)
 
-	user := &model.User{Username: "testuser", Password: "pass", Phone: "13800138000", Status: "active"}
+	user := &model.User{Username: "testuser", Password: "pass", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(user)
 
 	balance := &model.UserBalance{UserId: user.Id, Balance: 100.00, TotalReward: 500.00}

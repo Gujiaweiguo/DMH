@@ -1,28 +1,22 @@
 package sync
 
 import (
-	"fmt"
+	"dmh/api/internal/handler/testutil"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"dmh/api/internal/svc"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupSyncHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.SyncLog{}, &model.Order{}, &model.Campaign{}, &model.Brand{})
+	err := db.AutoMigrate(&model.SyncLog{}, &model.Order{}, &model.Campaign{}, &model.Brand{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -59,7 +53,7 @@ func TestGetSyncStatusHandler_Success(t *testing.T) {
 	campaign := &model.Campaign{Name: "Test Campaign", BrandId: brand.Id, Status: "active"}
 	db.Create(campaign)
 
-	order := &model.Order{CampaignId: campaign.Id, Phone: "13800138000", Amount: 100.00, PayStatus: "paid", Status: "active", SyncStatus: "synced"}
+	order := &model.Order{CampaignId: campaign.Id, Phone: testutil.GenUniquePhone(), Amount: 100.00, PayStatus: "paid", Status: "active", SyncStatus: "synced"}
 	db.Create(order)
 
 	svcCtx := &svc.ServiceContext{DB: db}

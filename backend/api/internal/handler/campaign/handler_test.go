@@ -1,6 +1,7 @@
 package campaign
 
 import (
+	"dmh/api/internal/handler/testutil"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,18 +13,13 @@ import (
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupCampaignHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.Campaign{}, &model.Brand{}, &model.PageConfig{})
+	err := db.AutoMigrate(&model.Campaign{}, &model.Brand{}, &model.PageConfig{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}

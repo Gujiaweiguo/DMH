@@ -1,28 +1,22 @@
 package statistics
 
 import (
-	"fmt"
+	"dmh/api/internal/handler/testutil"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"dmh/api/internal/svc"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupStatisticsHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.Order{}, &model.Campaign{}, &model.Brand{}, &model.User{}, &model.Distributor{})
+	err := db.AutoMigrate(&model.Order{}, &model.Campaign{}, &model.Brand{}, &model.User{}, &model.Distributor{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}

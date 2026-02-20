@@ -10,8 +10,8 @@ type PosterTemplate struct {
 	DistributorId *int64    `gorm:"column:distributor_id;index" json:"distributorId,omitempty"`
 	TemplateUrl   string    `gorm:"column:template_url;type:varchar(500);not null" json:"templateUrl"`
 	PosterData    string    `gorm:"column:poster_data;type:json" json:"posterData"`
-	CreatedAt     time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt     time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt     time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt     time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 
 	// 关联
 	Campaign    *Campaign    `gorm:"foreignKey:CampaignId" json:"campaign,omitempty"`

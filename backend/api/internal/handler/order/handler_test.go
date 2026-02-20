@@ -2,6 +2,7 @@ package order
 
 import (
 	"bytes"
+	"dmh/api/internal/handler/testutil"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,18 +16,13 @@ import (
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupOrderHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.Order{}, &model.Campaign{}, &model.Brand{})
+	err := db.AutoMigrate(&model.Order{}, &model.Campaign{}, &model.Brand{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -61,7 +57,7 @@ func TestGetOrdersHandler_Success(t *testing.T) {
 
 	order := &model.Order{
 		CampaignId: campaign.Id,
-		Phone:      "13800138000",
+		Phone:      testutil.GenUniquePhone(),
 		Amount:     100.00,
 		PayStatus:  "paid",
 		Status:     "active",
@@ -187,7 +183,7 @@ func TestGetOrderHandler_Success(t *testing.T) {
 
 	order := &model.Order{
 		CampaignId: campaign.Id,
-		Phone:      "13800138000",
+		Phone:      testutil.GenUniquePhone(),
 		Amount:     100.00,
 		PayStatus:  "paid",
 		Status:     "active",
@@ -247,7 +243,7 @@ func TestGetOrdersHandler_WithFilters(t *testing.T) {
 
 	order := &model.Order{
 		CampaignId: campaign.Id,
-		Phone:      "13800138000",
+		Phone:      testutil.GenUniquePhone(),
 		Amount:     100.00,
 		PayStatus:  "paid",
 		Status:     "active",
@@ -257,7 +253,7 @@ func TestGetOrdersHandler_WithFilters(t *testing.T) {
 	svcCtx := &svc.ServiceContext{DB: db}
 	handler := GetOrdersHandler(svcCtx)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/orders?page=1&pageSize=10&phone=13800138000", nil)
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/orders?page=1&pageSize=10&phone=%s", order.Phone), nil)
 	resp := httptest.NewRecorder()
 
 	handler(resp, req)
@@ -298,7 +294,7 @@ func TestCreateOrderHandler_Success(t *testing.T) {
 	svcCtx := &svc.ServiceContext{DB: db}
 	handler := CreateOrderHandler(svcCtx)
 
-	body := `{"campaignId":` + fmt.Sprintf("%d", campaign.Id) + `,"phone":"13800138000","formData":{}}`
+	body := `{"campaignId":` + fmt.Sprintf("%d", campaign.Id) + `,"phone":"` + testutil.GenUniquePhone() + `","formData":{}}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/orders", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
@@ -365,7 +361,7 @@ func TestVerifyOrderHandler_Success(t *testing.T) {
 
 	order := &model.Order{
 		CampaignId:       campaign.Id,
-		Phone:            "13800138000",
+		Phone:            testutil.GenUniquePhone(),
 		Amount:           100.00,
 		PayStatus:        "paid",
 		Status:           "active",
@@ -407,7 +403,7 @@ func TestUnverifyOrderHandler_Success(t *testing.T) {
 	verifiedAt := time.Now()
 	order := &model.Order{
 		CampaignId:       campaign.Id,
-		Phone:            "13800138000",
+		Phone:            testutil.GenUniquePhone(),
 		Amount:           100.00,
 		PayStatus:        "paid",
 		Status:           "verified",
@@ -449,7 +445,7 @@ func TestPaymentCallbackHandler_Success(t *testing.T) {
 
 	order := &model.Order{
 		CampaignId: campaign.Id,
-		Phone:      "13800138000",
+		Phone:      testutil.GenUniquePhone(),
 		Amount:     100.00,
 		PayStatus:  "pending",
 		Status:     "active",
@@ -485,7 +481,7 @@ func TestScanOrderHandler_Success(t *testing.T) {
 
 	order := &model.Order{
 		CampaignId:       campaign.Id,
-		Phone:            "13800138000",
+		Phone:            testutil.GenUniquePhone(),
 		Amount:           100.00,
 		PayStatus:        "paid",
 		Status:           "active",

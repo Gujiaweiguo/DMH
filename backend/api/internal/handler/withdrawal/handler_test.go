@@ -3,6 +3,7 @@ package withdrawal
 import (
 	"bytes"
 	"context"
+	"dmh/api/internal/handler/testutil"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,18 +16,13 @@ import (
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupWithdrawalHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.Withdrawal{}, &model.User{}, &model.Brand{}, &model.Distributor{}, &model.UserBalance{})
+	err := db.AutoMigrate(&model.Withdrawal{}, &model.User{}, &model.Brand{}, &model.Distributor{}, &model.UserBalance{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -35,10 +31,11 @@ func setupWithdrawalHandlerTestDB(t *testing.T) *gorm.DB {
 }
 
 func createTestUserForWithdrawal(t *testing.T, db *gorm.DB, username string) *model.User {
+	t.Helper()
 	user := &model.User{
 		Username: username,
 		Password: "hashed_password",
-		Phone:    "13800138000",
+		Phone:    testutil.GenUniquePhone(),
 		Role:     "participant",
 		Status:   "active",
 	}
@@ -69,7 +66,7 @@ func TestWithdrawalHandlersConstruct(t *testing.T) {
 func TestGetWithdrawalsHandler_Success(t *testing.T) {
 	db := setupWithdrawalHandlerTestDB(t)
 
-	user := &model.User{Username: "testuser", Password: "pass", Phone: "13800138000", Status: "active"}
+	user := &model.User{Username: "testuser", Password: "pass", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(user)
 
 	brand := &model.Brand{Name: "Test Brand", Status: "active"}
@@ -169,7 +166,7 @@ func TestApplyWithdrawalHandler_ParseError(t *testing.T) {
 func TestApplyWithdrawalHandler_Success(t *testing.T) {
 	db := setupWithdrawalHandlerTestDB(t)
 	// create test user
-	user := &model.User{Id: 1, Username: "testuser", Password: "pass", Phone: "13800138000", Status: "active"}
+	user := &model.User{Id: 1, Username: "testuser", Password: "pass", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(user)
 	// initial balance sufficient for withdrawal
 	balance := &model.UserBalance{UserId: 1, Balance: 500}
@@ -210,7 +207,7 @@ func TestApplyWithdrawalHandler_Success(t *testing.T) {
 func TestApproveWithdrawalHandler_Success(t *testing.T) {
 	db := setupWithdrawalHandlerTestDB(t)
 	// prepare test data: user, balance, and a pending withdrawal
-	user := &model.User{Id: 1, Username: "adminUser", Phone: "13800138000"}
+	user := &model.User{Id: 1, Username: "adminUser", Phone: testutil.GenUniquePhone()}
 	balance := &model.UserBalance{UserId: 1, Balance: 500}
 	db.Create(user)
 	db.Create(balance)
@@ -241,7 +238,7 @@ func TestApproveWithdrawalHandler_Success(t *testing.T) {
 func TestApproveWithdrawalHandler_RejectedWithRefund(t *testing.T) {
 	db := setupWithdrawalHandlerTestDB(t)
 	// prepare test data: user, balance, and a pending withdrawal
-	user := &model.User{Id: 1, Username: "adminUser", Phone: "13800138000"}
+	user := &model.User{Id: 1, Username: "adminUser", Phone: testutil.GenUniquePhone()}
 	balance := &model.UserBalance{UserId: 1, Balance: 500}
 	db.Create(user)
 	db.Create(balance)

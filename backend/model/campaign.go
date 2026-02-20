@@ -32,8 +32,8 @@ type Campaign struct {
 	DistributionRewards *string    `gorm:"column:distribution_rewards;type:json" json:"distributionRewards,omitempty"`        // 各级奖励比例
 	PaymentConfig       *string    `gorm:"column:payment_config;type:json" json:"paymentConfig,omitempty"`                    // 支付配置
 	PosterTemplateId    int64      `gorm:"column:poster_template_id;default:1" json:"posterTemplateId"`                       // 海报模板ID
-	CreatedAt           time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt           time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt           time.Time  `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt           time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 	DeletedAt           *time.Time `gorm:"column:deleted_at" json:"deletedAt,omitempty"`
 }
 
@@ -62,8 +62,8 @@ type Order struct {
 	VerifiedAt         *time.Time `gorm:"column:verified_at" json:"verifiedAt,omitempty"`                                                 // 核销时间
 	VerifiedBy         *int64     `gorm:"column:verified_by" json:"verifiedBy,omitempty"`                                                 // 核销人用户ID
 	VerificationCode   string     `gorm:"column:verification_code;type:varchar(50);null" json:"verificationCode,omitempty"`               // 核销码（包含签名）
-	CreatedAt          time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
-	UpdatedAt          time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt          time.Time  `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`
+	UpdatedAt          time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 	DeletedAt          *time.Time `gorm:"column:deleted_at" json:"deletedAt,omitempty"`
 }
 
@@ -82,8 +82,8 @@ type Reward struct {
 	Amount     float64    `gorm:"column:amount;type:decimal(10,2);not null;default:0.00" json:"amount"`
 	Status     string     `gorm:"column:status;type:varchar(20);not null;default:pending;index" json:"status"` // pending, settled, cancelled
 	SettledAt  *time.Time `gorm:"column:settled_at" json:"settledAt,omitempty"`
-	CreatedAt  time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt  time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt  time.Time  `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt  time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 // TableName 表名
@@ -98,8 +98,8 @@ type UserBalance struct {
 	Balance     float64   `gorm:"column:balance;type:decimal(10,2);not null;default:0.00" json:"balance"`
 	TotalReward float64   `gorm:"column:total_reward;type:decimal(10,2);not null;default:0.00" json:"totalReward"`
 	Version     int64     `gorm:"column:version;not null;default:0" json:"version"` // 乐观锁版本号
-	CreatedAt   time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt   time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt   time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 // TableName 表名
@@ -116,8 +116,8 @@ type SyncLog struct {
 	Attempts   int        `gorm:"column:attempts;not null;default:0" json:"attempts"`
 	ErrorMsg   string     `gorm:"column:error_msg;type:text" json:"errorMsg"`
 	SyncedAt   *time.Time `gorm:"column:synced_at" json:"syncedAt,omitempty"`
-	CreatedAt  time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt  time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt  time.Time  `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt  time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 // TableName 表名

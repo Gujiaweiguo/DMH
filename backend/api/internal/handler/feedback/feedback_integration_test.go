@@ -16,7 +16,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -36,7 +36,12 @@ type FeedbackHandlerIntegrationTestSuite struct {
 }
 
 func (suite *FeedbackHandlerIntegrationTestSuite) SetupSuite() {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open("root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"), &gorm.Config{})
+	suite.Require().NoError(err)
+
+	sqlDB, err := db.DB()
+	suite.Require().NoError(err)
+	_, err = sqlDB.Exec("SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION'")
 	suite.Require().NoError(err)
 
 	err = db.AutoMigrate(

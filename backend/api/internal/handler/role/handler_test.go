@@ -2,29 +2,24 @@ package role
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupRoleHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.Role{}, &model.Permission{}, &model.RolePermission{}, &model.User{}, &model.UserRole{})
+	err := db.AutoMigrate(&model.Role{}, &model.Permission{}, &model.RolePermission{}, &model.User{}, &model.UserRole{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -167,16 +162,14 @@ func TestGetUserPermissionsHandler_ParseError(t *testing.T) {
 }
 
 func TestGetUserPermissionsHandler_Success(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
-	err = db.AutoMigrate(&model.Role{}, &model.Permission{}, &model.RolePermission{}, &model.User{}, &model.UserRole{}, &model.UserBrand{}, &model.Brand{})
+	db := testutil.SetupGormTestDB(t)
+
+	err := db.AutoMigrate(&model.Role{}, &model.Permission{}, &model.RolePermission{}, &model.User{}, &model.UserRole{}, &model.UserBrand{}, &model.Brand{})
 	if err != nil {
 		t.Fatalf("Failed to migrate test tables: %v", err)
 	}
 
-	user := &model.User{Id: 1, Username: "testuser", Phone: "13800138000"}
+	user := &model.User{Id: 1, Username: "testuser", Phone: testutil.GenUniquePhone()}
 	role := &model.Role{ID: 1, Name: "平台管理员", Code: "platform_admin"}
 	permission := &model.Permission{ID: 1, Name: "查看活动", Code: "campaign:read", Resource: "campaign", Action: "read"}
 	brand := &model.Brand{Id: 1, Name: "Test Brand"}
@@ -214,16 +207,13 @@ func TestGetUserPermissionsHandler_Success(t *testing.T) {
 }
 
 func TestGetUserPermissionsHandler_NoPermissions_Success(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
 	if err := db.AutoMigrate(&model.User{}, &model.Role{}, &model.Permission{}, &model.RolePermission{}, &model.UserRole{}, &model.UserBrand{}, &model.Brand{}); err != nil {
 		t.Fatalf("Failed to migrate test tables: %v", err)
 	}
 
-	user := &model.User{Id: 2, Username: "emptyuser", Phone: "123"}
+	user := &model.User{Id: 2, Username: "emptyuser", Phone: testutil.GenUniquePhone()}
 	db.Create(user)
 
 	svcCtx := &svc.ServiceContext{DB: db}
@@ -245,10 +235,7 @@ func TestGetUserPermissionsHandler_NoPermissions_Success(t *testing.T) {
 }
 
 func TestGetUserPermissionsHandler_Success_MultiRolesAndPerms(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 	if err := db.AutoMigrate(&model.Role{}, &model.Permission{}, &model.RolePermission{}, &model.User{}, &model.UserRole{}, &model.UserBrand{}, &model.Brand{}); err != nil {
 		t.Fatalf("Failed to migrate test tables: %v", err)
 	}
@@ -262,7 +249,7 @@ func TestGetUserPermissionsHandler_Success_MultiRolesAndPerms(t *testing.T) {
 	db.Create(perm1)
 	db.Create(perm2)
 
-	user := &model.User{Id: 3, Username: "multirole", Phone: "123"}
+	user := &model.User{Id: 3, Username: "multirole", Phone: testutil.GenUniquePhone()}
 	db.Create(user)
 	ur1 := &model.UserRole{UserID: 3, RoleID: 1}
 	ur2 := &model.UserRole{UserID: 3, RoleID: 2}

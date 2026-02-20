@@ -4,30 +4,26 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	t.Helper()
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.User{}, &model.Role{}, &model.UserRole{}, &model.UserBrand{})
+	err := db.AutoMigrate(&model.User{}, &model.Role{}, &model.UserRole{}, &model.UserBrand{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -35,12 +31,15 @@ func setupHandlerTestDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func createTestUserForHandler(t *testing.T, db *gorm.DB, username, password string) *model.User {
+func createTestUserForHandler(t *testing.T, db *gorm.DB, usernamePrefix, password string) *model.User {
+	t.Helper()
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	username := testutil.GenUniqueUsername(usernamePrefix)
+	phone := testutil.GenUniquePhone()
 	user := &model.User{
 		Username: username,
 		Password: string(hashedPassword),
-		Phone:    "13800138000",
+		Phone:    phone,
 		Email:    username + "@test.com",
 		Status:   "active",
 	}
@@ -52,13 +51,13 @@ func createTestUserForHandler(t *testing.T, db *gorm.DB, username, password stri
 
 func TestLoginHandler_Success(t *testing.T) {
 	db := setupHandlerTestDB(t)
-	createTestUserForHandler(t, db, "testuser", "password123")
+	user := createTestUserForHandler(t, db, "testuser", "password123")
 
 	svcCtx := &svc.ServiceContext{DB: db}
 	handler := LoginHandler(svcCtx)
 
 	reqBody := types.LoginReq{
-		Username: "testuser",
+		Username: user.Username,
 		Password: "password123",
 	}
 	body, _ := json.Marshal(reqBody)
@@ -77,13 +76,13 @@ func TestLoginHandler_Success(t *testing.T) {
 
 func TestLoginHandler_InvalidCredentials(t *testing.T) {
 	db := setupHandlerTestDB(t)
-	createTestUserForHandler(t, db, "testuser", "password123")
+	user := createTestUserForHandler(t, db, "testuser", "password123")
 
 	svcCtx := &svc.ServiceContext{DB: db}
 	handler := LoginHandler(svcCtx)
 
 	reqBody := types.LoginReq{
-		Username: "testuser",
+		Username: user.Username,
 		Password: "wrongpassword",
 	}
 	body, _ := json.Marshal(reqBody)
@@ -134,9 +133,9 @@ func TestRegisterHandler_Success(t *testing.T) {
 	handler := RegisterHandler(svcCtx)
 
 	reqBody := types.RegisterReq{
-		Username: "newuser",
+		Username: testutil.GenUniqueUsername("newuser"),
 		Password: "password123",
-		Phone:    "13800138111",
+		Phone:    testutil.GenUniquePhone(),
 	}
 	body, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
@@ -154,15 +153,15 @@ func TestRegisterHandler_Success(t *testing.T) {
 
 func TestRegisterHandler_DuplicateUsername(t *testing.T) {
 	db := setupHandlerTestDB(t)
-	createTestUserForHandler(t, db, "existinguser", "password123")
+	user := createTestUserForHandler(t, db, "existinguser", "password123")
 
 	svcCtx := &svc.ServiceContext{DB: db}
 	handler := RegisterHandler(svcCtx)
 
 	reqBody := types.RegisterReq{
-		Username: "existinguser",
+		Username: user.Username,
 		Password: "password123",
-		Phone:    "13800138111",
+		Phone:    testutil.GenUniquePhone(),
 	}
 	body, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))

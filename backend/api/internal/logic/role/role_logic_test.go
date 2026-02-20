@@ -10,12 +10,12 @@ import (
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 func setupRoleTestDB() *gorm.DB {
-	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, _ := gorm.Open(mysql.Open("root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"), &gorm.Config{})
 	db.AutoMigrate(&model.Role{}, &model.Permission{}, &model.RolePermission{}, &model.UserRole{}, &model.UserBrand{}, &model.User{}, &model.Brand{})
 	return db
 }

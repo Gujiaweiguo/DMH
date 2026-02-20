@@ -16,8 +16,8 @@ type PasswordPolicy struct {
 	LockoutDuration       int       `gorm:"column:lockout_duration;not null;default:30" json:"lockoutDuration"`             // 锁定时长（分钟）
 	SessionTimeout        int       `gorm:"column:session_timeout;not null;default:480" json:"sessionTimeout"`              // 会话超时时间（分钟）
 	MaxConcurrentSessions int       `gorm:"column:max_concurrent_sessions;not null;default:3" json:"maxConcurrentSessions"` // 最大并发会话数
-	CreatedAt             time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt             time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt             time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt             time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (PasswordPolicy) TableName() string {
@@ -29,7 +29,7 @@ type PasswordHistory struct {
 	ID           int64     `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	UserID       int64     `gorm:"column:user_id;not null;index" json:"userId"`
 	PasswordHash string    `gorm:"column:password_hash;type:varchar(255);not null" json:"-"`
-	CreatedAt    time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
+	CreatedAt    time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
 }
 
 func (PasswordHistory) TableName() string {
@@ -45,7 +45,7 @@ type LoginAttempt struct {
 	UserAgent  string    `gorm:"column:user_agent;type:varchar(500)" json:"userAgent"`             // 用户代理
 	Success    bool      `gorm:"column:success;not null;index" json:"success"`                     // 是否成功
 	FailReason string    `gorm:"column:fail_reason;type:varchar(200)" json:"failReason"`           // 失败原因
-	CreatedAt  time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
+	CreatedAt  time.Time `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`
 }
 
 func (LoginAttempt) TableName() string {
@@ -54,16 +54,16 @@ func (LoginAttempt) TableName() string {
 
 // UserSession 用户会话记录
 type UserSession struct {
-	ID           string    `gorm:"column:id;primaryKey;type:varchar(64)" json:"id"`                                    // 会话ID
-	UserID       int64     `gorm:"column:user_id;not null;index" json:"userId"`                                        // 用户ID
-	ClientIP     string    `gorm:"column:client_ip;type:varchar(45);not null" json:"clientIP"`                         // 客户端IP
-	UserAgent    string    `gorm:"column:user_agent;type:varchar(500)" json:"userAgent"`                               // 用户代理
-	LoginAt      time.Time `gorm:"column:login_at;not null;default:CURRENT_TIMESTAMP" json:"loginAt"`                  // 登录时间
-	LastActiveAt time.Time `gorm:"column:last_active_at;not null;default:CURRENT_TIMESTAMP;index" json:"lastActiveAt"` // 最后活跃时间
-	ExpiresAt    time.Time `gorm:"column:expires_at;not null;index" json:"expiresAt"`                                  // 过期时间
-	Status       string    `gorm:"column:status;type:varchar(20);not null;default:active;index" json:"status"`         // 状态: active/expired/revoked
-	CreatedAt    time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt    time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	ID           string    `gorm:"column:id;primaryKey;type:varchar(64)" json:"id"`                            // 会话ID
+	UserID       int64     `gorm:"column:user_id;not null;index" json:"userId"`                                // 用户ID
+	ClientIP     string    `gorm:"column:client_ip;type:varchar(45);not null" json:"clientIP"`                 // 客户端IP
+	UserAgent    string    `gorm:"column:user_agent;type:varchar(500)" json:"userAgent"`                       // 用户代理
+	LoginAt      time.Time `gorm:"column:login_at;not null;autoCreateTime" json:"loginAt"`                     // 登录时间
+	LastActiveAt time.Time `gorm:"column:last_active_at;not null;autoUpdateTime;index" json:"lastActiveAt"`    // 最后活跃时间
+	ExpiresAt    time.Time `gorm:"column:expires_at;not null;index" json:"expiresAt"`                          // 过期时间
+	Status       string    `gorm:"column:status;type:varchar(20);not null;default:active;index" json:"status"` // 状态: active/expired/revoked
+	CreatedAt    time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt    time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (UserSession) TableName() string {
@@ -83,7 +83,7 @@ type AuditLog struct {
 	UserAgent  string    `gorm:"column:user_agent;type:varchar(500)" json:"userAgent"`                        // 用户代理
 	Status     string    `gorm:"column:status;type:varchar(20);not null;default:success;index" json:"status"` // 操作状态: success/failed
 	ErrorMsg   string    `gorm:"column:error_msg;type:varchar(500)" json:"errorMsg"`                          // 错误信息
-	CreatedAt  time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
+	CreatedAt  time.Time `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`
 }
 
 func (AuditLog) TableName() string {
@@ -104,7 +104,7 @@ type SecurityEvent struct {
 	Handled     bool       `gorm:"column:handled;not null;default:false;index" json:"handled"`         // 是否已处理
 	HandledBy   *int64     `gorm:"column:handled_by" json:"handledBy"`                                 // 处理人ID
 	HandledAt   *time.Time `gorm:"column:handled_at" json:"handledAt"`                                 // 处理时间
-	CreatedAt   time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
+	CreatedAt   time.Time  `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`
 }
 
 func (SecurityEvent) TableName() string {

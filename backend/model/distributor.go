@@ -14,8 +14,8 @@ type Distributor struct {
 	ApprovedAt        *time.Time `gorm:"column:approved_at" json:"approvedAt"`
 	TotalEarnings     float64    `gorm:"column:total_earnings;type:decimal(10,2);not null;default:0.00" json:"totalEarnings"`
 	SubordinatesCount int        `gorm:"column:subordinates_count;not null;default:0" json:"subordinatesCount"`
-	CreatedAt         time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt         time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP;index" json:"updatedAt"`
+	CreatedAt         time.Time  `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt         time.Time  `gorm:"column:updated_at;not null;autoUpdateTime;index" json:"updatedAt"`
 	DeletedAt         *time.Time `gorm:"column:deleted_at" json:"deletedAt,omitempty"`
 
 	// 关联
@@ -40,8 +40,8 @@ type DistributorApplication struct {
 	ReviewedBy  *int64     `gorm:"column:reviewed_by" json:"reviewedBy"`
 	ReviewedAt  *time.Time `gorm:"column:reviewed_at" json:"reviewedAt"`
 	ReviewNotes string     `gorm:"column:review_notes;type:text" json:"reviewNotes"`
-	CreatedAt   time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt   time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt   time.Time  `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt   time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 
 	// 关联
 	User     *User  `gorm:"foreignKey:UserId" json:"user,omitempty"`
@@ -60,8 +60,8 @@ type DistributorLevelReward struct {
 	BrandId          int64     `gorm:"column:brand_id;not null;index:idx_level_reward_brand;uniqueIndex:idx_brand_level" json:"brandId"`
 	Level            int       `gorm:"column:level;not null;uniqueIndex:idx_brand_level" json:"level"`                           // 1/2/3
 	RewardPercentage float64   `gorm:"column:reward_percentage;type:decimal(5,2);not null;default:0.00" json:"rewardPercentage"` // 奖励百分比
-	CreatedAt        time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt        time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt        time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt        time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 
 	// 关联
 	Brand *Brand `gorm:"foreignKey:BrandId" json:"brand,omitempty"`
@@ -85,8 +85,8 @@ type DistributorReward struct {
 	FromUserId    *int64     `gorm:"column:from_user_id" json:"fromUserId"`                           // 购买用户ID
 	Status        string     `gorm:"column:status;type:varchar(20);not null;default:settled;index" json:"status"`
 	SettledAt     *time.Time `gorm:"column:settled_at" json:"settledAt"`
-	CreatedAt     time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt     time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt     time.Time  `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt     time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 
 	// 关联
 	Distributor *Distributor `gorm:"foreignKey:DistributorId" json:"distributor,omitempty"`
@@ -108,8 +108,8 @@ type DistributorLink struct {
 	OrderCount    int        `gorm:"column:order_count;not null;default:0" json:"orderCount"`
 	Status        string     `gorm:"column:status;type:varchar(20);not null;default:active" json:"status"`
 	ExpiresAt     *time.Time `gorm:"column:expires_at" json:"expiresAt"`
-	CreatedAt     time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt     time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt     time.Time  `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt     time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 
 	// 关联
 	Distributor *Distributor `gorm:"foreignKey:DistributorId" json:"distributor,omitempty"`

@@ -15,8 +15,8 @@ type User struct {
 	Status        string     `gorm:"column:status;type:varchar(20);not null;default:active;index" json:"status"`  // active/disabled/locked
 	LoginAttempts int        `gorm:"column:login_attempts;default:0" json:"loginAttempts"`
 	LockedUntil   *time.Time `gorm:"column:locked_until" json:"lockedUntil"`
-	CreatedAt     time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt     time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt     time.Time  `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt     time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (User) TableName() string {
@@ -29,8 +29,8 @@ type Role struct {
 	Name        string    `gorm:"column:name;type:varchar(50);not null" json:"name"`
 	Code        string    `gorm:"column:code;type:varchar(50);not null;uniqueIndex" json:"code"` // platform_admin/participant/anonymous
 	Description string    `gorm:"column:description;type:varchar(200)" json:"description"`
-	CreatedAt   time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt   time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt   time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (Role) TableName() string {
@@ -42,7 +42,7 @@ type UserRole struct {
 	ID        int64     `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	UserID    int64     `gorm:"column:user_id;not null;uniqueIndex:uk_user_role" json:"userId"`
 	RoleID    int64     `gorm:"column:role_id;not null;uniqueIndex:uk_user_role;index" json:"roleId"`
-	CreatedAt time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
+	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
 }
 
 func (UserRole) TableName() string {
@@ -57,7 +57,7 @@ type Permission struct {
 	Resource    string    `gorm:"column:resource;type:varchar(100);not null" json:"resource"` // campaign/order/user/brand
 	Action      string    `gorm:"column:action;type:varchar(50);not null" json:"action"`      // create/read/update/delete
 	Description string    `gorm:"column:description;type:varchar(200)" json:"description"`
-	CreatedAt   time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
+	CreatedAt   time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
 }
 
 func (Permission) TableName() string {
@@ -69,7 +69,7 @@ type RolePermission struct {
 	ID           int64     `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	RoleID       int64     `gorm:"column:role_id;not null;uniqueIndex:uk_role_permission;index" json:"roleId"`
 	PermissionID int64     `gorm:"column:permission_id;not null;uniqueIndex:uk_role_permission;index" json:"permissionId"`
-	CreatedAt    time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
+	CreatedAt    time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
 }
 
 func (RolePermission) TableName() string {
@@ -83,8 +83,8 @@ type Brand struct {
 	Logo        string    `gorm:"column:logo;type:varchar(255)" json:"logo"`
 	Description string    `gorm:"column:description;type:text" json:"description"`
 	Status      string    `gorm:"column:status;type:varchar(20);not null;default:active;index" json:"status"` // active/disabled
-	CreatedAt   time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt   time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt   time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (Brand) TableName() string {
@@ -96,7 +96,7 @@ type UserBrand struct {
 	Id        int64     `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	UserId    int64     `gorm:"column:user_id;not null;uniqueIndex:uk_user_brand;index" json:"userId"`
 	BrandId   int64     `gorm:"column:brand_id;not null;uniqueIndex:uk_user_brand;index" json:"brandId"`
-	CreatedAt time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
+	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
 }
 
 func (UserBrand) TableName() string {
@@ -120,8 +120,8 @@ type Withdrawal struct {
 	RejectedReason string     `gorm:"column:rejected_reason;type:text" json:"rejectedReason"`
 	PaidAt         *time.Time `gorm:"column:paid_at" json:"paidAt"`
 	TradeNo        string     `gorm:"column:trade_no;type:varchar(100)" json:"tradeNo"`
-	CreatedAt      time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
-	UpdatedAt      time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt      time.Time  `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`
+	UpdatedAt      time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 
 	// 兼容旧字段（保留用于向后兼容）
 	BankName    string `gorm:"column:bank_name;type:varchar(100)" json:"bankName"`
@@ -146,8 +146,8 @@ type Menu struct {
 	Type      string    `gorm:"column:type;type:varchar(20);not null;default:menu" json:"type"`             // menu/button
 	Platform  string    `gorm:"column:platform;type:varchar(20);not null;default:admin" json:"platform"`    // admin/h5
 	Status    string    `gorm:"column:status;type:varchar(20);not null;default:active;index" json:"status"` // active/disabled
-	CreatedAt time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (Menu) TableName() string {
@@ -159,7 +159,7 @@ type RoleMenu struct {
 	ID        int64     `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	RoleID    int64     `gorm:"column:role_id;not null;uniqueIndex:uk_role_menu;index" json:"roleId"`
 	MenuID    int64     `gorm:"column:menu_id;not null;uniqueIndex:uk_role_menu;index" json:"menuId"`
-	CreatedAt time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
+	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
 }
 
 func (RoleMenu) TableName() string {
@@ -178,8 +178,8 @@ type BrandAsset struct {
 	FileSize    int64     `gorm:"column:file_size;default:0" json:"fileSize"`
 	Description string    `gorm:"column:description;type:text" json:"description"`
 	Status      string    `gorm:"column:status;type:varchar(20);not null;default:active;index" json:"status"` // active/disabled
-	CreatedAt   time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt   time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt   time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (BrandAsset) TableName() string {

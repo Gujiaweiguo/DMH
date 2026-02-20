@@ -1,6 +1,7 @@
 package poster
 
 import (
+	"dmh/api/internal/handler/testutil"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -11,18 +12,13 @@ import (
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupPosterHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.PosterTemplate{}, &model.PosterRecord{}, &model.PosterTemplateConfig{}, &model.Campaign{}, &model.Brand{}, &model.Distributor{})
+	err := db.AutoMigrate(&model.PosterTemplate{}, &model.PosterRecord{}, &model.PosterTemplateConfig{}, &model.Campaign{}, &model.Brand{}, &model.Distributor{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}

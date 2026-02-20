@@ -1,6 +1,7 @@
 package menu
 
 import (
+	"dmh/api/internal/handler/testutil"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -15,18 +16,13 @@ import (
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func setupMenuHandlerTestDB(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.Menu{}, &model.Role{}, &model.RoleMenu{}, &model.User{}, &model.UserRole{})
+	err := db.AutoMigrate(&model.Menu{}, &model.Role{}, &model.RoleMenu{}, &model.User{}, &model.UserRole{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -209,7 +205,7 @@ func TestGetMenusHandler_EmptyList(t *testing.T) {
 func TestGetUserMenusHandler_Success(t *testing.T) {
 	db := setupMenuHandlerTestDB(t)
 
-	user := &model.User{Username: "testuser", Password: "pass", Phone: "13800138000", Status: "active"}
+	user := &model.User{Username: "testuser", Password: "pass", Phone: testutil.GenUniquePhone(), Status: "active"}
 	db.Create(user)
 
 	role := &model.Role{Name: "admin", Code: "admin"}

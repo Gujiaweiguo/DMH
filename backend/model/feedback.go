@@ -19,8 +19,8 @@ type UserFeedback struct {
 	AssigneeID     *int64     `gorm:"column:assignee_id" json:"assigneeId"`
 	Response       string     `gorm:"column:response;type:text" json:"response"`
 	ResolvedAt     *time.Time `gorm:"column:resolved_at" json:"resolvedAt"`
-	CreatedAt      time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index:idx_user_created,idx_status_created,idx_category_created,idx_priority_created" json:"createdAt"`
-	UpdatedAt      time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt      time.Time  `gorm:"column:created_at;not null;autoCreateTime;index:idx_user_created,idx_status_created,idx_category_created,idx_priority_created" json:"createdAt"`
+	UpdatedAt      time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 
 	// 关联
 	User     *User         `gorm:"foreignKey:UserID" json:"user,omitempty"`
@@ -47,7 +47,7 @@ type FeatureSatisfactionSurvey struct {
 	LeastLiked             string    `gorm:"column:least_liked;type:text" json:"leastLiked"`
 	ImprovementSuggestions string    `gorm:"column:improvement_suggestions;type:text" json:"improvementSuggestions"`
 	WouldLikeMoreFeatures  string    `gorm:"column:would_like_more_features;type:text" json:"wouldLikeMoreFeatures"`
-	CreatedAt              time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
+	CreatedAt              time.Time `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`
 
 	// 关联
 	User *User `gorm:"foreignKey:UserID" json:"user,omitempty"`
@@ -68,8 +68,8 @@ type FAQItem struct {
 	ViewCount       int       `gorm:"column:view_count;default:0" json:"viewCount"`
 	HelpfulCount    int       `gorm:"column:helpful_count;default:0" json:"helpfulCount"`
 	NotHelpfulCount int       `gorm:"column:not_helpful_count;default:0" json:"notHelpfulCount"`
-	CreatedAt       time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
-	UpdatedAt       time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt       time.Time `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`
+	UpdatedAt       time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (FAQItem) TableName() string {
@@ -87,7 +87,7 @@ type FeatureUsageStat struct {
 	Success      bool      `gorm:"column:success;not null;default:true;index" json:"success"`
 	DurationMs   *int      `gorm:"column:duration_ms" json:"durationMs"`
 	ErrorMessage string    `gorm:"column:error_message;type:text" json:"errorMessage"`
-	CreatedAt    time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
+	CreatedAt    time.Time `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`
 
 	// 关联
 	User     *User     `gorm:"foreignKey:UserID" json:"user,omitempty"`
@@ -103,7 +103,7 @@ type FeedbackTag struct {
 	ID        int64     `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	Name      string    `gorm:"column:name;type:varchar(50);not null;uniqueIndex" json:"name"`
 	Color     string    `gorm:"column:color;type:varchar(20);default:#1890ff" json:"color"` // 标签颜色
-	CreatedAt time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
+	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
 }
 
 func (FeedbackTag) TableName() string {

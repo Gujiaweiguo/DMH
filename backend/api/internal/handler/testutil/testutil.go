@@ -2,28 +2,53 @@ package testutil
 
 import (
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	_ "github.com/go-sql-driver/mysql"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
-// SetupTestDB creates an in-memory SQLite DB for tests.
-// It enables foreign key constraints and verifies a connection can be established.
+const testDSN = "root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local&multiStatements=true"
+
+// SetupTestDB creates a *sql.DB connection for testing (legacy, uses database/sql).
 func SetupTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("mysql", testDSN)
 	if err != nil {
-		t.Fatalf("failed to open in-memory sqlite3 DB: %v", err)
+		t.Fatalf("failed to open MySQL test DB: %v", err)
 	}
 	if err := db.Ping(); err != nil {
-		t.Fatalf("failed to ping sqlite3 DB: %v", err)
+		t.Fatalf("failed to ping MySQL DB: %v", err)
 	}
-	// Ensure foreign keys are enforced to mimic real-world behavior.
-	if _, err := db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
-		t.Fatalf("failed to enable foreign keys: %v", err)
+	return db
+}
+
+// SetupGormTestDB creates a *gorm.DB connection for testing with relaxed sql_mode
+// to avoid "Invalid default value for 'created_at'" errors on MySQL 8.0+.
+func SetupGormTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	db, err := gorm.Open(mysql.Open(testDSN), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("failed to open MySQL test DB with GORM: %v", err)
 	}
+
+	// Set relaxed sql_mode to allow CURRENT_TIMESTAMP default on datetime columns
+	// This removes NO_ZERO_IN_DATE, NO_ZERO_DATE which cause issues with GORM's
+	// DEFAULT CURRENT_TIMESTAMP syntax on MySQL 8.0+
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("failed to get underlying sql.DB: %v", err)
+	}
+	if _, err := sqlDB.Exec("SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION'"); err != nil {
+		t.Fatalf("failed to set sql_mode: %v", err)
+	}
+
 	return db
 }
 
@@ -46,4 +71,14 @@ func ExecuteRequest(handler http.HandlerFunc, req *http.Request) *httptest.Respo
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	return rr
+}
+
+// GenUniquePhone generates a unique phone number for testing.
+func GenUniquePhone() string {
+	return fmt.Sprintf("138%08d", time.Now().UnixNano()%100000000)
+}
+
+// GenUniqueUsername generates a unique username for testing.
+func GenUniqueUsername(prefix string) string {
+	return fmt.Sprintf("%s_%d", prefix, time.Now().UnixNano())
 }

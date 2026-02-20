@@ -12,8 +12,8 @@ type VerificationRecord struct {
 	VerificationCode   string     `gorm:"column:verification_code;type:varchar(50)" json:"verificationCode"`
 	VerificationMethod string     `gorm:"column:verification_method;type:varchar(20);not null;default:manual" json:"verificationMethod"` // manual/auto/qrcode
 	Remark             string     `gorm:"column:remark;type:varchar(500)" json:"remark"`
-	CreatedAt          time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
-	UpdatedAt          time.Time  `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt          time.Time  `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`
+	UpdatedAt          time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (VerificationRecord) TableName() string {
@@ -35,8 +35,8 @@ type PosterRecord struct {
 	ShareCount     int       `gorm:"column:share_count;default:0" json:"shareCount"`
 	GeneratedBy    *int64    `gorm:"column:generated_by" json:"generatedBy"`
 	Status         string    `gorm:"column:status;type:varchar(20);not null;default:active;index" json:"status"` // active/deleted
-	CreatedAt      time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;index" json:"createdAt"`
-	UpdatedAt      time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt      time.Time `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`
+	UpdatedAt      time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (PosterRecord) TableName() string {

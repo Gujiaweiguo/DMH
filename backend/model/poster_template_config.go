@@ -33,8 +33,8 @@ type PosterTemplateConfig struct {
 	PreviewImage string                   `gorm:"column:preview_image;type:varchar(255)" json:"previewImage"`
 	Config       PosterTemplateConfigData `gorm:"column:config;type:json;serializer:json" json:"config"`
 	Status       string                   `gorm:"column:status;type:varchar(20);default:active" json:"status"`
-	CreatedAt    time.Time                `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt    time.Time                `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	CreatedAt    time.Time                `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	UpdatedAt    time.Time                `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 }
 
 func (PosterTemplateConfig) TableName() string {
