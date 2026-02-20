@@ -81,7 +81,10 @@ func (suite *DistributorIntegrationTestSuite) createTestData() {
 		{Id: 7, Username: "user7", Phone: "13800000007", Email: "user7@test.com", RealName: "用户7", Role: "participant", Status: "active"},
 	}
 	for _, user := range users {
-		suite.Require().NoError(suite.db.Create(&user).Error)
+		var existing model.User
+		if err := suite.db.Where("id = ?", user.Id).First(&existing).Error; err != nil {
+			suite.Require().NoError(suite.db.Create(&user).Error)
+		}
 	}
 
 	roles := []model.Role{
@@ -91,7 +94,10 @@ func (suite *DistributorIntegrationTestSuite) createTestData() {
 		{ID: 4, Name: "分销商", Code: "distributor"},
 	}
 	for _, role := range roles {
-		suite.Require().NoError(suite.db.Create(&role).Error)
+		var existing model.Role
+		if err := suite.db.Where("id = ?", role.ID).First(&existing).Error; err != nil {
+			suite.Require().NoError(suite.db.Create(&role).Error)
+		}
 	}
 
 	userRoles := []model.UserRole{
@@ -104,14 +110,20 @@ func (suite *DistributorIntegrationTestSuite) createTestData() {
 		{UserID: 7, RoleID: 3},
 	}
 	for _, ur := range userRoles {
-		suite.Require().NoError(suite.db.Create(&ur).Error)
+		var existing model.UserRole
+		if err := suite.db.Where("user_id = ? AND role_id = ?", ur.UserID, ur.RoleID).First(&existing).Error; err != nil {
+			suite.Require().NoError(suite.db.Create(&ur).Error)
+		}
 	}
 
 	brands := []model.Brand{
 		{Id: 1, Name: "品牌A", Status: "active"},
 	}
 	for _, brand := range brands {
-		suite.Require().NoError(suite.db.Create(&brand).Error)
+		var existing model.Brand
+		if err := suite.db.Where("id = ?", brand.Id).First(&existing).Error; err != nil {
+			suite.Require().NoError(suite.db.Create(&brand).Error)
+		}
 	}
 
 	userBrands := []model.UserBrand{
@@ -124,7 +136,10 @@ func (suite *DistributorIntegrationTestSuite) createTestData() {
 		{UserId: 7, BrandId: 1},
 	}
 	for _, ub := range userBrands {
-		suite.Require().NoError(suite.db.Create(&ub).Error)
+		var existing model.UserBrand
+		if err := suite.db.Where("user_id = ? AND brand_id = ?", ub.UserId, ub.BrandId).First(&existing).Error; err != nil {
+			suite.Require().NoError(suite.db.Create(&ub).Error)
+		}
 	}
 
 	distributionRewards := `{"1": 10.0, "2": 5.0, "3": 3.0}`
@@ -145,17 +160,23 @@ func (suite *DistributorIntegrationTestSuite) createTestData() {
 		},
 	}
 	for _, campaign := range campaigns {
-		suite.Require().NoError(suite.db.Create(&campaign).Error)
+		var existing model.Campaign
+		if err := suite.db.Where("id = ?", campaign.Id).First(&existing).Error; err != nil {
+			suite.Require().NoError(suite.db.Create(&campaign).Error)
+		}
 	}
 
 	for i := 1; i <= 7; i++ {
-		balance := &model.UserBalance{
-			UserId:      int64(i),
-			Balance:     0.0,
-			TotalReward: 0.0,
-			Version:     0,
+		var existing model.UserBalance
+		if err := suite.db.Where("user_id = ?", i).First(&existing).Error; err != nil {
+			balance := &model.UserBalance{
+				UserId:      int64(i),
+				Balance:     0.0,
+				TotalReward: 0.0,
+				Version:     0,
+			}
+			suite.Require().NoError(suite.db.Create(balance).Error)
 		}
-		suite.Require().NoError(suite.db.Create(balance).Error)
 	}
 }
 

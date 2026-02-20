@@ -332,13 +332,13 @@ func TestGetDistributorRewardsLogic_GetRewards_Success(t *testing.T) {
 	db := setupDistributorTestDB(t)
 	user := createTestUser(t, db, "distributor")
 	brand := createTestBrand(t, db, "TestBrand")
-	createTestDistributor(t, db, user.Id, brand.Id, 1, "active")
+	dist := createTestDistributor(t, db, user.Id, brand.Id, 1, "active")
 
-	// 创建奖励记录
 	reward := &model.DistributorReward{
-		UserId: user.Id,
-		Amount: 100.50,
-		Level:  1,
+		DistributorId: dist.Id,
+		UserId:        user.Id,
+		Amount:        100.50,
+		Level:         1,
 	}
 	db.Create(reward)
 
