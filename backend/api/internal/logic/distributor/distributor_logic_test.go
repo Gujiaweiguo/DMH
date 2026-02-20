@@ -6,23 +6,20 @@ import (
 	"math/rand"
 	"testing"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 func setupDistributorTestDB(t *testing.T) *gorm.DB {
-	dsn := "root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	t.Helper()
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(
+	err := db.AutoMigrate(
 		&model.Distributor{},
 		&model.DistributorApplication{},
 		&model.DistributorLink{},
@@ -38,10 +35,40 @@ func setupDistributorTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
 
+	testutil.ClearTables(db,
+		"distributor_rewards",
+		"distributor_level_rewards",
+		"distributor_links",
+		"distributor_applications",
+		"distributors",
+		"orders",
+		"user_balances",
+		"campaigns",
+		"brands",
+		"users",
+	)
+
 	return db
 }
 
 func createTestDistributor(t *testing.T, db *gorm.DB, userId, brandId int64, level int, status string) *model.Distributor {
+	t.Helper()
+	var user model.User
+	if err := db.Where("id = ?", userId).First(&user).Error; err != nil {
+		user = model.User{Id: userId, Username: fmt.Sprintf("user_%d", userId), Password: "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17zhU", Phone: fmt.Sprintf("139%08d", userId%100000000), Status: "active"}
+		if err := db.Create(&user).Error; err != nil {
+			t.Fatalf("Failed to create dependent user: %v", err)
+		}
+	}
+
+	var brand model.Brand
+	if err := db.Where("id = ?", brandId).First(&brand).Error; err != nil {
+		brand = model.Brand{Id: brandId, Name: fmt.Sprintf("Brand_%d", brandId), Status: "active"}
+		if err := db.Create(&brand).Error; err != nil {
+			t.Fatalf("Failed to create dependent brand: %v", err)
+		}
+	}
+
 	distributor := &model.Distributor{
 		UserId:            userId,
 		BrandId:           brandId,
@@ -172,14 +199,18 @@ func TestGenerateDistributorLinkLogic_Success(t *testing.T) {
 
 	user := createTestUser(t, db, "testuser")
 	brand := createTestBrand(t, db, "TestBrand")
-	createTestDistributor(t, db, user.Id, brand.Id, 1, "active")
+	campaign := &model.Campaign{BrandId: brand.Id, Name: "campaign", Status: "active", RewardRule: 10}
+	if err := db.Create(campaign).Error; err != nil {
+		t.Fatalf("Failed to create campaign: %v", err)
+	}
+	createTestDistributor(t, db, user.Id, campaign.Id, 1, "active")
 
 	ctx := context.WithValue(context.Background(), "userId", user.Id)
 	svcCtx := &svc.ServiceContext{DB: db}
 	logic := NewGenerateDistributorLinkLogic(ctx, svcCtx)
 
 	req := &types.GenerateLinkReq{
-		CampaignId: brand.Id,
+		CampaignId: campaign.Id,
 	}
 
 	resp, err := logic.GenerateDistributorLink(req)
@@ -189,7 +220,7 @@ func TestGenerateDistributorLinkLogic_Success(t *testing.T) {
 	assert.NotZero(t, resp.LinkId)
 	assert.NotEmpty(t, resp.Link)
 	assert.NotEmpty(t, resp.LinkCode)
-	assert.Equal(t, brand.Id, resp.CampaignId)
+	assert.Equal(t, campaign.Id, resp.CampaignId)
 }
 
 func TestGetMyDistributorDashboardLogic_HasDistributor(t *testing.T) {
@@ -350,18 +381,27 @@ func TestGetDistributorLinksLogic_Success(t *testing.T) {
 
 	user := createTestUser(t, db, "testuser")
 	brand := createTestBrand(t, db, "TestBrand")
-	createTestDistributor(t, db, user.Id, brand.Id, 1, "active")
+	campaign := &model.Campaign{BrandId: brand.Id, Name: "campaign_links", Status: "active", RewardRule: 10}
+	if err := db.Create(campaign).Error; err != nil {
+		t.Fatalf("Failed to create campaign: %v", err)
+	}
+	createTestDistributor(t, db, user.Id, campaign.Id, 1, "active")
 
 	ctx := context.WithValue(context.Background(), "userId", user.Id)
 	svcCtx := &svc.ServiceContext{DB: db}
 	logic := NewGenerateDistributorLinkLogic(ctx, svcCtx)
 
 	req := &types.GenerateLinkReq{
-		CampaignId: brand.Id,
+		CampaignId: campaign.Id,
 	}
 
-	link1, _ := logic.GenerateDistributorLink(req)
-	link2, _ := logic.GenerateDistributorLink(req)
+	link1, err1 := logic.GenerateDistributorLink(req)
+	link2, err2 := logic.GenerateDistributorLink(req)
+	assert.NoError(t, err1)
+	assert.NoError(t, err2)
+	if link1 == nil || link2 == nil {
+		t.Fatalf("expected generated links, got nil")
+	}
 
 	getLinksLogic := NewGetDistributorLinksLogic(ctx, svcCtx)
 	links, err := getLinksLogic.GetDistributorLinks()
