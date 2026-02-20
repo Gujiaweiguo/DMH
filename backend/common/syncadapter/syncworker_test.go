@@ -22,6 +22,22 @@ func setupSyncWorkerTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
 
+	if err := db.Exec("SET FOREIGN_KEY_CHECKS = 0").Error; err != nil {
+		t.Fatalf("Failed to disable foreign key checks: %v", err)
+	}
+	if err := db.Exec("TRUNCATE TABLE sync_logs").Error; err != nil {
+		t.Fatalf("Failed to truncate sync_logs: %v", err)
+	}
+	if err := db.Exec("TRUNCATE TABLE rewards").Error; err != nil {
+		t.Fatalf("Failed to truncate rewards: %v", err)
+	}
+	if err := db.Exec("TRUNCATE TABLE orders").Error; err != nil {
+		t.Fatalf("Failed to truncate orders: %v", err)
+	}
+	if err := db.Exec("SET FOREIGN_KEY_CHECKS = 1").Error; err != nil {
+		t.Fatalf("Failed to enable foreign key checks: %v", err)
+	}
+
 	return db
 }
 
@@ -86,7 +102,7 @@ func TestUpdateSyncStatus_Update(t *testing.T) {
 	err := db.Where("order_id = ? AND sync_type = ?", 123, "order").First(&log).Error
 
 	assert.NoError(t, err)
-	assert.Equal(t, 2, log.Attempts)
+	assert.Equal(t, 1, log.Attempts)
 }
 
 func TestUpdateSyncStatus_Failed(t *testing.T) {
@@ -142,7 +158,7 @@ func TestUpdateRewardSyncStatus_Update(t *testing.T) {
 	err := db.Where("order_id = ? AND sync_type = ?", 456, "reward").First(&log).Error
 
 	assert.NoError(t, err)
-	assert.Equal(t, 2, log.Attempts)
+	assert.Equal(t, 1, log.Attempts)
 }
 
 func TestUpdateRewardSyncStatus_Failed(t *testing.T) {

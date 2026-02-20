@@ -6,6 +6,7 @@ package syncadapter
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -159,13 +160,20 @@ func (w *SyncWorker) updateSyncStatus(orderId int64, status, errorMsg string) {
 	result := w.db.Where("order_id = ? AND sync_type = ?", orderId, "order").First(&existing)
 
 	if result.Error == nil {
-		// 更新现有记录
-		log.Id = existing.Id
+		updates := map[string]interface{}{
+			"sync_status": status,
+			"error_msg":   errorMsg,
+			"synced_at":   syncedAt,
+			"attempts":    existing.Attempts + 1,
+			"updated_at":  time.Now(),
+		}
+		_ = w.db.Model(&model.SyncLog{}).Where("id = ?", existing.Id).Updates(updates).Error
 		log.Attempts = existing.Attempts + 1
-		w.db.Save(&log)
-	} else {
+	} else if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		// 创建新记录
 		w.db.Create(&log)
+	} else {
+		w.logger.Errorf("query sync log failed: %v", result.Error)
 	}
 
 	w.logger.Infof("Sync status updated: orderId=%d, status=%s, attempts=%d", orderId, status, log.Attempts)
@@ -194,13 +202,20 @@ func (w *SyncWorker) updateRewardSyncStatus(rewardId int64, status, errorMsg str
 	result := w.db.Where("order_id = ? AND sync_type = ?", rewardId, "reward").First(&existing)
 
 	if result.Error == nil {
-		// 更新现有记录
-		log.Id = existing.Id
+		updates := map[string]interface{}{
+			"sync_status": status,
+			"error_msg":   errorMsg,
+			"synced_at":   syncedAt,
+			"attempts":    existing.Attempts + 1,
+			"updated_at":  time.Now(),
+		}
+		_ = w.db.Model(&model.SyncLog{}).Where("id = ?", existing.Id).Updates(updates).Error
 		log.Attempts = existing.Attempts + 1
-		w.db.Save(&log)
-	} else {
+	} else if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		// 创建新记录
 		w.db.Create(&log)
+	} else {
+		w.logger.Errorf("query reward sync log failed: %v", result.Error)
 	}
 
 	w.logger.Infof("Reward sync status updated: rewardId=%d, status=%s, attempts=%d", rewardId, status, log.Attempts)
