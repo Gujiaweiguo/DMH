@@ -9,7 +9,7 @@ type VerificationRecord struct {
 	VerificationStatus string     `gorm:"column:verification_status;type:varchar(20);not null;default:pending;index" json:"verificationStatus"` // pending/verified/cancelled
 	VerifiedAt         *time.Time `gorm:"column:verified_at" json:"verifiedAt"`
 	VerifiedBy         *int64     `gorm:"column:verified_by;index" json:"verifiedBy"`
-	VerificationCode   string     `gorm:"column:verification_code;type:varchar(50)" json:"verificationCode"`
+	VerificationCode   string     `gorm:"column:verification_code;type:varchar(128)" json:"verificationCode"`
 	VerificationMethod string     `gorm:"column:verification_method;type:varchar(20);not null;default:manual" json:"verificationMethod"` // manual/auto/qrcode
 	Remark             string     `gorm:"column:remark;type:varchar(500)" json:"remark"`
 	CreatedAt          time.Time  `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`

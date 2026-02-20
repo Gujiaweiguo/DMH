@@ -4,24 +4,27 @@ package poster
 import (
 	"context"
 	"testing"
+	"time"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-func setupPosterTestDB() *gorm.DB {
-	db, _ := gorm.Open(mysql.Open("root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"), &gorm.Config{})
+func setupPosterTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	db := testutil.SetupGormTestDB(t)
 	db.AutoMigrate(&model.PosterTemplateConfig{}, &model.PosterRecord{}, &model.Campaign{}, &model.Distributor{}, &model.User{})
+	testutil.ClearTables(db, "poster_records", "poster_template_configs", "distributors", "campaigns", "users")
 	return db
 }
 
 func TestGetPosterTemplatesLogic(t *testing.T) {
-	db := setupPosterTestDB()
+	db := setupPosterTestDB(t)
 
 	template := &model.PosterTemplateConfig{
 		Id:           1,
@@ -52,13 +55,18 @@ func TestGetPosterTemplatesLogic(t *testing.T) {
 }
 
 func TestGenerateCampaignPosterLogic(t *testing.T) {
-	db := setupPosterTestDB()
+	db := setupPosterTestDB(t)
 
 	campaign := &model.Campaign{
 		Id:               1,
 		Name:             "测试活动",
 		Description:      "这是一个测试活动",
 		PosterTemplateId: 1,
+		StartTime:        time.Now().Add(-1 * time.Hour),
+		EndTime:          time.Now().Add(24 * time.Hour),
+		Status:           "active",
+		BrandId:          1,
+		RewardRule:       10,
 	}
 	template := &model.PosterTemplateConfig{
 		Id:           1,
@@ -92,18 +100,20 @@ func TestGenerateCampaignPosterLogic(t *testing.T) {
 }
 
 func TestGenerateDistributorPosterLogic(t *testing.T) {
-	db := setupPosterTestDB()
+	db := setupPosterTestDB(t)
 
 	user := &model.User{
 		Id:       1,
 		Username: "testuser",
 		Phone:    "13800138000",
 	}
+	brand := &model.Brand{Id: 1, Name: "Brand1", Status: "active"}
 	distributor := &model.Distributor{
-		Id:     1,
-		UserId: 1,
-		Level:  1,
-		Status: "normal",
+		Id:      1,
+		UserId:  1,
+		BrandId: 1,
+		Level:   1,
+		Status:  "active",
 	}
 	template := &model.PosterTemplateConfig{
 		Id:     1,
@@ -111,6 +121,7 @@ func TestGenerateDistributorPosterLogic(t *testing.T) {
 		Status: "active",
 	}
 	db.Create(user)
+	db.Create(brand)
 	db.Create(distributor)
 	db.Create(template)
 
@@ -136,7 +147,7 @@ func TestGenerateDistributorPosterLogic(t *testing.T) {
 }
 
 func TestGetPosterRecordsLogic(t *testing.T) {
-	db := setupPosterTestDB()
+	db := setupPosterTestDB(t)
 
 	record1 := &model.PosterRecord{
 		ID:             1,

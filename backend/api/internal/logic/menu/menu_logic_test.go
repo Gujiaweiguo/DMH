@@ -5,23 +5,25 @@ import (
 	"context"
 	"testing"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-func setupMenuTestDB() *gorm.DB {
-	db, _ := gorm.Open(mysql.Open("root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"), &gorm.Config{})
+func setupMenuTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	db := testutil.SetupGormTestDB(t)
 	db.AutoMigrate(&model.Menu{}, &model.RoleMenu{}, &model.UserRole{}, &model.User{}, &model.Role{})
+	testutil.ClearTables(db, "role_menus", "user_roles", "menus", "roles", "users")
 	return db
 }
 
 func TestCreateMenuLogic(t *testing.T) {
-	db := setupMenuTestDB()
+	db := setupMenuTestDB(t)
 
 	svcCtx := &svc.ServiceContext{DB: db}
 	logic := NewCreateMenuLogic(context.Background(), svcCtx)
@@ -45,7 +47,7 @@ func TestCreateMenuLogic(t *testing.T) {
 }
 
 func TestUpdateMenuLogic(t *testing.T) {
-	db := setupMenuTestDB()
+	db := setupMenuTestDB(t)
 
 	menu := &model.Menu{
 		ID:       1,
@@ -76,7 +78,7 @@ func TestUpdateMenuLogic(t *testing.T) {
 }
 
 func TestDeleteMenuLogic(t *testing.T) {
-	db := setupMenuTestDB()
+	db := setupMenuTestDB(t)
 
 	menu := &model.Menu{
 		ID:       1,
@@ -103,7 +105,7 @@ func TestDeleteMenuLogic(t *testing.T) {
 }
 
 func TestGetMenuLogic(t *testing.T) {
-	db := setupMenuTestDB()
+	db := setupMenuTestDB(t)
 
 	menu := &model.Menu{
 		ID:       1,
@@ -129,7 +131,7 @@ func TestGetMenuLogic(t *testing.T) {
 }
 
 func TestGetMenusLogic(t *testing.T) {
-	db := setupMenuTestDB()
+	db := setupMenuTestDB(t)
 
 	menus := []model.Menu{
 		{ID: 1, Name: "活动管理", Code: "campaign", Path: "/campaign", Sort: 1, Type: "menu", Platform: "admin", Status: "active"},
@@ -151,7 +153,7 @@ func TestGetMenusLogic(t *testing.T) {
 }
 
 func TestGetUserMenusLogic(t *testing.T) {
-	db := setupMenuTestDB()
+	db := setupMenuTestDB(t)
 
 	user := &model.User{
 		Id:       1,
@@ -224,7 +226,7 @@ func TestGetUserMenusLogic(t *testing.T) {
 }
 
 func TestConfigRoleMenusLogic(t *testing.T) {
-	db := setupMenuTestDB()
+	db := setupMenuTestDB(t)
 
 	role := &model.Role{
 		ID:   1,

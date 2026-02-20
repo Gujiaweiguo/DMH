@@ -12,6 +12,7 @@ import (
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
 
@@ -216,6 +217,8 @@ func TestCreateOrderLogic_GenerateVerificationCode(t *testing.T) {
 
 func TestPaymentCallbackLogic_Success(t *testing.T) {
 	db := setupTestDB(t)
+	require.NoError(t, db.Create(&model.Brand{Id: 1, Name: "Brand1", Status: "active"}).Error)
+	require.NoError(t, db.Create(&model.User{Id: 100, Username: "referrer", Password: "pwd", Phone: "13800138100", Status: "active", Role: "participant"}).Error)
 
 	campaign := &model.Campaign{
 		Name:               "测试活动",
@@ -237,14 +240,14 @@ func TestPaymentCallbackLogic_Success(t *testing.T) {
 		Status:        "active",
 		TotalEarnings: 0,
 	}
-	db.Create(distributor)
+	require.NoError(t, db.Create(distributor).Error)
 
 	levelReward := &model.DistributorLevelReward{
 		BrandId:          1,
 		Level:            1,
 		RewardPercentage: 50.00,
 	}
-	db.Create(levelReward)
+	require.NoError(t, db.Create(levelReward).Error)
 
 	order := &model.Order{
 		Id:                 1,
@@ -257,7 +260,7 @@ func TestPaymentCallbackLogic_Success(t *testing.T) {
 		Amount:             100.00,
 		VerificationStatus: "unverified",
 	}
-	db.Create(order)
+	require.NoError(t, db.Create(order).Error)
 
 	ctx := context.Background()
 	svcCtx := &svc.ServiceContext{DB: db}

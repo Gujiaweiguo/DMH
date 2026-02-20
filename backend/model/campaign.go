@@ -61,7 +61,7 @@ type Order struct {
 	VerificationStatus string     `gorm:"column:verification_status;type:varchar(20);default:unverified;index" json:"verificationStatus"` // unverified, verified, cancelled
 	VerifiedAt         *time.Time `gorm:"column:verified_at" json:"verifiedAt,omitempty"`                                                 // 核销时间
 	VerifiedBy         *int64     `gorm:"column:verified_by" json:"verifiedBy,omitempty"`                                                 // 核销人用户ID
-	VerificationCode   string     `gorm:"column:verification_code;type:varchar(50);null" json:"verificationCode,omitempty"`               // 核销码（包含签名）
+	VerificationCode   string     `gorm:"column:verification_code;type:varchar(128);null" json:"verificationCode,omitempty"`              // 核销码（包含签名）
 	CreatedAt          time.Time  `gorm:"column:created_at;not null;autoCreateTime;index" json:"createdAt"`
 	UpdatedAt          time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
 	DeletedAt          *time.Time `gorm:"column:deleted_at" json:"deletedAt,omitempty"`

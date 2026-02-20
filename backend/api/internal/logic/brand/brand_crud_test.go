@@ -2,7 +2,9 @@ package brand
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
@@ -49,7 +51,7 @@ func TestCreateBrandAssetLogic_CreateBrandAsset_Success(t *testing.T) {
 	logic := NewCreateBrandAssetLogic(ctx, svcCtx)
 
 	req := &types.BrandAssetReq{
-		BrandId:  "1",
+		BrandId:  fmt.Sprintf("%d", brand.Id),
 		Name:     "测试素材",
 		Type:     "image",
 		FileUrl:  "https://example.com/asset.jpg",
@@ -199,18 +201,21 @@ func TestGetBrandStatsLogic_Success(t *testing.T) {
 	db := setupBrandTestDB(t)
 	brand := createTestBrand(t, db, "Test Brand", "active")
 	campaign := &model.Campaign{
-		Id:        1,
-		Name:      "Test Campaign",
-		BrandId:   brand.Id,
-		Status:    "active",
-		CreatedAt: db.NowFunc(),
+		Name:       "Test Campaign",
+		BrandId:    brand.Id,
+		Status:     "active",
+		StartTime:  time.Now(),
+		EndTime:    time.Now().Add(24 * time.Hour),
+		RewardRule: 10,
+		CreatedAt:  db.NowFunc(),
 	}
 	db.Create(campaign)
 
 	order := &model.Order{
-		CampaignId: 1,
+		CampaignId: campaign.Id,
 		Amount:     100,
 		PayStatus:  "paid",
+		FormData:   "{}",
 		CreatedAt:  db.NowFunc(),
 	}
 	db.Create(order)
@@ -474,16 +479,16 @@ func TestGetBrandStatsLogic_WithMultipleCampaigns(t *testing.T) {
 	require.NoError(t, db.AutoMigrate(&model.Reward{}, &model.Member{}))
 	brand := createTestBrand(t, db, "Test Brand", "active")
 
-	campaign1 := &model.Campaign{Name: "Campaign 1", BrandId: brand.Id, Status: "active"}
-	campaign2 := &model.Campaign{Name: "Campaign 2", BrandId: brand.Id, Status: "active"}
-	campaign3 := &model.Campaign{Name: "Campaign 3", BrandId: brand.Id, Status: "disabled"}
+	campaign1 := &model.Campaign{Name: "Campaign 1", BrandId: brand.Id, Status: "active", StartTime: time.Now(), EndTime: time.Now().Add(24 * time.Hour), RewardRule: 10}
+	campaign2 := &model.Campaign{Name: "Campaign 2", BrandId: brand.Id, Status: "active", StartTime: time.Now(), EndTime: time.Now().Add(24 * time.Hour), RewardRule: 10}
+	campaign3 := &model.Campaign{Name: "Campaign 3", BrandId: brand.Id, Status: "disabled", StartTime: time.Now(), EndTime: time.Now().Add(24 * time.Hour), RewardRule: 10}
 	db.Create(campaign1)
 	db.Create(campaign2)
 	db.Create(campaign3)
 
-	order1 := &model.Order{CampaignId: campaign1.Id, Amount: 100, PayStatus: "paid"}
-	order2 := &model.Order{CampaignId: campaign2.Id, Amount: 200, PayStatus: "paid"}
-	order3 := &model.Order{CampaignId: campaign3.Id, Amount: 50, PayStatus: "unpaid"}
+	order1 := &model.Order{CampaignId: campaign1.Id, Amount: 100, PayStatus: "paid", FormData: "{}"}
+	order2 := &model.Order{CampaignId: campaign2.Id, Amount: 200, PayStatus: "paid", FormData: "{}"}
+	order3 := &model.Order{CampaignId: campaign3.Id, Amount: 50, PayStatus: "unpaid", FormData: "{}"}
 	db.Create(order1)
 	db.Create(order2)
 	db.Create(order3)

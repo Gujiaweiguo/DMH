@@ -64,7 +64,7 @@ func (l *GetBrandStatsLogic) GetBrandStats(req *types.GetBrandStatsReq) (resp *t
 
 	var totalRewards float64
 	if err := l.svcCtx.DB.Model(&model.Reward{}).
-		Select("COALESCE(SUM(amount), 0)").
+		Select("COALESCE(SUM(rewards.amount), 0)").
 		Joins("JOIN orders ON orders.id = rewards.order_id").
 		Joins("JOIN campaigns ON campaigns.id = orders.campaign_id").
 		Where("campaigns.brand_id = ?", brand.Id).

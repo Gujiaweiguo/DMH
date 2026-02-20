@@ -6,23 +6,25 @@ import (
 	"testing"
 	"time"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-func setupWithdrawalTestDB() *gorm.DB {
-	db, _ := gorm.Open(mysql.Open("root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"), &gorm.Config{})
+func setupWithdrawalTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	db := testutil.SetupGormTestDB(t)
 	db.AutoMigrate(&model.Withdrawal{}, &model.User{}, &model.Distributor{}, &model.Brand{}, &model.UserBalance{})
+	testutil.ClearTables(db, "withdrawals", "user_balances", "distributors", "brands", "users")
 	return db
 }
 
 func TestApplyWithdrawalLogic(t *testing.T) {
-	db := setupWithdrawalTestDB()
+	db := setupWithdrawalTestDB(t)
 
 	// 创建测试用户
 	user := &model.User{
@@ -34,22 +36,24 @@ func TestApplyWithdrawalLogic(t *testing.T) {
 	}
 	db.Create(user)
 
+	// 创建测试品牌
+	brand := &model.Brand{
+		Id:     1,
+		Name:   "Test Brand",
+		Status: "active",
+	}
+	db.Create(brand)
+
 	// 创建测试分销商
 	distributor := &model.Distributor{
 		Id:            1,
 		UserId:        1,
+		BrandId:       1,
 		Level:         1,
 		TotalEarnings: 1000,
-		Status:        "normal",
+		Status:        "active",
 	}
 	db.Create(distributor)
-
-	// 创建测试品牌
-	brand := &model.Brand{
-		Id:   1,
-		Name: "Test Brand",
-	}
-	db.Create(brand)
 
 	// 创建用户余额
 	balance := &model.UserBalance{
@@ -130,7 +134,7 @@ func TestApplyWithdrawalLogic(t *testing.T) {
 }
 
 func TestApproveWithdrawalLogic(t *testing.T) {
-	db := setupWithdrawalTestDB()
+	db := setupWithdrawalTestDB(t)
 
 	// 创建测试数据
 	user := &model.User{Id: 1, Username: "testuser", Phone: "13800138000"}
@@ -228,7 +232,7 @@ func TestApproveWithdrawalLogic(t *testing.T) {
 }
 
 func TestGetWithdrawalsLogic(t *testing.T) {
-	db := setupWithdrawalTestDB()
+	db := setupWithdrawalTestDB(t)
 
 	// 创建测试数据
 	user := &model.User{Id: 1, Username: "testuser", Phone: "13800138000", RealName: "张三"}
@@ -323,7 +327,7 @@ func TestGetWithdrawalsLogic(t *testing.T) {
 }
 
 func TestGetWithdrawalLogic(t *testing.T) {
-	db := setupWithdrawalTestDB()
+	db := setupWithdrawalTestDB(t)
 
 	user := &model.User{Id: 1, Username: "testuser", Phone: "13800138000", RealName: "张三"}
 	distributor := &model.Distributor{Id: 1, UserId: 1}

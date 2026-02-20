@@ -6,26 +6,25 @@ import (
 	"strings"
 	"testing"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 func setupMemberTestDB(t *testing.T) *gorm.DB {
-	dsn := "root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	t.Helper()
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.Member{}, &model.MemberProfile{})
+	err := db.AutoMigrate(&model.Member{}, &model.MemberProfile{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
+
+	testutil.ClearTables(db, "member_profiles", "members")
 
 	return db
 }

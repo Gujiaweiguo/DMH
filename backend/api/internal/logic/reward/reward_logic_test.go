@@ -4,30 +4,37 @@ package reward
 import (
 	"context"
 	"testing"
+	"time"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-func setupRewardTestDB() *gorm.DB {
-	db, _ := gorm.Open(mysql.Open("root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"), &gorm.Config{})
-	db.AutoMigrate(&model.DistributorReward{}, &model.UserBalance{}, &model.Order{})
+func setupRewardTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	db := testutil.SetupGormTestDB(t)
+	db.AutoMigrate(&model.Brand{}, &model.Campaign{}, &model.Distributor{}, &model.User{}, &model.DistributorReward{}, &model.UserBalance{}, &model.Order{})
+	testutil.ClearTables(db, "distributor_rewards", "user_balances", "orders", "distributors", "campaigns", "brands", "users")
 	return db
 }
 
 func TestGetRewardsLogic(t *testing.T) {
-	db := setupRewardTestDB()
+	db := setupRewardTestDB(t)
+
+	brand := &model.Brand{Id: 1, Name: "Brand1", Status: "active"}
+	campaign := &model.Campaign{Id: 1, BrandId: 1, Name: "C1", Status: "active", StartTime: time.Now().Add(-time.Hour), EndTime: time.Now().Add(time.Hour), RewardRule: 10}
 
 	distributor := &model.Distributor{
-		Id:     1,
-		UserId: 1,
-		Level:  1,
-		Status: "normal",
+		Id:      1,
+		UserId:  1,
+		BrandId: 1,
+		Level:   1,
+		Status:  "active",
 	}
 	user := &model.User{
 		Id:       1,
@@ -38,11 +45,14 @@ func TestGetRewardsLogic(t *testing.T) {
 		Id:         1,
 		CampaignId: 1,
 		Phone:      "13800138001",
+		FormData:   "{}",
 		Status:     "paid",
 		Amount:     100,
 	}
-	db.Create(distributor)
+	db.Create(brand)
+	db.Create(campaign)
 	db.Create(user)
+	db.Create(distributor)
 	db.Create(order)
 
 	reward := &model.DistributorReward{
@@ -106,7 +116,7 @@ func TestGetRewardsLogic(t *testing.T) {
 }
 
 func TestGetBalanceLogic(t *testing.T) {
-	db := setupRewardTestDB()
+	db := setupRewardTestDB(t)
 
 	balance := &model.UserBalance{
 		UserId:      1,

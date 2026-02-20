@@ -3,29 +3,27 @@ package security
 import (
 	"context"
 	"testing"
+	"time"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 func setupSecurityLogicTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
-	dsn := "root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("failed to open sqlite db: %v", err)
-	}
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.PasswordPolicy{}, &model.UserSession{}, &model.User{}, &model.SecurityEvent{}, &model.AuditLog{}, &model.LoginAttempt{})
+	err := db.AutoMigrate(&model.PasswordPolicy{}, &model.UserSession{}, &model.User{}, &model.SecurityEvent{}, &model.AuditLog{}, &model.LoginAttempt{})
 	if err != nil {
-		t.Fatalf("failed to migrate sqlite db: %v", err)
+		t.Fatalf("failed to migrate mysql db: %v", err)
 	}
+	testutil.ClearTables(db, "security_events", "audit_logs", "login_attempts", "user_sessions", "password_policies", "users")
 
 	return db
 }
@@ -146,8 +144,8 @@ func TestForceLogoutUserLogic_Success(t *testing.T) {
 
 	user := &model.User{Username: "target", Password: "hashed", Phone: "13800138000", Status: "active"}
 	assert.NoError(t, db.Create(user).Error)
-	assert.NoError(t, db.Create(&model.UserSession{ID: "s1", UserID: user.Id, ClientIP: "127.0.0.1", UserAgent: "ua", Status: "active"}).Error)
-	assert.NoError(t, db.Create(&model.UserSession{ID: "s2", UserID: user.Id, ClientIP: "127.0.0.1", UserAgent: "ua", Status: "active"}).Error)
+	assert.NoError(t, db.Create(&model.UserSession{ID: "s1", UserID: user.Id, ClientIP: "127.0.0.1", UserAgent: "ua", ExpiresAt: time.Now().Add(24 * time.Hour), Status: "active"}).Error)
+	assert.NoError(t, db.Create(&model.UserSession{ID: "s2", UserID: user.Id, ClientIP: "127.0.0.1", UserAgent: "ua", ExpiresAt: time.Now().Add(24 * time.Hour), Status: "active"}).Error)
 
 	logic := NewForceLogoutUserLogic(context.WithValue(context.Background(), "userId", int64(99)), &svc.ServiceContext{DB: db})
 	resp, err := logic.ForceLogoutUser(user.Id, &types.ForceLogoutReq{Reason: "security check"})
@@ -338,7 +336,7 @@ func TestRevokeSessionLogic_Branches(t *testing.T) {
 
 	t.Run("already revoked", func(t *testing.T) {
 		db := setupSecurityLogicTestDB(t)
-		session := &model.UserSession{ID: "revoked-1", UserID: 1, ClientIP: "127.0.0.1", UserAgent: "ua", Status: "revoked"}
+		session := &model.UserSession{ID: "revoked-1", UserID: 1, ClientIP: "127.0.0.1", UserAgent: "ua", ExpiresAt: time.Now().Add(24 * time.Hour), Status: "revoked"}
 		assert.NoError(t, db.Create(session).Error)
 
 		logic := NewRevokeSessionLogic(context.Background(), &svc.ServiceContext{DB: db})
@@ -374,7 +372,7 @@ func TestHandleSecurityEventLogic_Branches(t *testing.T) {
 
 	t.Run("already handled", func(t *testing.T) {
 		db := setupSecurityLogicTestDB(t)
-		event := &model.SecurityEvent{EventType: "login_failed", Severity: "medium", ClientIP: "127.0.0.1", Description: "desc", Handled: true}
+		event := &model.SecurityEvent{EventType: "login_failed", Severity: "medium", ClientIP: "127.0.0.1", Description: "desc", Details: "{}", Handled: true}
 		assert.NoError(t, db.Create(event).Error)
 
 		logic := NewHandleSecurityEventLogic(context.Background(), &svc.ServiceContext{DB: db})
@@ -386,7 +384,7 @@ func TestHandleSecurityEventLogic_Branches(t *testing.T) {
 
 	t.Run("append note and set handler", func(t *testing.T) {
 		db := setupSecurityLogicTestDB(t)
-		event := &model.SecurityEvent{EventType: "login_failed", Severity: "high", ClientIP: "127.0.0.1", Description: "desc", Details: "initial"}
+		event := &model.SecurityEvent{EventType: "login_failed", Severity: "high", ClientIP: "127.0.0.1", Description: "desc", Details: `{"seed":"initial"}`}
 		assert.NoError(t, db.Create(event).Error)
 
 		ctx := context.WithValue(context.Background(), "userId", int64(42))
@@ -401,7 +399,7 @@ func TestHandleSecurityEventLogic_Branches(t *testing.T) {
 		assert.True(t, saved.Handled)
 		assert.NotNil(t, saved.HandledBy)
 		assert.Equal(t, int64(42), *saved.HandledBy)
-		assert.Equal(t, "initial\nprocessed", saved.Details)
+		assert.Contains(t, saved.Details, `"note": "processed"`)
 	})
 }
 
@@ -508,8 +506,8 @@ func TestGetSecurityEventsLogic_WithData(t *testing.T) {
 
 	userID := int64(303)
 	handledBy := int64(404)
-	event1 := &model.SecurityEvent{EventType: "risk", Severity: "high", UserID: &userID, ClientIP: "127.0.0.1", Description: "event-1"}
-	event2 := &model.SecurityEvent{EventType: "login_failed", Severity: "medium", ClientIP: "127.0.0.2", Description: "event-2", Handled: true, HandledBy: &handledBy}
+	event1 := &model.SecurityEvent{EventType: "risk", Severity: "high", UserID: &userID, ClientIP: "127.0.0.1", Description: "event-1", Details: "{}"}
+	event2 := &model.SecurityEvent{EventType: "login_failed", Severity: "medium", ClientIP: "127.0.0.2", Description: "event-2", Details: "{}", Handled: true, HandledBy: &handledBy}
 	assert.NoError(t, db.Create(event1).Error)
 	assert.NoError(t, db.Create(event2).Error)
 
@@ -529,8 +527,8 @@ func TestGetSecurityEventsLogic_WithData(t *testing.T) {
 func TestGetUserSessionsLogic_WithData(t *testing.T) {
 	db := setupSecurityLogicTestDB(t)
 
-	s1 := &model.UserSession{ID: "s1", UserID: 1, ClientIP: "127.0.0.1", UserAgent: "ua1", Status: "active"}
-	s2 := &model.UserSession{ID: "s2", UserID: 2, ClientIP: "127.0.0.2", UserAgent: "ua2", Status: "revoked"}
+	s1 := &model.UserSession{ID: "s1", UserID: 1, ClientIP: "127.0.0.1", UserAgent: "ua1", ExpiresAt: time.Now().Add(24 * time.Hour), Status: "active"}
+	s2 := &model.UserSession{ID: "s2", UserID: 2, ClientIP: "127.0.0.2", UserAgent: "ua2", ExpiresAt: time.Now().Add(24 * time.Hour), Status: "revoked"}
 	assert.NoError(t, db.Create(s1).Error)
 	assert.NoError(t, db.Create(s2).Error)
 

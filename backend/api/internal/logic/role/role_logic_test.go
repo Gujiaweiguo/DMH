@@ -5,23 +5,25 @@ import (
 	"context"
 	"testing"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-func setupRoleTestDB() *gorm.DB {
-	db, _ := gorm.Open(mysql.Open("root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"), &gorm.Config{})
+func setupRoleTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	db := testutil.SetupGormTestDB(t)
 	db.AutoMigrate(&model.Role{}, &model.Permission{}, &model.RolePermission{}, &model.UserRole{}, &model.UserBrand{}, &model.User{}, &model.Brand{})
+	testutil.ClearTables(db, "role_permissions", "user_roles", "user_brands", "permissions", "roles", "users", "brands")
 	return db
 }
 
 func TestGetRolesLogic(t *testing.T) {
-	db := setupRoleTestDB()
+	db := setupRoleTestDB(t)
 
 	role := &model.Role{
 		ID:          1,
@@ -61,7 +63,7 @@ func TestGetRolesLogic(t *testing.T) {
 }
 
 func TestGetPermissionsLogic(t *testing.T) {
-	db := setupRoleTestDB()
+	db := setupRoleTestDB(t)
 
 	permission := &model.Permission{
 		ID:          1,
@@ -86,7 +88,7 @@ func TestGetPermissionsLogic(t *testing.T) {
 }
 
 func TestGetUserPermissionsLogic(t *testing.T) {
-	db := setupRoleTestDB()
+	db := setupRoleTestDB(t)
 
 	user := &model.User{
 		Id:       1,
@@ -147,7 +149,7 @@ func TestGetUserPermissionsLogic(t *testing.T) {
 }
 
 func TestConfigRolePermissionsLogic(t *testing.T) {
-	db := setupRoleTestDB()
+	db := setupRoleTestDB(t)
 
 	role := &model.Role{
 		ID:   1,

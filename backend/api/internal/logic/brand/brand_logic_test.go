@@ -4,25 +4,24 @@ import (
 	"context"
 	"testing"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/model"
 
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 func setupBrandTestDB(t *testing.T) *gorm.DB {
-	dsn := "root:Admin168@tcp(127.0.0.1:3306)/dmh_test?charset=utf8mb4&parseTime=true&loc=Local"
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
+	t.Helper()
+	db := testutil.SetupGormTestDB(t)
 
-	err = db.AutoMigrate(&model.Brand{}, &model.BrandAsset{}, &model.Campaign{}, &model.Order{})
+	err := db.AutoMigrate(&model.Brand{}, &model.BrandAsset{}, &model.Campaign{}, &model.Order{}, &model.Reward{})
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
+
+	testutil.ClearTables(db, "rewards", "orders", "campaigns", "brand_assets", "brands")
 
 	return db
 }

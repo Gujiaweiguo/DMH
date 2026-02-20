@@ -185,6 +185,11 @@ func migrateTestSchema(db *gorm.DB) error {
 
 	// Try AutoMigrate for remaining models (non-critical if some fail)
 	models := []interface{}{
+		&model.Role{},
+		&model.Permission{},
+		&model.UserRole{},
+		&model.RolePermission{},
+		&model.UserBrand{},
 		&model.Menu{},
 		&model.Member{},
 		&model.Order{},
@@ -198,6 +203,7 @@ func migrateTestSchema(db *gorm.DB) error {
 		&model.PasswordPolicy{},
 		&model.AuditLog{},
 		&model.SyncLog{},
+		&model.PageConfig{},
 	}
 
 	for _, m := range models {
@@ -230,7 +236,12 @@ func migrateTestSchema(db *gorm.DB) error {
 	`)
 
 	// Create unique index for order duplicate guard
-	db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS uk_orders_campaign_phone ON orders(campaign_id, phone)")
+	if err := db.Exec("ALTER TABLE orders ADD UNIQUE KEY uk_orders_campaign_phone (campaign_id, phone)").Error; err != nil {
+		errMsg := strings.ToLower(err.Error())
+		if !strings.Contains(errMsg, "duplicate key name") {
+			return fmt.Errorf("failed to create unique index uk_orders_campaign_phone: %w", err)
+		}
+	}
 
 	return nil
 }

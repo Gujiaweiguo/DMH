@@ -27,6 +27,28 @@ func (suite *AdminLogicTestSuite) SetupTest() {
 	}
 
 	db.AutoMigrate(&model.User{}, &model.Role{}, &model.UserRole{}, &model.UserBrand{})
+	db.Exec("SET FOREIGN_KEY_CHECKS = 0")
+	db.Exec("TRUNCATE TABLE distributor_rewards")
+	db.Exec("TRUNCATE TABLE distributor_level_rewards")
+	db.Exec("TRUNCATE TABLE distributor_links")
+	db.Exec("TRUNCATE TABLE distributor_applications")
+	db.Exec("TRUNCATE TABLE distributors")
+	db.Exec("TRUNCATE TABLE withdrawals")
+	db.Exec("TRUNCATE TABLE user_balances")
+	db.Exec("TRUNCATE TABLE orders")
+	db.Exec("TRUNCATE TABLE user_feedback")
+	db.Exec("TRUNCATE TABLE feature_usage_stats")
+	db.Exec("TRUNCATE TABLE feature_satisfaction_surveys")
+	db.Exec("TRUNCATE TABLE feedback_tag_relations")
+	db.Exec("TRUNCATE TABLE security_events")
+	db.Exec("TRUNCATE TABLE audit_logs")
+	db.Exec("TRUNCATE TABLE login_attempts")
+	db.Exec("TRUNCATE TABLE user_sessions")
+	db.Exec("TRUNCATE TABLE user_brands")
+	db.Exec("TRUNCATE TABLE user_roles")
+	db.Exec("TRUNCATE TABLE roles")
+	db.Exec("TRUNCATE TABLE users")
+	db.Exec("SET FOREIGN_KEY_CHECKS = 1")
 
 	suite.ctx = context.Background()
 	suite.svcCtx = &svc.ServiceContext{
@@ -368,7 +390,9 @@ func (suite *AdminLogicTestSuite) TestDeleteUser_Success() {
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), resp)
-	assert.Equal(suite.T(), "删除成功", resp.Message)
+	if resp != nil {
+		assert.Equal(suite.T(), "删除成功", resp.Message)
+	}
 
 	// 验证用户已被删除
 	var deletedUser model.User
