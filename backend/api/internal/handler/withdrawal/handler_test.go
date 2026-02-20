@@ -29,7 +29,6 @@ func setupWithdrawalHandlerTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
 
-
 	testutil.ClearTables(db, "withdrawals", "users", "brands", "distributors", "user_balances")
 	return db
 }
@@ -211,12 +210,10 @@ func TestApplyWithdrawalHandler_Success(t *testing.T) {
 
 func TestApproveWithdrawalHandler_Success(t *testing.T) {
 	db := setupWithdrawalHandlerTestDB(t)
-	// prepare test data: user, balance, and a pending withdrawal
-	user := &model.User{Id: 1, Username: "adminUser", Phone: testutil.GenUniquePhone()}
-	balance := &model.UserBalance{UserId: 1, Balance: 500}
-	db.Create(user)
+	user := createTestUserForWithdrawal(t, db, "adminUser")
+	balance := &model.UserBalance{UserId: user.Id, Balance: 500}
 	db.Create(balance)
-	withdrawal := &model.Withdrawal{ID: 1, UserID: 1, BrandId: 0, DistributorId: 0, Amount: 100, Status: "pending", BankName: "ICBC", BankAccount: "6222021234567890", AccountName: "张三"}
+	withdrawal := &model.Withdrawal{UserID: user.Id, BrandId: 0, DistributorId: 0, Amount: 100, Status: "pending", BankName: "ICBC", BankAccount: "6222021234567890", AccountName: "张三"}
 	db.Create(withdrawal)
 
 	svcCtx := &svc.ServiceContext{DB: db}
@@ -226,14 +223,13 @@ func TestApproveWithdrawalHandler_Success(t *testing.T) {
 	body, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/withdrawals/%d/approve", withdrawal.ID), bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req = req.WithContext(context.WithValue(req.Context(), "userId", int64(1))) // admin id
+	req = req.WithContext(context.WithValue(req.Context(), "userId", int64(1)))
 	req.SetPathValue("id", fmt.Sprintf("%d", withdrawal.ID))
 	resp := httptest.NewRecorder()
 
 	handler(resp, req)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	// verify withdrawal status updated and approved metadata set
 	var w model.Withdrawal
 	db.First(&w, withdrawal.ID)
 	assert.Equal(t, "approved", w.Status)
@@ -242,12 +238,10 @@ func TestApproveWithdrawalHandler_Success(t *testing.T) {
 
 func TestApproveWithdrawalHandler_RejectedWithRefund(t *testing.T) {
 	db := setupWithdrawalHandlerTestDB(t)
-	// prepare test data: user, balance, and a pending withdrawal
-	user := &model.User{Id: 1, Username: "adminUser", Phone: testutil.GenUniquePhone()}
-	balance := &model.UserBalance{UserId: 1, Balance: 500}
-	db.Create(user)
+	user := createTestUserForWithdrawal(t, db, "adminUser")
+	balance := &model.UserBalance{UserId: user.Id, Balance: 500}
 	db.Create(balance)
-	withdrawal := &model.Withdrawal{ID: 1, UserID: 1, Amount: 100, Status: "pending", BankName: "ICBC", BankAccount: "6222021234567890", AccountName: "张三"}
+	withdrawal := &model.Withdrawal{UserID: user.Id, Amount: 100, Status: "pending", BankName: "ICBC", BankAccount: "6222021234567890", AccountName: "张三"}
 	db.Create(withdrawal)
 
 	svcCtx := &svc.ServiceContext{DB: db}
@@ -257,22 +251,21 @@ func TestApproveWithdrawalHandler_RejectedWithRefund(t *testing.T) {
 	body, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/withdrawals/%d/approve", withdrawal.ID), bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req = req.WithContext(context.WithValue(req.Context(), "userId", int64(1))) // admin id
+	req = req.WithContext(context.WithValue(req.Context(), "userId", int64(1)))
 	req.SetPathValue("id", fmt.Sprintf("%d", withdrawal.ID))
 	resp := httptest.NewRecorder()
 
 	handler(resp, req)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	// verify withdrawal status updated and balance refunded
 	var w model.Withdrawal
 	db.First(&w, withdrawal.ID)
 	assert.Equal(t, "rejected", w.Status)
 	assert.NotNil(t, w.ApprovedBy)
 
 	var b model.UserBalance
-	db.Where("user_id = ?", 1).First(&b)
-	assert.Equal(t, float64(600), b.Balance) // 500 + 100 refund
+	db.Where("user_id = ?", user.Id).First(&b)
+	assert.Equal(t, float64(600), b.Balance)
 }
 func TestApproveWithdrawalHandler_ParseError(t *testing.T) {
 	db := setupWithdrawalHandlerTestDB(t)
