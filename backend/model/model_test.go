@@ -15,7 +15,11 @@ func setupModelTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
 
-	// Auto migrate all models that exist
+	err = db.Exec("DROP TABLE IF EXISTS faq_items").Error
+	if err != nil {
+		t.Fatalf("Failed to drop faq_items table: %v", err)
+	}
+
 	err = db.AutoMigrate(
 		&User{}, &Role{}, &UserRole{}, &Permission{}, &RolePermission{},
 		&Brand{}, &UserBrand{}, &BrandAsset{},
@@ -32,6 +36,31 @@ func setupModelTestDB(t *testing.T) *gorm.DB {
 	)
 	if err != nil {
 		t.Fatalf("Failed to migrate database: %v", err)
+	}
+
+	err = db.Exec("SET FOREIGN_KEY_CHECKS = 0").Error
+	if err != nil {
+		t.Fatalf("Failed to disable foreign key checks: %v", err)
+	}
+
+	tables := []string{
+		"distributor_rewards", "distributor_links", "distributor_level_rewards", "distributor_applications", "distributors",
+		"sync_logs", "rewards", "orders", "campaigns",
+		"member_merge_requests", "member_brand_links", "member_tag_links", "member_profiles", "member_tags", "members",
+		"export_requests", "withdrawals", "verification_records", "poster_template_configs", "poster_records", "poster_templates",
+		"feedback_tag_relations", "feedback_tags", "feature_usage_stats", "feature_satisfaction_surveys", "faq_items", "user_feedback",
+		"password_histories", "password_policies", "user_sessions", "login_attempts", "security_events", "audit_logs",
+		"role_menus", "menus", "role_permissions", "permissions", "user_roles", "user_brands", "brand_assets", "brands", "roles", "users",
+	}
+	for _, table := range tables {
+		if execErr := db.Exec("TRUNCATE TABLE " + table).Error; execErr != nil {
+			t.Fatalf("Failed to truncate table %s: %v", table, execErr)
+		}
+	}
+
+	err = db.Exec("SET FOREIGN_KEY_CHECKS = 1").Error
+	if err != nil {
+		t.Fatalf("Failed to enable foreign key checks: %v", err)
 	}
 
 	return db
@@ -207,7 +236,7 @@ func TestOrderCRUD(t *testing.T) {
 	campaign := &Campaign{BrandId: brand.Id, Name: "Test", Status: "active", StartTime: time.Now(), EndTime: time.Now().Add(24 * time.Hour)}
 	db.Create(campaign)
 
-	order := &Order{CampaignId: campaign.Id, Phone: "13800138000", Amount: 100.00, PayStatus: "paid", Status: "active"}
+	order := &Order{CampaignId: campaign.Id, Phone: "13800138000", FormData: "{}", Amount: 100.00, PayStatus: "paid", Status: "active"}
 	if err := db.Create(order).Error; err != nil {
 		t.Fatalf("Failed to create order: %v", err)
 	}

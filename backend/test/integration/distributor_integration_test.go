@@ -38,6 +38,23 @@ func (suite *DistributorIntegrationTestSuite) SetupSuite() {
 	suite.Require().NoError(err)
 
 	suite.db = db
+}
+
+func (suite *DistributorIntegrationTestSuite) SetupTest() {
+	suite.Require().NoError(suite.db.Exec("SET FOREIGN_KEY_CHECKS = 0").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE distributor_links").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE distributor_rewards").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE distributors").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE user_balances").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE rewards").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE orders").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE campaigns").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE user_brands").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE user_roles").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE roles").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE brands").Error)
+	suite.Require().NoError(suite.db.Exec("TRUNCATE TABLE users").Error)
+	suite.Require().NoError(suite.db.Exec("SET FOREIGN_KEY_CHECKS = 1").Error)
 	suite.createTestData()
 }
 
@@ -57,7 +74,7 @@ func (suite *DistributorIntegrationTestSuite) createTestData() {
 		{Id: 7, Username: "user7", Phone: "13800000007", Email: "user7@test.com", RealName: "用户7", Role: "participant", Status: "active"},
 	}
 	for _, user := range users {
-		suite.db.Create(&user)
+		suite.Require().NoError(suite.db.Create(&user).Error)
 	}
 
 	roles := []model.Role{
@@ -67,7 +84,7 @@ func (suite *DistributorIntegrationTestSuite) createTestData() {
 		{ID: 4, Name: "分销商", Code: "distributor"},
 	}
 	for _, role := range roles {
-		suite.db.Create(&role)
+		suite.Require().NoError(suite.db.Create(&role).Error)
 	}
 
 	userRoles := []model.UserRole{
@@ -80,14 +97,14 @@ func (suite *DistributorIntegrationTestSuite) createTestData() {
 		{UserID: 7, RoleID: 3},
 	}
 	for _, ur := range userRoles {
-		suite.db.Create(&ur)
+		suite.Require().NoError(suite.db.Create(&ur).Error)
 	}
 
 	brands := []model.Brand{
 		{Id: 1, Name: "品牌A", Status: "active"},
 	}
 	for _, brand := range brands {
-		suite.db.Create(&brand)
+		suite.Require().NoError(suite.db.Create(&brand).Error)
 	}
 
 	userBrands := []model.UserBrand{
@@ -100,7 +117,7 @@ func (suite *DistributorIntegrationTestSuite) createTestData() {
 		{UserId: 7, BrandId: 1},
 	}
 	for _, ub := range userBrands {
-		suite.db.Create(&ub)
+		suite.Require().NoError(suite.db.Create(&ub).Error)
 	}
 
 	distributionRewards := `{"1": 10.0, "2": 5.0, "3": 3.0}`
@@ -121,7 +138,7 @@ func (suite *DistributorIntegrationTestSuite) createTestData() {
 		},
 	}
 	for _, campaign := range campaigns {
-		suite.db.Create(&campaign)
+		suite.Require().NoError(suite.db.Create(&campaign).Error)
 	}
 
 	for i := 1; i <= 7; i++ {
@@ -131,7 +148,7 @@ func (suite *DistributorIntegrationTestSuite) createTestData() {
 			TotalReward: 0.0,
 			Version:     0,
 		}
-		suite.db.Create(balance)
+		suite.Require().NoError(suite.db.Create(balance).Error)
 	}
 }
 
@@ -224,6 +241,7 @@ func (suite *DistributorIntegrationTestSuite) TestDistributorRewardRecord() {
 		Id:              1,
 		CampaignId:      1,
 		Phone:           "13800000001",
+		FormData:        "{}",
 		DistributorPath: "1",
 		Status:          "paid",
 		PayStatus:       "paid",
@@ -278,6 +296,7 @@ func (suite *DistributorIntegrationTestSuite) TestUserBalanceUpdate() {
 		Id:              2,
 		CampaignId:      1,
 		Phone:           "13800000002",
+		FormData:        "{}",
 		DistributorPath: "1",
 		Status:          "paid",
 		PayStatus:       "paid",
@@ -386,6 +405,7 @@ func (suite *DistributorIntegrationTestSuite) TestOrderWithDistributorPath() {
 		Id:              3,
 		CampaignId:      1,
 		Phone:           "13800000004",
+		FormData:        "{}",
 		DistributorPath: "1,2,3",
 		Status:          "paid",
 		PayStatus:       "paid",
@@ -462,6 +482,7 @@ func (suite *DistributorIntegrationTestSuite) TestDistributorStatusRestriction()
 		Id:              4,
 		CampaignId:      1,
 		Phone:           "13800000005",
+		FormData:        "{}",
 		DistributorPath: "4",
 		Status:          "paid",
 		PayStatus:       "paid",
@@ -476,7 +497,7 @@ func (suite *DistributorIntegrationTestSuite) TestDistributorStatusRestriction()
 }
 
 func (suite *DistributorIntegrationTestSuite) TestDistributionDisabledCampaign() {
-	distributionRewardsDisabled := ""
+	distributionRewardsDisabled := "{}"
 
 	campaignNoDist := &model.Campaign{
 		Id:                  2,
@@ -507,6 +528,7 @@ func (suite *DistributorIntegrationTestSuite) TestDistributionDisabledCampaign()
 		Id:              5,
 		CampaignId:      2,
 		Phone:           "13800000006",
+		FormData:        "{}",
 		DistributorPath: "5",
 		Status:          "paid",
 		PayStatus:       "paid",
