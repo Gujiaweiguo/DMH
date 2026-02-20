@@ -8,7 +8,6 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/godror/godror v0.49.6
 	github.com/golang-jwt/jwt/v4 v4.5.0
-	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/microsoft/go-mssqldb v1.9.5
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
@@ -16,7 +15,6 @@ require (
 	github.com/zeromicro/go-zero v1.6.0
 	golang.org/x/crypto v0.38.0
 	gorm.io/driver/mysql v1.6.0
-	gorm.io/driver/sqlite v1.5.4
 	gorm.io/gorm v1.30.0
 )
 

@@ -52,6 +52,8 @@ export default defineConfig({
         'views/MemberExportView.tsx',
         'components/Sidebar.tsx',
         'components/RolePreview.tsx',
+        'components/MobilePreview.tsx',
+        'components/DynamicMenu.tsx',
         'services/axios.ts',
       ],
     },
