@@ -3,14 +3,15 @@ package withdrawal
 import (
 	"bytes"
 	"context"
-	"dmh/api/internal/handler/testutil"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"dmh/model"
@@ -20,6 +21,7 @@ import (
 )
 
 func setupWithdrawalHandlerTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
 	db := testutil.SetupGormTestDB(t)
 
 	err := db.AutoMigrate(&model.Withdrawal{}, &model.User{}, &model.Brand{}, &model.Distributor{}, &model.UserBalance{})
@@ -30,10 +32,10 @@ func setupWithdrawalHandlerTestDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func createTestUserForWithdrawal(t *testing.T, db *gorm.DB, username string) *model.User {
+func createTestUserForWithdrawal(t *testing.T, db *gorm.DB, usernamePrefix string) *model.User {
 	t.Helper()
 	user := &model.User{
-		Username: username,
+		Username: testutil.GenUniqueUsername(usernamePrefix),
 		Password: "hashed_password",
 		Phone:    testutil.GenUniquePhone(),
 		Role:     "participant",
@@ -45,9 +47,10 @@ func createTestUserForWithdrawal(t *testing.T, db *gorm.DB, username string) *mo
 	return user
 }
 
-func createTestBrandForWithdrawal(t *testing.T, db *gorm.DB, name string) *model.Brand {
+func createTestBrandForWithdrawal(t *testing.T, db *gorm.DB, namePrefix string) *model.Brand {
+	t.Helper()
 	brand := &model.Brand{
-		Name:   name,
+		Name:   namePrefix + fmt.Sprintf("_%d", time.Now().UnixNano()),
 		Status: "active",
 	}
 	if err := db.Create(brand).Error; err != nil {

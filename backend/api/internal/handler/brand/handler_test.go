@@ -1,7 +1,6 @@
 package brand
 
 import (
-	"dmh/api/internal/handler/testutil"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -9,7 +8,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"dmh/api/internal/handler/testutil"
 	"dmh/api/internal/svc"
 	"dmh/api/internal/types"
 	"dmh/model"
@@ -19,6 +20,7 @@ import (
 )
 
 func setupBrandHandlerTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
 	db := testutil.SetupGormTestDB(t)
 
 	err := db.AutoMigrate(&model.Brand{}, &model.BrandAsset{}, &model.Campaign{}, &model.Order{})
@@ -26,12 +28,15 @@ func setupBrandHandlerTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
 
+	db.Exec("DELETE FROM brands")
+
 	return db
 }
 
 func createTestBrandForHandler(t *testing.T, db *gorm.DB, name string) *model.Brand {
+	t.Helper()
 	brand := &model.Brand{
-		Name:   name,
+		Name:   name + fmt.Sprintf("_%d", time.Now().UnixNano()),
 		Status: "active",
 	}
 	if err := db.Create(brand).Error; err != nil {
